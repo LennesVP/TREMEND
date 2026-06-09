@@ -31,7 +31,7 @@ Si TREMEND Toolkit te ha salvado la vida o te ha ahorrado horas de trabajo en tu
 
 **Opciones de Donación:**
 
-[![MercadoPago](https://img.shields.io/badge/MercadoPago-Donar_un_Café-00B1EA?style=for-the-badge&logo=mercadopago)](link.mercadopago.com.co/tremend)
+[![MercadoPago](https://img.shields.io/badge/MercadoPago-Donar_un_Café-00B1EA?style=for-the-badge&logo=mercadopago)][link.mercadopago.com.co/tremend]
 
 * 🟣 **Transferencia:** LLave De Bre-B: @LVP671
 
