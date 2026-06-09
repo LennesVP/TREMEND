@@ -1,3 +1,5 @@
+
+```bat
 @echo off
 title Sincronizador GitHub - TREMEND
 color 0A
@@ -27,6 +29,9 @@ git add .
 
 echo [*] Creando punto de restauracion (Commit)...
 git commit -m "%mensaje%"
+
+echo [*] Sincronizando previamente con la nube (Pull)...
+git pull --rebase origin main
 
 echo [*] Inyectando codigo en los servidores de GitHub (Push)...
 git push
