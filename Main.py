@@ -1,4 +1,5 @@
 import os
+import time
 import sys
 import ctypes
 import shutil
@@ -1191,29 +1192,42 @@ ctk.CTkButton(sidebar, text="🛠️ Soporte Técnico", fg_color="transparent", 
 cargar_categoria_redes()
 
 def verificar_actualizaciones():
+    # Importamos todo aquí adentro para evitar problemas
+    import urllib.request
+    import time
+    from tkinter import messagebox
+    import webbrowser
+
     try:
-        # Consulta el archivo version.txt crudo de tu GitHub
-        url = "https://raw.githubusercontent.com/LennesVP/TREMEND/main/version.txt"
-        req = urllib.request.Request(url, headers={'Cache-Control': 'no-cache'})
-        with urllib.request.urlopen(req, timeout=3) as response:
+        # 1. Enlace con reloj incluido para romper la memoria caché de GitHub
+        url = f"https://raw.githubusercontent.com/LennesVP/TREMEND/main/version.txt?t={time.time()}"
+        
+        # 2. EL DISFRAZ MAESTRO: Nos hacemos pasar por un navegador de Windows
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Cache-Control': 'no-cache'
+        }
+        
+        # 3. Lanzamos la petición a la nube
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=5) as response:
             version_nube = response.read().decode('utf-8').strip()
         
-        # Si la nube tiene un número mayor que el programa, lanza la alerta
+        # 4. Comparamos las versiones
         if version_nube != VERSION_ACTUAL:
             respuesta = messagebox.askyesno(
-                "Actualización Crítica Disponible", 
-                f"¡Hay un nuevo parche disponible para TREMEND!\n\n"
-                f"Tu versión: {VERSION_ACTUAL}\n"
-                f"Versión nueva: {version_nube}\n\n"
-                f"¿Deseas descargar la nueva versión mejorada ahora?"
+                "¡Actualización Crítica Disponible!", 
+                f"¡Hay un nuevo parche disponible para TREMEND!\n\nTu versión local: {VERSION_ACTUAL}\nVersión en la nube: {version_nube}\n\n¿Deseas descargarla ahora?"
             )
             if respuesta:
                 webbrowser.open("https://github.com/LennesVP/TREMEND")
-    except Exception:
-        pass # Si no hay internet o GitHub falla, el programa arranca normal sin molestar
+        else:
+            # 5. MODO DEBUG: Si logra conectarse pero las versiones son iguales, te avisará
+            messagebox.showinfo("Prueba Exitosa", f"Conexión perfecta con GitHub.\nAmbas versiones son la {version_nube}")
 
-# Le decimos a la app que corra este chequeo 1 segundo después de abrirse
-app.after(1000, verificar_actualizaciones)
+    except Exception as e:
+        # 6. CHIVATO DE ERROR: Si algo falla (internet, firewall), nos dirá exactamente por qué
+        messagebox.showerror("Error de Diagnóstico", f"Fallo al leer la nube:\n{e}")
 
 def mostrar_filosofia():
     # Creamos una ventana emergente profesional
