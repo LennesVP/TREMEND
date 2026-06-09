@@ -16,6 +16,12 @@ import string
 import tkinter as tk
 from tkinter import simpledialog
 import customtkinter as ctk
+import urllib.request
+import webbrowser
+from tkinter import messagebox
+
+# Define la versión de este archivo físico
+VERSION_ACTUAL = "2.0"
 
 # ============================================================================
 # 0. ESCUDO DE ADMINISTRADOR AUTOMÁTICO (UAC)
@@ -1183,4 +1189,67 @@ ctk.CTkButton(sidebar, text="📦 Software/Licencias", fg_color="transparent", b
 ctk.CTkButton(sidebar, text="🛠️ Soporte Técnico", fg_color="transparent", border_width=1, command=cargar_categoria_soporte).pack(pady=5, padx=20, fill="x")
 
 cargar_categoria_redes()
+
+def verificar_actualizaciones():
+    try:
+        # Consulta el archivo version.txt crudo de tu GitHub
+        url = "https://raw.githubusercontent.com/LennesVP/TREMEND/main/version.txt"
+        req = urllib.request.Request(url, headers={'Cache-Control': 'no-cache'})
+        with urllib.request.urlopen(req, timeout=3) as response:
+            version_nube = response.read().decode('utf-8').strip()
+        
+        # Si la nube tiene un número mayor que el programa, lanza la alerta
+        if version_nube != VERSION_ACTUAL:
+            respuesta = messagebox.askyesno(
+                "Actualización Crítica Disponible", 
+                f"¡Hay un nuevo parche disponible para TREMEND!\n\n"
+                f"Tu versión: {VERSION_ACTUAL}\n"
+                f"Versión nueva: {version_nube}\n\n"
+                f"¿Deseas descargar la nueva versión mejorada ahora?"
+            )
+            if respuesta:
+                webbrowser.open("https://github.com/LennesVP/TREMEND")
+    except Exception:
+        pass # Si no hay internet o GitHub falla, el programa arranca normal sin molestar
+
+# Le decimos a la app que corra este chequeo 1 segundo después de abrirse
+app.after(1000, verificar_actualizaciones)
+
+def mostrar_filosofia():
+    # Creamos una ventana emergente profesional
+    ventana_info = ctk.CTkToplevel(app)
+    ventana_info.title("Filosofía del Proyecto")
+    ventana_info.geometry("500x250")
+    ventana_info.attributes("-topmost", True) # Se mantiene por encima de la app
+    ventana_info.resizable(False, False)
+    
+    # Título interno
+    titulo = ctk.CTkLabel(ventana_info, text="El Origen de TREMEND", font=("Arial", 20, "bold"), text_color="#00B1EA")
+    titulo.pack(pady=(20, 10))
+    
+    # Tu texto inmortalizado
+    texto_filosofia = (
+        "Este proyecto está impulsado por ideas y por el poder de la inteligencia "
+        "artificial, conocida como Gemini Advanced.\n\n"
+        "Nuestro enfoque es claro: aprovechar las herramientas actuales para dar "
+        "vida a nuestras ideas y, cuando esas herramientas no existan, empezar "
+        "nosotros mismos con un boceto."
+    )
+    
+    # Renderizado del texto
+    lbl_texto = ctk.CTkLabel(ventana_info, text=texto_filosofia, font=("Arial", 14), wraplength=450, justify="center")
+    lbl_texto.pack(padx=20, pady=10)
+
+    # Botón de Filosofía (Colócalo al final de tu barra lateral)
+btn_filosofia = ctk.CTkButton(
+    sidebar, 
+    text="💡 Filosofía de TREMEND", 
+    command=mostrar_filosofia, 
+    fg_color="transparent", 
+    border_width=1, 
+    border_color="#00B1EA",
+    hover_color="#1E3A8A"
+)
+btn_filosofia.pack(side="bottom", pady=20, padx=20)
+
 app.mainloop()
