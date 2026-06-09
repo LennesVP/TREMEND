@@ -22,7 +22,7 @@ import webbrowser
 from tkinter import messagebox
 
 # Define la versión de este archivo físico
-VERSION_ACTUAL = "2.0"
+VERSION_ACTUAL = "2.2"
 
 # ============================================================================
 # 0. ESCUDO DE ADMINISTRADOR AUTOMÁTICO (UAC)
@@ -815,53 +815,103 @@ def cargar_categoria_redes():
         if dest: abrir_consola_y_ejecutar("LATENCIA", lambda log: logica_auditoria_latencia(log, dest))
 
     # --- RENDEREIZADO DE BOTONES ---
-    crear_boton_herramienta("1. Info Básica de Red e IP", logica_info_red, "INFO DE RED", "Muestra IP local y pública.", "[Autor: Python / MS] Usa Sockets nativos y consulta API externa para ignorar NAT.")
-    crear_boton_herramienta("2. Reparación Total de Red", logica_reparacion_red, "REPARAR RED", "Arregla internet cuando falla.", "[Autor: Microsoft OS] Ejecuta FlushDNS, Winsock Reset e IP Renew.")
     
+    t_red1_n = "Muestra al instante la IP local de tu equipo y tu dirección IP pública real en internet. Útil para configuraciones y diagnósticos rápidos."
+    t_red1_e = "[Autor: Python/MS] Emplea Sockets nativos para resolver el hostname y realiza una petición REST a api.ipify.org para evadir la NAT del router y exponer la IP WAN."
+    crear_boton_herramienta("1. Info Básica de Red e IP", logica_info_red, "INFO DE RED", t_red1_n, t_red1_e)
+    
+    t_red2_n = "Soluciona problemas de conexión a internet con un solo clic. Limpia configuraciones atascadas y solicita una nueva dirección de red al router."
+    t_red2_e = "[Autor: Microsoft OS] Ejecuta una secuencia progresiva de ipconfig /flushdns, reset de la pila TCP/IP (Winsock) y renovación DHCP para mitigar conflictos."
+    crear_boton_herramienta("2. Reparación Total de Red", logica_reparacion_red, "REPARAR RED", t_red2_n, t_red2_e)
+    
+    t_red3_n = "Verifica si una página web o servidor está en línea y responde correctamente, con la opción adicional de escanear puertos específicos."
+    t_red3_e = "[Autor: Microsoft OS] Llama a Test-NetConnection. Permite trazar latencia ICMP o auditar el estado de puertos TCP evadiendo bloqueos básicos de Firewall."
     b3 = ctk.CTkButton(tools_frame, text="3. Prueba de Conectividad (Ping / TCP)", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_ping); b3.pack(fill="x", pady=5)
-    b3.bind("<Enter>", lambda e: on_enter(e, "PING Y TCP", "Verifica si un servidor responde.", "[Autor: Microsoft OS] Ejecuta Test-NetConnection evadiendo bloqueos ICMP.")); b3.bind("<Leave>", on_leave)
+    b3.bind("<Enter>", lambda e: on_enter(e, "PING Y TCP", t_red3_n, t_red3_e)); b3.bind("<Leave>", on_leave)
 
-    crear_boton_herramienta("4. Monitor Conexiones TCP", logica_conexiones_tcp, "MONITOR TCP", "Mira quién usa red.", "[Autor: Microsoft OS] Get-NetTCPConnection filtrado por Estado Establecido.")
+    t_red4_n = "Escanea y te muestra en tiempo real qué programas de tu computadora están conectados a internet o consumiendo ancho de banda en este momento."
+    t_red4_e = "[Autor: Microsoft OS] Filtra la tabla de enrutamiento mediante Get-NetTCPConnection en estado Established y cruza el PID para revelar el ejecutable subyacente."
+    crear_boton_herramienta("4. Monitor Conexiones TCP", logica_conexiones_tcp, "MONITOR TCP", t_red4_n, t_red4_e)
     
+    t_red5_n = "Si un programa no funciona porque 'el puerto está en uso', esta herramienta detecta exactamente qué aplicación oculta lo está bloqueando."
+    t_red5_e = "[Autor: Microsoft OS] Interroga puertos locales activos y extrae el OwningProcess para mapear la ruta física del binario que mantiene el socket ocupado."
     b5 = ctk.CTkButton(tools_frame, text="5. Identificar Proceso por Puerto", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_puerto_proceso); b5.pack(fill="x", pady=5)
-    b5.bind("<Enter>", lambda e: on_enter(e, "RASTREO PUERTO", "Qué bloquea un puerto.", "[Autor: Microsoft OS] Cruza Get-NetTCPConnection con PID en Get-Process.")); b5.bind("<Leave>", on_leave)
+    b5.bind("<Enter>", lambda e: on_enter(e, "RASTREO PUERTO", t_red5_n, t_red5_e)); b5.bind("<Leave>", on_leave)
 
-    crear_boton_herramienta("6. Extractor Forense Wi-Fi", logica_wifi_forense, "WI-FI FORENSE", "Contraseñas guardadas.", "[Autor: Microsoft OS] Subprocess de netsh wlan parseando llave en texto claro.")
+    t_red6_n = "Recupera y muestra al instante todas las contraseñas de las redes Wi-Fi a las que esta computadora se ha conectado en el pasado."
+    t_red6_e = "[Autor: Microsoft OS] Parsea la salida de netsh wlan show profiles, iterando sobre cada SSID guardado para extraer el Key Content en texto plano."
+    crear_boton_herramienta("6. Extractor Forense Wi-Fi", logica_wifi_forense, "WI-FI FORENSE", t_red6_n, t_red6_e)
     
+    t_red7_n = "Genera un código QR con el nombre y contraseña de una red para que tus invitados se conecten escaneándolo rápidamente con su celular."
+    t_red7_e = "[Autor: goqr.me API] Ensambla una URI bajo el estándar WIFI:T:WPA y descarga el binario PNG generado por la API REST para su rápida visualización."
     b7 = ctk.CTkButton(tools_frame, text="7. Código QR para Wi-Fi", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_qr_wifi); b7.pack(fill="x", pady=5)
-    b7.bind("<Enter>", lambda e: on_enter(e, "QR WI-FI", "Crea código QR de conexión.", "[Autor: goqr.me API] Ensambla URI WPA y descarga archivo codificado PNG.")); b7.bind("<Leave>", on_leave)
+    b7.bind("<Enter>", lambda e: on_enter(e, "QR WI-FI", t_red7_n, t_red7_e)); b7.bind("<Leave>", on_leave)
 
-    crear_boton_herramienta("8. Geolocalizar IP", logica_geolocalizar_ip, "GEOLOCALIZACIÓN", "Ciudad de tu conexión.", "[Autor: ip-api.com] Petición REST extrayendo Latitud y ASN.")
-    crear_boton_herramienta("9. Diagnóstico Wi-Fi (WlanReport)", logica_reporte_wifi, "REPORTE WI-FI", "Reporte de caídas de red.", "[Autor: Microsoft OS] Motor ETW compilando eventos en HTML oculto.")
+    t_red8_n = "Rastrea cualquier dirección IP para descubrir de qué país, ciudad, coordenadas geográficas y proveedor de internet proviene exactamente la conexión."
+    t_red8_e = "[Autor: ip-api.com] Realiza una triangulación mediante peticiones GET al endpoint JSON de IP-API, extrayendo metadatos ASN y zona horaria."
+    crear_boton_herramienta("8. Geolocalizar IP", logica_geolocalizar_ip, "GEOLOCALIZACIÓN", t_red8_n, t_red8_e)
     
+    t_red9_n = "Genera un reporte web muy profesional sobre la salud de tu tarjeta Wi-Fi, mostrando un historial de caídas y desconexiones recientes."
+    t_red9_e = "[Autor: Microsoft OS] Invoca el motor nativo ETW (Event Tracing for Windows) compilando un archivo HTML con el log de transiciones de red."
+    crear_boton_herramienta("9. Diagnóstico Wi-Fi (WlanReport)", logica_reporte_wifi, "REPORTE WI-FI", t_red9_n, t_red9_e)
+    
+    t_red10_n = "Convierte el nombre de cualquier página web o dominio en su dirección IP numérica real de servidores (Resolución Inversa)."
+    t_red10_e = "[Autor: Microsoft OS] Utiliza Resolve-DnsName interrumpiendo la caché local para interrogar directamente a los servidores raíz sobre registros A y AAAA."
     b10 = ctk.CTkButton(tools_frame, text="10. Resolución DNS", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_dns_res); b10.pack(fill="x", pady=5)
-    b10.bind("<Enter>", lambda e: on_enter(e, "RESOLVER DNS", "Descubre la IP de una web.", "[Autor: Microsoft OS] Interroga servidores raíz mediante Resolve-DnsName.")); b10.bind("<Leave>", on_leave)
+    b10.bind("<Enter>", lambda e: on_enter(e, "RESOLVER DNS", t_red10_n, t_red10_e)); b10.bind("<Leave>", on_leave)
     
+    t_red11_n = "Bloquea el acceso a páginas web específicas (como redes sociales o sitios peligrosos) modificando de forma nativa los archivos internos de Windows."
+    t_red11_e = "[Autor: OS Base] Inyecta un Sinkhole DNS en la ruta nativa drivers/etc/hosts, redirigiendo las peticiones del dominio a la interfaz loopback."
     b11 = ctk.CTkButton(tools_frame, text="11. Bloqueador de Webs (Hosts)", height=45, fg_color="#1E3A8A", hover_color="#880000", command=btn_bloquear_web); b11.pack(fill="x", pady=5)
-    b11.bind("<Enter>", lambda e: on_enter(e, "BLOQUEO WEB", "Bloquea páginas con loopback.", "[Autor: OS Base] Sinkhole inyectado directamente en drivers/etc/hosts.")); b11.bind("<Leave>", on_leave)
+    b11.bind("<Enter>", lambda e: on_enter(e, "BLOQUEO WEB", t_red11_n, t_red11_e)); b11.bind("<Leave>", on_leave)
 
+    t_red12_n = "Crea reglas rápidas para permitir que juegos o programas compartidos se comuniquen libremente sin que el antivirus los bloquee."
+    t_red12_e = "[Autor: Microsoft OS] Inserta reglas directas Inbound en el Windows Defender Firewall mediante directivas netsh, habilitando el protocolo y puerto definidos."
     b12 = ctk.CTkButton(tools_frame, text="12. Abrir Puertos Firewall", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_abrir_puerto); b12.pack(fill="x", pady=5)
-    b12.bind("<Enter>", lambda e: on_enter(e, "FIREWALL REGLA", "Abre paso en Firewall.", "[Autor: Microsoft OS] Inyección de directivas Inbound vía netsh.")); b12.bind("<Leave>", on_leave)
+    b12.bind("<Enter>", lambda e: on_enter(e, "FIREWALL REGLA", t_red12_n, t_red12_e)); b12.bind("<Leave>", on_leave)
 
-    crear_boton_herramienta("13. Purgar Historial Wi-Fi", logica_purgar_wifi_historial, "PURGAR WI-FI", "Borra todas las redes memorizadas.", "[Autor: Microsoft OS] Ejecuta profile name=* i=* en netsh.")
-    crear_boton_herramienta("14. Reset Firewall a Fábrica", logica_reset_firewall, "RESET FIREWALL", "Limpia bloqueos de terceros.", "[Autor: Microsoft OS] Advfirewall reset destruyendo GPOs externas.")
-    crear_boton_herramienta("15. Purgar Caché ARP", logica_limpiar_arp, "PURGAR ARP", "Fuerza re-descubrimiento de la red.", "[Autor: Protocolo ARP] Eliminación de enrutamiento estático local.")
-    crear_boton_herramienta("16. Optimizar DNS (Cloudflare)", logica_dns_cloudflare, "DNS CLOUDFLARE", "Acelera internet con DNS globales.", "[Autor: Cloudflare Inc] Set-DnsClientServerAddress inyectando 1.1.1.1.")
+    t_red13_n = "Elimina por completo todas las redes memorizadas en tu PC para resolver problemas de conexión por contraseñas viejas o redes duplicadas."
+    t_red13_e = "[Autor: Microsoft OS] Emplea un wildcard en la interfaz CLI de WLAN (profile name=* i=*) para truncar la base de datos de perfiles guardados."
+    crear_boton_herramienta("13. Purgar Historial Wi-Fi", logica_purgar_wifi_historial, "PURGAR WI-FI", t_red13_n, t_red13_e)
     
-    # --- LAS NUEVAS INYECCIONES ---
-    crear_boton_herramienta("17. Gestionar Sesiones SMB", logica_sesiones_smb, "SESIONES SMB", "Mira quién está en tu red corporativa.", "[Autor: Microsoft OS] Enumera sesiones SMB activas extrayendo ClientUserName.")
-    crear_boton_herramienta("18. Radar Wi-Fi en Tiempo Real", logica_radar_wifi, "RADAR WI-FI", "Busca puntos ciegos en la señal Wi-Fi.", "[Autor: Microsoft OS] Loop BSSID leyendo espectro de radiofrecuencia local.")
+    t_red14_n = "Si por error bloqueaste tu propio internet o un programa vital, esto restaura las defensas y bloqueos de Windows a su estado original de fábrica."
+    t_red14_e = "[Autor: Microsoft OS] Elimina políticas corruptas de GPO de terceros mediante un reset absoluto de Advanced Firewall, reconstruyendo las tablas predeterminadas."
+    crear_boton_herramienta("14. Reset Firewall a Fábrica", logica_reset_firewall, "RESET FIREWALL", t_red14_n, t_red14_e)
     
+    t_red15_n = "Obliga a tu computadora a volver a identificar los dispositivos físicos de tu red. Ideal si cambiaste de router y el internet quedó desconectado."
+    t_red15_e = "[Autor: Protocolo ARP] Ejecuta arp -d * requiriendo elevación para vaciar la tabla estática de traducción de direcciones IP a direcciones MAC."
+    crear_boton_herramienta("15. Purgar Caché ARP", logica_limpiar_arp, "PURGAR ARP", t_red15_n, t_red15_e)
+    
+    t_red16_n = "Acelera drásticamente tu velocidad de navegación y salta bloqueos regionales de internet cambiando tus servidores a los ultra rápidos de Cloudflare."
+    t_red16_e = "[Autor: Cloudflare Inc] Inyecta mediante Set-DnsClientServerAddress los resolvers públicos 1.1.1.1 y 1.0.0.1 en todas las interfaces de red físicas."
+    crear_boton_herramienta("16. Optimizar DNS (Cloudflare)", logica_dns_cloudflare, "DNS CLOUDFLARE", t_red16_n, t_red16_e)
+    
+    t_red17_n = "Detecta al instante si alguien más en tu misma red LAN o trabajo está accediendo a tus carpetas compartidas sin permiso o leyendo tus archivos."
+    t_red17_e = "[Autor: Microsoft OS] Audita el servicio Server Message Block (SMB) usando Get-SmbSession, revelando nombres de clientes corporativos conectados."
+    crear_boton_herramienta("17. Gestionar Sesiones SMB", logica_sesiones_smb, "SESIONES SMB", t_red17_n, t_red17_e)
+    
+    t_red18_n = "Escanea a tu alrededor continuamente para ver todas las redes Wi-Fi (incluso las ocultas) y encontrar qué canales están menos saturados."
+    t_red18_e = "[Autor: Microsoft OS] Despliega un loop temporal sobre mode=bssid para realizar barridos de radiofrecuencia, evaluando intensidad de señal y espectro."
+    crear_boton_herramienta("18. Radar Wi-Fi en Tiempo Real", logica_radar_wifi, "RADAR WI-FI", t_red18_n, t_red18_e)
+    
+    t_red19_n = "Si tus juegos tienen lag o tus videollamadas se cortan misteriosamente, esta herramienta envía paquetes continuos para detectar pequeñas caídas ocultas."
+    t_red19_e = "[Autor: Python/ICMP] Combina un loop de Pings discretos con el módulo datetime de Python, logueando milisegundos de respuesta para cazar timeouts intermitentes."
     b19 = ctk.CTkButton(tools_frame, text="19. Auditoría de Latencia (Microcortes)", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_latencia); b19.pack(fill="x", pady=5)
-    b19.bind("<Enter>", lambda e: on_enter(e, "LATENCIA", "Busca caídas de internet con reloj.", "[Autor: Python] Loop ICMP acoplado a datetime nativo evaluando Timeout.")); b19.bind("<Leave>", on_leave)
+    b19.bind("<Enter>", lambda e: on_enter(e, "LATENCIA", t_red19_n, t_red19_e)); b19.bind("<Leave>", on_leave)
 
+    t_red20_n = "Analiza tu propia computadora, o cualquier IP externa, para encontrar vulnerabilidades críticas y puertas traseras dejadas abiertas por posibles virus."
+    t_red20_e = "[Autor: LDVP] Algoritmo Python asíncrono con Sockets nativos para testear puertos estándar TCP. Identifica servicios expuestos utilizando timeouts ultracortos."
     b20 = ctk.CTkButton(tools_frame, text="20. Motor Avanzado de Escaneo (Puertos)", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_escaner); b20.pack(fill="x", pady=5)
-    b20.bind("<Enter>", lambda e: on_enter(e, "ESCÁNER PUERTOS", "Escanea vulnerabilidades en una IP.", "[Autor: Lennes Varela] Algoritmo Python Sockets para escaneo asíncrono.")); b20.bind("<Leave>", on_leave)
+    b20.bind("<Enter>", lambda e: on_enter(e, "ESCÁNER PUERTOS", t_red20_n, t_red20_e)); b20.bind("<Leave>", on_leave)
 
+    t_red21_n = "Transforma cualquier carpeta de tu PC en un servidor rápido para que celulares, TVs u otros dispositivos en tu casa puedan acceder a su contenido."
+    t_red21_e = "[Autor: Microsoft OS] Automatiza el cmdlet New-SmbShare concediendo permisos de Everyone y aprovisiona el tráfico entrante adaptando dinámicamente el Firewall."
     b21 = ctk.CTkButton(tools_frame, text="21. Crear Servidor NAS Compartido", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_nas); b21.pack(fill="x", pady=5)
-    b21.bind("<Enter>", lambda e: on_enter(e, "SERVIDOR NAS", "Comparte una carpeta en la red LAN.", "[Autor: Microsoft OS] Implementa New-SmbShare y altera el Firewall.")); b21.bind("<Leave>", on_leave)
+    b21.bind("<Enter>", lambda e: on_enter(e, "SERVIDOR NAS", t_red21_n, t_red21_e)); b21.bind("<Leave>", on_leave)
 
-    crear_boton_herramienta("22. Auditar Caché DNS (DisplayDNS)", logica_auditar_cache_dns, "AUDITAR DNS", "Mira a qué webs se conectó tu PC.", "[Autor: Microsoft OS] Vuelca el buffer del cliente DNS local a la consola.")
+    t_red22_n = "Revela una lista oculta de todas las páginas web a las que esta computadora se ha conectado recientemente, incluso si borraron el historial del navegador."
+    t_red22_e = "[Autor: Microsoft OS] Ejecuta un volcado directo del búfer interno del resolver DNS de Windows, exponiendo los registros A/CNAME en memoria RAM."
+    crear_boton_herramienta("22. Auditar Caché DNS (DisplayDNS)", logica_auditar_cache_dns, "AUDITAR DNS", t_red22_n, t_red22_e)
 
 def cargar_categoria_mantenimiento():
     limpiar_panel()
