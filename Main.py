@@ -1191,44 +1191,6 @@ ctk.CTkButton(sidebar, text="🛠️ Soporte Técnico", fg_color="transparent", 
 
 cargar_categoria_redes()
 
-def verificar_actualizaciones():
-    # Importamos todo aquí adentro para evitar problemas
-    import urllib.request
-    import time
-    from tkinter import messagebox
-    import webbrowser
-
-    try:
-        # 1. Enlace con reloj incluido para romper la memoria caché de GitHub
-        url = f"https://raw.githubusercontent.com/LennesVP/TREMEND/main/version.txt?t={time.time()}"
-        
-        # 2. EL DISFRAZ MAESTRO: Nos hacemos pasar por un navegador de Windows
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Cache-Control': 'no-cache'
-        }
-        
-        # 3. Lanzamos la petición a la nube
-        req = urllib.request.Request(url, headers=headers)
-        with urllib.request.urlopen(req, timeout=5) as response:
-            version_nube = response.read().decode('utf-8').strip()
-        
-        # 4. Comparamos las versiones
-        if version_nube != VERSION_ACTUAL:
-            respuesta = messagebox.askyesno(
-                "¡Actualización Crítica Disponible!", 
-                f"¡Hay un nuevo parche disponible para TREMEND!\n\nTu versión local: {VERSION_ACTUAL}\nVersión en la nube: {version_nube}\n\n¿Deseas descargarla ahora?"
-            )
-            if respuesta:
-                webbrowser.open("https://github.com/LennesVP/TREMEND")
-        else:
-            # 5. MODO DEBUG: Si logra conectarse pero las versiones son iguales, te avisará
-            messagebox.showinfo("Prueba Exitosa", f"Conexión perfecta con GitHub.\nAmbas versiones son la {version_nube}")
-
-    except Exception as e:
-        # 6. CHIVATO DE ERROR: Si algo falla (internet, firewall), nos dirá exactamente por qué
-        messagebox.showerror("Error de Diagnóstico", f"Fallo al leer la nube:\n{e}")
-
 def mostrar_filosofia():
     # Creamos una ventana emergente profesional
     ventana_info = ctk.CTkToplevel(app)
@@ -1265,5 +1227,50 @@ btn_filosofia = ctk.CTkButton(
     hover_color="#1E3A8A"
 )
 btn_filosofia.pack(side="bottom", pady=20, padx=20)
+
+# =========================================================================
+# EL RADAR DE ACTUALIZACIONES (COMPLETO Y BLINDADO)
+# =========================================================================
+def verificar_actualizaciones():
+    import urllib.request, time, webbrowser
+    from tkinter import messagebox
+    
+    try:
+        # 1. Rompe-caché y Disfraz de navegador
+        url = f"https://raw.githubusercontent.com/LennesVP/TREMEND/main/version.txt?t={time.time()}"
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        
+        # 2. Lectura de la nube
+        with urllib.request.urlopen(req, timeout=5) as response:
+            version_nube = response.read().decode('utf-8').strip()
+        
+        # 3. Decisiones (¡Con alertas garantizadas!)
+        if version_nube != VERSION_ACTUAL:
+            respuesta = messagebox.askyesno(
+                "¡Actualización Disponible!", 
+                f"¡Tu radar detectó una nueva versión!\n\nTu PC: {VERSION_ACTUAL}\nGitHub: {version_nube}\n\n¿Deseas descargarla ahora?"
+            )
+            if respuesta: webbrowser.open("https://github.com/LennesVP/TREMEND")
+        else:
+            messagebox.showinfo("Radar de Nube", f"Conexión perfecta con GitHub.\nTu versión {VERSION_ACTUAL} está al día.")
+            
+    except Exception as e:
+        messagebox.showerror("Error de Radar", f"Fallo al conectar con GitHub. Detalle:\n{e}")
+
+# 4. EL BOTÓN MANUAL (Amarillo brillante)
+btn_actualizar = ctk.CTkButton(
+    sidebar, 
+    text="🔄 Buscar Actualizaciones", 
+    command=verificar_actualizaciones, 
+    fg_color="transparent", 
+    border_width=1, 
+    border_color="#FFDD00",
+    text_color="#FFDD00",
+    hover_color="#AA8800"
+)
+btn_actualizar.pack(side="bottom", pady=(0, 10), padx=20)
+
+# 5. LA CHISPA DE ARRANQUE AUTOMÁTICO (La que faltaba)
+app.after(1500, verificar_actualizaciones)
 
 app.mainloop()
