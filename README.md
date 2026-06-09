@@ -26,5 +26,26 @@ Este proyecto no sería posible sin el trabajo de la comunidad Open Source. TREM
 * **Microsoft Corp:** Por las librerías nativas Sysinternals, módulos WMI/CIM y comandos core del sistema operativo.
 * **Cloudflare / ip-api / goqr.me:** Por las APIs públicas utilizadas en los módulos de red.
 
+## ☕ Apoya el Proyecto
+Si TREMEND Toolkit te ha salvado la vida o te ha ahorrado horas de trabajo en tu taller, considera apoyar el desarrollo. Tu donación me permite investigar nuevas vulnerabilidades y mantener la herramienta gratuita. 
+
+**Opciones de Donación:**
+
+[![MercadoPago](https://img.shields.io/badge/MercadoPago-Donar_un_Café-00B1EA?style=for-the-badge&logo=mercadopago)](link.mercadopago.com.co/tremend)
+[![BuyMeACoffee](https://img.shields.io/badge/Buy_Me_A_Coffee-Apoyar_Internacional-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](AQUI_PEGA_TU_LINK_DE_BUYMEACOFFEE)
+
+* 🟣 **Transferencia:** LLave De Bre-B: @LVP671
+
+## 🐛 Soporte y Reporte de Errores (Bugs)
+¿Una herramienta no funciona como debería? ¿Tienes una idea brillante para una nueva función? ¡Quiero escucharte!
+Para mantener un orden técnico profesional, atiendo todo el soporte por correo electrónico. 
+
+**Si reportas un error, por favor incluye:**
+1. Una captura de pantalla del error o comportamiento extraño.
+2. Qué botón presionaste.
+3. Qué versión de Windows estabas usando.
+
+📧 **Correo Oficial:** [aqui_tu_correo_de_soporte_github@gmail.com](mailto:tremend67@gmail.com)
+
 ---
 *⚠️ **Aviso de Responsabilidad:** Herramienta diseñada para fines educativos y auditorías autorizadas. El uso indebido de las opciones forenses o destructivas es responsabilidad exclusiva del usuario final.*
