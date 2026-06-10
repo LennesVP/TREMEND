@@ -22,7 +22,7 @@ import webbrowser
 from tkinter import messagebox
 
 # Define la versión de este archivo físico
-VERSION_ACTUAL = "2.3"
+VERSION_ACTUAL = "2.4"
 
 # ============================================================================
 # 0. ESCUDO DE ADMINISTRADOR AUTOMÁTICO (UAC)
@@ -750,6 +750,55 @@ def logica_ejecutar_portable(log, carpeta, ejecutable):
     except Exception as e:
         log(f"[-] Error de red o archivo no encontrado:\n{e}")
 
+# Variables globales para el efecto "Libro"
+datos_enciclopedia = []
+indice_enciclopedia = 0
+
+def logica_instalar_herramienta(log, carpeta, archivos, comando):
+    import urllib.request, urllib.parse, os, subprocess, shutil
+    
+    # Creamos una carpeta temporal única para no mezclar archivos
+    temp_dir = os.path.join(os.environ.get('TEMP'), "TREMEND_Install")
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+        
+    log(f"\n[*] Preparando entorno de instalación...")
+    
+    try:
+        carpeta_url = urllib.parse.quote(carpeta)
+        
+        # 1. Ciclo de descarga (soporta múltiples archivos)
+        for archivo in archivos:
+            archivo_url = urllib.parse.quote(archivo)
+            url_descarga = f"https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/{carpeta_url}/{archivo_url}"
+            ruta_destino = os.path.join(temp_dir, archivo)
+            
+            log(f"[*] Descargando '{archivo}'...")
+            req = urllib.request.Request(url_descarga, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
+            with urllib.request.urlopen(req, timeout=120) as response, open(ruta_destino, 'wb') as out_file:
+                out_file.write(response.read())
+                
+        log("[+] Archivos descargados en la memoria temporal.")
+        log(f"[*] Inyectando comando en el sistema: {comando}")
+        log("[!] TRABAJANDO... No cierres esta ventana (Las instalaciones pesadas como Office pueden tardar varios minutos).")
+        
+        # 2. Ejecución silenciosa forzando el directorio temporal
+        proceso = subprocess.Popen(comando, shell=True, cwd=temp_dir)
+        proceso.wait()
+        
+        log("\n[+] ¡Instalación finalizada con éxito!")
+        
+    except Exception as e:
+        log(f"[-] Error crítico en red o ejecución:\n{e}")
+        
+    finally:
+        log("[*] Iniciando protocolo de limpieza...")
+        try:
+            shutil.rmtree(temp_dir)
+            log("[+] Archivos de instalación purgados. Cero rastros.")
+        except Exception:
+            log("[-] Algunos archivos temporales están bloqueados. Se borrarán solos al reiniciar el PC.")
+
 # ============================================================================
 # 4. INTERFAZ GRÁFICA Y SISTEMA DE CATEGORÍAS
 # ============================================================================
@@ -1127,41 +1176,7 @@ def cargar_categoria_soporte():
     limpiar_panel()
     ctk.CTkLabel(tools_frame, text="🛠️ Soporte Técnico y Utilidades", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
 
-def cargar_categoria_portables():
-    import urllib.request, json, time
-    global app
-    limpiar_panel()
-    ctk.CTkLabel(tools_frame, text="🧰 Programas Portables (Nube)", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
-    
-    url_catalogo = f"https://raw.githubusercontent.com/LennesVP/Programas_Portables/main/Programas_Portables/catalogo.json?t={time.time()}"
-    
-    try:
-        req = urllib.request.Request(url_catalogo, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
-        datos = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
-        catalogo = json.loads(datos)
-        
-        # MAGIA: Ordenamiento alfabético instantáneo
-        catalogo.sort(key=lambda x: x['nombre'])
-        
-        for index, item in enumerate(catalogo):
-            titulo_boton = f"{index + 1}. {item['nombre']}"
-            
-            # Función puente para asegurar que cada botón ejecute su propio programa
-            def crear_comando(c, e):
-                return lambda log: logica_ejecutar_portable(log, c, e)
-            
-            crear_boton_herramienta(
-                titulo_boton, 
-                crear_comando(item['carpeta'], item['ejecutable']), 
-                item['nombre'].upper(), 
-                item['desc_n'], 
-                item['desc_e']
-            )
-            
-    except Exception as e:
-        ctk.CTkLabel(tools_frame, text=f"Error al conectar con el catálogo en GitHub:\n{e}", text_color="#FF4444").pack(pady=20)
-    
-    # --- CUADROS DE DIÁLOGO NATIVOS ---
+# --- CUADROS DE DIÁLOGO NATIVOS ---
     def btn_destructor():
         ruta = simpledialog.askstring("Destructor", "Ruta EXACTA de la carpeta a destruir:", parent=app)
         if ruta: abrir_consola_y_ejecutar("DESTRUCTOR", lambda log: logica_destructor(log, ruta))
@@ -1251,7 +1266,7 @@ def cargar_categoria_portables():
         confirm = simpledialog.askstring("Sysprep", "Peligro: El PC se apagará y quedará de fábrica.\nEscribe 'CONFIRMAR' para proceder:", parent=app)
         if confirm == "CONFIRMAR": abrir_consola_y_ejecutar("SYSPREP", logica_sysprep)
 
-    # --- TEXTOS LARGOS Y RENDEREIZADO DE BOTONES ---
+# --- TEXTOS LARGOS Y RENDEREIZADO DE BOTONES ---
     t_dest_n = "Hay ocasiones en las que intentas eliminar una carpeta y Windows te lo impide mostrando un error de 'Acceso denegado' o 'El archivo está en uso'. Esto ocurre por protecciones internas. Esta herramienta actúa como un destructor forzado: se salta las reglas del sistema y elimina permanentemente cualquier carpeta bloqueada, virus persistente o archivo rebelde. Solo debes pegar la ruta exacta y el programa la pulverizará sin dejar rastro. Úsala con precaución."
     t_dest_e = "[Autor: Microsoft OS] Ejecuta una toma de posesión forzada mediante los binarios nativos del sistema. Utiliza 'takeown.exe /f /a /r /d y' para reasignar el Owner al grupo de Administradores. Luego, emplea 'icacls.exe' inyectando el SID universal '*S-1-5-32-544:F' para otorgar permisos Full Control sobre el árbol de directorios ignorando las listas ACL previas. Finalmente, invoca la librería 'shutil.rmtree' para vaciar los inodos y eliminar el directorio recursivamente desde la raíz del disco."
     b1 = ctk.CTkButton(tools_frame, text="1. Destructor de Carpetas Rebeldes", height=45, fg_color="#1E3A8A", hover_color="#880000", command=btn_destructor); b1.pack(fill="x", pady=5)
@@ -1294,6 +1309,139 @@ def cargar_categoria_portables():
     t_wipe_e = "[Autor: Microsoft OS] Invoca el algoritmo nativo de cifrado y sobreescritura de sistema de archivos mediante 'cipher.exe /w:C:\\'. Barre los clústeres marcados como libres o no asignados en la MFT del volumen C:, sobrescribiéndolos con múltiples pasadas (ceros, unos y números aleatorios logrando mitigación contra Data Recovery y file carving avanzado en análisis forense)."
     crear_boton_herramienta("10. Borrado Forense Militar (Wipe)", logica_borrado_seguro, "BORRADO WIPE", t_wipe_n, t_wipe_e)
 
+def cargar_categoria_portables():
+    import urllib.request, json, time
+    global app
+    limpiar_panel()
+    ctk.CTkLabel(tools_frame, text="🧰 Programas Portables (Nube)", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
+    
+    url_catalogo = f"https://raw.githubusercontent.com/LennesVP/Programas_Portables/main/Programas_Portables/catalogo.json?t={time.time()}"
+    
+    try:
+        req = urllib.request.Request(url_catalogo, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
+        datos = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
+        catalogo = json.loads(datos)
+        
+        # MAGIA: Ordenamiento alfabético instantáneo
+        catalogo.sort(key=lambda x: x['nombre'])
+        
+        for index, item in enumerate(catalogo):
+            titulo_boton = f"{index + 1}. {item['nombre']}"
+            
+            # Función puente para asegurar que cada botón ejecute su propio programa
+            def crear_comando(c, e):
+                return lambda log: logica_ejecutar_portable(log, c, e)
+            
+            crear_boton_herramienta(
+                titulo_boton, 
+                crear_comando(item['carpeta'], item['ejecutable']), 
+                item['nombre'].upper(), 
+                item['desc_n'], 
+                item['desc_e']
+            )
+            
+    except Exception as e:
+        ctk.CTkLabel(tools_frame, text=f"Error al conectar con el catálogo en GitHub:\n{e}", text_color="#FF4444").pack(pady=20)
+
+def cargar_categoria_enciclopedia():
+    import urllib.request, json, time, threading
+    global app, datos_enciclopedia, indice_enciclopedia
+    
+    limpiar_panel()
+    ctk.CTkLabel(tools_frame, text="📚 Enciclopedia de Herramientas", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
+    
+    # Descargar el índice JSON si aún no lo hemos descargado en esta sesión
+    if not datos_enciclopedia:
+        url_indice = f"https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/enciclopedia.json?t={time.time()}"
+        try:
+            req = urllib.request.Request(url_indice, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
+            respuesta = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
+            datos_enciclopedia = json.loads(respuesta)
+        except Exception as e:
+            ctk.CTkLabel(tools_frame, text=f"Error al conectar con la Nube:\n{e}", text_color="#FF4444").pack(pady=20)
+            return
+
+    if not datos_enciclopedia:
+        ctk.CTkLabel(tools_frame, text="La enciclopedia está vacía.", text_color="#AAAAAA").pack(pady=20)
+        return
+
+    # --- DISEÑO DE LA PÁGINA (El Libro) ---
+    tarjeta_frame = ctk.CTkFrame(tools_frame, fg_color="#1E293B", corner_radius=15)
+    tarjeta_frame.pack(fill="both", expand=True, padx=10, pady=10)
+    
+    lbl_titulo = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 22, "bold"), text_color="#38BDF8", wraplength=550)
+    lbl_titulo.pack(pady=(30, 5), padx=30, anchor="w")
+    
+    lbl_autor = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 14, "italic"), text_color="#94A3B8")
+    lbl_autor.pack(pady=(0, 20), padx=30, anchor="w")
+    
+    lbl_desc = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 15), justify="left", wraplength=550)
+    lbl_desc.pack(pady=10, padx=30, anchor="w")
+    
+    lbl_adv = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 14, "bold"), text_color="#EF4444", justify="left", wraplength=550)
+    lbl_adv.pack(pady=20, padx=30, anchor="w")
+    
+    btn_frame = ctk.CTkFrame(tarjeta_frame, fg_color="transparent")
+    btn_frame.pack(pady=30)
+
+    # --- FUNCIÓN: RENDERIZAR PÁGINA ---
+    def mostrar_pagina(idx):
+        item = datos_enciclopedia[idx]
+        lbl_titulo.configure(text=item['titulo'])
+        lbl_autor.configure(text=f"Autor: {item['autor']}")
+        lbl_desc.configure(text=item['descripcion'])
+        lbl_adv.configure(text=item['advertencia'])
+        
+        for widget in btn_frame.winfo_children():
+            widget.destroy()
+            
+        def accionar_instalacion():
+            # Función puente para la consola negra
+            def comando_puente(log):
+                logica_instalar_herramienta(log, item['carpeta'], item['archivos'], item['comando_instalacion'])
+            
+            # Lanzamos la consola oficial de TREMEND
+            app_consola = ctk.CTkToplevel(app)
+            app_consola.title(f"Instalando: {item['titulo']}")
+            app_consola.geometry("600x400")
+            app_consola.configure(bg="#0F172A")
+            app_consola.attributes("-topmost", True)
+            
+            txt_log = ctk.CTkTextbox(app_consola, width=580, height=380, fg_color="#000000", text_color="#00FF00", font=("Consolas", 12))
+            txt_log.pack(padx=10, pady=10)
+            
+            def log_a_consola(texto):
+                txt_log.insert("end", texto + "\n")
+                txt_log.see("end")
+                
+            # Hilo en segundo plano para no congelar la GUI
+            threading.Thread(target=comando_puente, args=(log_a_consola,), daemon=True).start()
+            
+        ctk.CTkButton(btn_frame, text=f"⬇️ Instalar {item['titulo']}", font=("Arial", 16, "bold"), height=50, fg_color="#10B981", hover_color="#059669", command=accionar_instalacion).pack()
+
+    # --- CONTROLES DEL CARRUSEL ---
+    def cambiar_pagina(direccion):
+        global indice_enciclopedia
+        indice_enciclopedia += direccion
+        if indice_enciclopedia < 0:
+            indice_enciclopedia = len(datos_enciclopedia) - 1
+        elif indice_enciclopedia >= len(datos_enciclopedia):
+            indice_enciclopedia = 0
+        mostrar_pagina(indice_enciclopedia)
+        lbl_contador.configure(text=f"Página {indice_enciclopedia + 1} de {len(datos_enciclopedia)}")
+
+    nav_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    nav_frame.pack(fill="x", pady=20)
+    
+    ctk.CTkButton(nav_frame, text="⬅️ Anterior", width=120, fg_color="#334155", hover_color="#475569", command=lambda: cambiar_pagina(-1)).pack(side="left", padx=30)
+    lbl_contador = ctk.CTkLabel(nav_frame, text="", font=("Arial", 14, "bold"))
+    lbl_contador.pack(side="left", expand=True)
+    ctk.CTkButton(nav_frame, text="Siguiente ➡️", width=120, fg_color="#334155", hover_color="#475569", command=lambda: cambiar_pagina(1)).pack(side="right", padx=30)
+    
+    # Iniciar la lectura del libro
+    mostrar_pagina(indice_enciclopedia)
+    lbl_contador.configure(text=f"Página {indice_enciclopedia + 1} de {len(datos_enciclopedia)}")
+        
 # ============================================================================
 # 6. MENÚ LATERAL Y ARRANQUE
 # ============================================================================
@@ -1306,6 +1454,7 @@ ctk.CTkButton(sidebar, text="🖥️ Diagnóstico", fg_color="transparent", bord
 ctk.CTkButton(sidebar, text="📦 Software/Licencias", fg_color="transparent", border_width=1, command=cargar_categoria_software).pack(pady=5, padx=20, fill="x")
 ctk.CTkButton(sidebar, text="🛠️ Soporte Técnico", fg_color="transparent", border_width=1, command=cargar_categoria_soporte).pack(pady=5, padx=20, fill="x")
 ctk.CTkButton(sidebar, text="🧰 Portables en la Nube", fg_color="transparent", border_width=1, command=cargar_categoria_portables).pack(pady=5, padx=20, fill="x")
+ctk.CTkButton(sidebar, text="📚 Enciclopedia de Herramientas", fg_color="transparent", border_width=1, command=cargar_categoria_enciclopedia).pack(pady=5, padx=20, fill="x")
 
 cargar_categoria_redes()
 
