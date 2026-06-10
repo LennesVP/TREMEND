@@ -17,7 +17,7 @@ TREMEND Toolkit es una suite avanzada, portátil y sigilosa de diagnóstico y so
 
 ## 📥 Opciones de Descarga (Release v2.3)
 
-Para comenzar a utilizar **TREMEND Toolkit**, dirígete a la sección de **[Releases](../../releases/latest)** (Lanzamientos) en la parte derecha de este repositorio. 
+Para comenzar a utilizar **TREMEND Toolkit**, dirígete a la sección de **[Releases](https://github.com/LennesVP/TREMEND/releases/latest)** (Lanzamientos) en la parte derecha de este repositorio. 
 
 Allí encontrarás dos opciones de descarga diseñadas para adaptarse a tu estilo de soporte técnico. Ambas son completamente portables y no requieren instalación:
 
