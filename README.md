@@ -15,6 +15,20 @@ TREMEND Toolkit es una suite avanzada, portátil y sigilosa de diagnóstico y so
 4. **📦 Software y Licencias:** Extracción de licencias OEM, inventario de software a CSV y gestor de paquetes Winget.
 5. **⚙️ Soporte Técnico:** Borrado forense (Wipe), bypass de contraseñas SAM locales, contenedor Sandbox y descargas multimedia de alta fidelidad.
 
+## 📥 Opciones de Descarga (Release v2.3)
+
+Para comenzar a utilizar **TREMEND Toolkit**, dirígete a la sección de **[Releases](../../releases/latest)** (Lanzamientos) en la parte derecha de este repositorio. 
+
+Allí encontrarás dos opciones de descarga diseñadas para adaptarse a tu estilo de soporte técnico. Ambas son completamente portables y no requieren instalación:
+
+### 1. El Ejecutable Principal (`TREMEND.exe`)
+* **Ideal para:** Tu propia computadora o para dejar la herramienta de forma permanente en un equipo.
+* **Uso:** Es el programa completo y horneado. Descárgalo y dale doble clic para acceder al instante a toda la suite de diagnósticos y herramientas de red.
+
+### 2. El Lanzador en la Nube (`Iniciar_TREMEND.bat`)
+* **Ideal para:** Llevar en una memoria USB y hacer soporte técnico en computadoras de clientes.
+* **Uso:** Es un "Dropper" ultraligero (pesa menos de 1 KB). Al darle doble clic, pide permisos de administrador, se conecta a este repositorio, descarga silenciosamente la última versión de TREMEND en la memoria temporal del equipo y la abre. Te permite usar todo el programa sin dejar basura ni archivos pesados en el disco duro del cliente.
+
 ## 🤝 Créditos y Reconocimientos
 Este proyecto no sería posible sin el trabajo de la comunidad Open Source. TREMEND integra y facilita el despliegue de las siguientes herramientas de terceros, cuyos derechos pertenecen a sus respectivos autores:
 
