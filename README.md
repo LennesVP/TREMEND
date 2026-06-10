@@ -15,7 +15,7 @@ TREMEND Toolkit es una suite avanzada, portátil y sigilosa de diagnóstico y so
 4. **📦 Software y Licencias:** Extracción de licencias OEM, inventario de software a CSV y gestor de paquetes Winget.
 5. **⚙️ Soporte Técnico:** Borrado forense (Wipe), bypass de contraseñas SAM locales, contenedor Sandbox y descargas multimedia de alta fidelidad.
 
-## 📥 Opciones de Descarga (Release v2.3)
+## 📥 Opciones de Descarga (Release v2.4)
 
 Para comenzar a utilizar **TREMEND Toolkit**, dirígete a la sección de **[Releases](https://github.com/LennesVP/TREMEND/releases/latest)** (Lanzamientos) en la parte derecha de este repositorio. 
 
