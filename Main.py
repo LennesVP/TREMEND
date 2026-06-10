@@ -22,7 +22,7 @@ import webbrowser
 from tkinter import messagebox
 
 # Define la versión de este archivo físico
-VERSION_ACTUAL = "2.2"
+VERSION_ACTUAL = "2.3"
 
 # ============================================================================
 # 0. ESCUDO DE ADMINISTRADOR AUTOMÁTICO (UAC)
@@ -717,6 +717,39 @@ def logica_limpiar_portapapeles(log):
     run_cmd(log, "echo off | clip")
     log("\n[+] Portapapeles destruido.")
 
+def logica_ejecutar_portable(log, carpeta, ejecutable):
+    import urllib.request, urllib.parse, os, subprocess
+    log(f"\n[*] Conectando con tu repositorio en la nube...")
+    
+    # Codificamos los espacios en los nombres de las carpetas para la URL
+    carpeta_url = urllib.parse.quote(carpeta)
+    exe_url = urllib.parse.quote(ejecutable)
+    url_descarga = f"https://raw.githubusercontent.com/LennesVP/Programas_Portables/main/Programas_Portables/{carpeta_url}/{exe_url}"
+    
+    ruta_temp = os.path.join(os.environ.get('TEMP'), ejecutable)
+    
+    log(f"[*] Descargando '{ejecutable}' de forma sigilosa...")
+    try:
+        req = urllib.request.Request(url_descarga, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
+        with urllib.request.urlopen(req, timeout=30) as response, open(ruta_temp, 'wb') as out_file:
+            out_file.write(response.read())
+        
+        log("[+] Descarga completada. Ejecutando herramienta...")
+        log("[!] TRABAJANDO... La consola limpiará el rastro cuando cierres el programa portátil.")
+        
+        # El programa se pausa aquí hasta que tú cierres la herramienta (ej. AnyDesk)
+        subprocess.Popen(ruta_temp, shell=True).wait()
+        
+        log("\n[*] Herramienta cerrada. Destruyendo archivo temporal...")
+        try:
+            os.remove(ruta_temp)
+            log("[+] Limpieza táctica exitosa. Cero rastros en el equipo.")
+        except Exception:
+            log("[-] El archivo sigue en uso en segundo plano, se borrará al reiniciar el PC.")
+            
+    except Exception as e:
+        log(f"[-] Error de red o archivo no encontrado:\n{e}")
+
 # ============================================================================
 # 4. INTERFAZ GRÁFICA Y SISTEMA DE CATEGORÍAS
 # ============================================================================
@@ -1093,6 +1126,40 @@ def cargar_categoria_soporte():
     global app 
     limpiar_panel()
     ctk.CTkLabel(tools_frame, text="🛠️ Soporte Técnico y Utilidades", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
+
+def cargar_categoria_portables():
+    import urllib.request, json, time
+    global app
+    limpiar_panel()
+    ctk.CTkLabel(tools_frame, text="🧰 Programas Portables (Nube)", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
+    
+    url_catalogo = f"https://raw.githubusercontent.com/LennesVP/Programas_Portables/main/Programas_Portables/catalogo.json?t={time.time()}"
+    
+    try:
+        req = urllib.request.Request(url_catalogo, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
+        datos = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
+        catalogo = json.loads(datos)
+        
+        # MAGIA: Ordenamiento alfabético instantáneo
+        catalogo.sort(key=lambda x: x['nombre'])
+        
+        for index, item in enumerate(catalogo):
+            titulo_boton = f"{index + 1}. {item['nombre']}"
+            
+            # Función puente para asegurar que cada botón ejecute su propio programa
+            def crear_comando(c, e):
+                return lambda log: logica_ejecutar_portable(log, c, e)
+            
+            crear_boton_herramienta(
+                titulo_boton, 
+                crear_comando(item['carpeta'], item['ejecutable']), 
+                item['nombre'].upper(), 
+                item['desc_n'], 
+                item['desc_e']
+            )
+            
+    except Exception as e:
+        ctk.CTkLabel(tools_frame, text=f"Error al conectar con el catálogo en GitHub:\n{e}", text_color="#FF4444").pack(pady=20)
     
     # --- CUADROS DE DIÁLOGO NATIVOS ---
     def btn_destructor():
@@ -1238,6 +1305,7 @@ ctk.CTkButton(sidebar, text="🧹 Mantenimiento", fg_color="transparent", border
 ctk.CTkButton(sidebar, text="🖥️ Diagnóstico", fg_color="transparent", border_width=1, command=cargar_categoria_diagnostico).pack(pady=5, padx=20, fill="x")
 ctk.CTkButton(sidebar, text="📦 Software/Licencias", fg_color="transparent", border_width=1, command=cargar_categoria_software).pack(pady=5, padx=20, fill="x")
 ctk.CTkButton(sidebar, text="🛠️ Soporte Técnico", fg_color="transparent", border_width=1, command=cargar_categoria_soporte).pack(pady=5, padx=20, fill="x")
+ctk.CTkButton(sidebar, text="🧰 Portables en la Nube", fg_color="transparent", border_width=1, command=cargar_categoria_portables).pack(pady=5, padx=20, fill="x")
 
 cargar_categoria_redes()
 
