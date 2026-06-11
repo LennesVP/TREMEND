@@ -1,4 +1,4 @@
-# 🚀 TREMEND Toolkit V2.4
+# 🚀 TREMEND Toolkit V2.5
 **Desarrollado por:** LDVP (Lennes D. Varela Poveda)
 
 ![Versión](https://img.shields.io/badge/Versi%C3%B3n-2.0%20Stable-blue)
@@ -14,6 +14,20 @@ TREMEND Toolkit es una suite avanzada, portátil y sigilosa de diagnóstico y so
 3. **🖥️ Diagnóstico e Info del Sistema:** Volcado de memoria RAM (Ghost), extracción de telemetría S.M.A.R.T, monitores de confiabilidad y auditoría de BSOD.
 4. **📦 Software y Licencias:** Extracción de licencias OEM, inventario de software a CSV y gestor de paquetes Winget.
 5. **⚙️ Soporte Técnico:** Borrado forense (Wipe), bypass de contraseñas SAM locales, contenedor Sandbox y descargas multimedia de alta fidelidad.
+### 🧰 Categoría 6: Programas Portables (Nube)
+Una auténtica "App Store" privada y táctica para técnicos. Esta categoría no almacena los programas en el ejecutable principal, sino que lee un catálogo dinámico (`.json`) desde un repositorio satélite. Al hacer clic, descarga la herramienta en la memoria temporal del equipo (`%TEMP%`), la ejecuta y la **destruye automáticamente** en el milisegundo en que se cierra, garantizando cero rastros en la computadora del cliente.
+* **Herramientas Destacadas:** 7-Zip, AnyDesk, BlueScreenView (Visor BSOD), Autoruns, CrystalMark & Retro (Benchmarks), Rufus, FAT32 Formatter, LaZagne, entre más de 25 utilidades de diagnóstico.
+* **Autores y Créditos:** Integra motores de *Sysinternals, NirSoft, AnyDesk Software, hiyohiyo (Crystal Dew World), Igor Pavlov*, y múltiples desarrolladores Open Source de la comunidad.
+
+### 📚 Categoría 7: Enciclopedia de Herramientas
+Un módulo visual interactivo estilo "carrusel" diseñado para despliegues de software complejos (Zero-Touch Install). Permite explorar un catálogo informativo con advertencias de licenciamiento y realizar instalaciones avanzadas desatendidas con un solo clic. Descarga los empaquetados y ejecuta los comandos silenciosos en segundo plano sin requerir intervención del usuario.
+* **Despliegues Destacados:** Microsoft Office 2024 Professional Plus (Instalación limpia y automatizada en background mediante ODT y configuración `.xml`).
+* **Autores y Créditos:** *Microsoft Corporation*.
+
+---
+
+### 🌐 Arquitectura Dinámica y Despliegue Inteligente
+A partir de la versión **v2.3**, TREMEND Toolkit incorpora un motor de **Despliegue Inteligente (Smart Deployment)**. El sistema escanea la arquitectura del procesador anfitrión en tiempo real y decide automáticamente si descargar binarios de 32 bits (x86) o de 64 bits (x64) para garantizar el máximo rendimiento y evitar errores de compatibilidad en equipos antiguos.
 
 ## 📥 Opciones de Descarga (Release v2.4)
 

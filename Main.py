@@ -22,7 +22,7 @@ import webbrowser
 from tkinter import messagebox
 
 # Define la versión de este archivo físico
-VERSION_ACTUAL = "2.4"
+VERSION_ACTUAL = "2.5"
 
 # ============================================================================
 # 0. ESCUDO DE ADMINISTRADOR AUTOMÁTICO (UAC)
@@ -1310,7 +1310,7 @@ def cargar_categoria_soporte():
     crear_boton_herramienta("10. Borrado Forense Militar (Wipe)", logica_borrado_seguro, "BORRADO WIPE", t_wipe_n, t_wipe_e)
 
 def cargar_categoria_portables():
-    import urllib.request, json, time
+    import urllib.request, json, time, platform
     global app
     limpiar_panel()
     ctk.CTkLabel(tools_frame, text="🧰 Programas Portables (Nube)", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
@@ -1322,11 +1322,24 @@ def cargar_categoria_portables():
         datos = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
         catalogo = json.loads(datos)
         
-        # MAGIA: Ordenamiento alfabético instantáneo
+        # MAGIA 1: Ordenamiento alfabético instantáneo
         catalogo.sort(key=lambda x: x['nombre'])
+        
+        # MAGIA 2: Escáner táctico de Arquitectura del Sistema (32 vs 64 bits)
+        es_64bits = platform.machine().endswith('64')
         
         for index, item in enumerate(catalogo):
             titulo_boton = f"{index + 1}. {item['nombre']}"
+            
+            # MAGIA 3: Evaluación inteligente del ejecutable
+            ejecutable_crudo = item['ejecutable']
+            
+            # Si el JSON tiene las dos versiones (es un diccionario), elegimos la correcta
+            if isinstance(ejecutable_crudo, dict):
+                exe_final = ejecutable_crudo["64"] if es_64bits else ejecutable_crudo["32"]
+            # Si el JSON solo tiene un texto normal (compatibilidad con tus programas viejos)
+            else:
+                exe_final = ejecutable_crudo
             
             # Función puente para asegurar que cada botón ejecute su propio programa
             def crear_comando(c, e):
@@ -1334,7 +1347,7 @@ def cargar_categoria_portables():
             
             crear_boton_herramienta(
                 titulo_boton, 
-                crear_comando(item['carpeta'], item['ejecutable']), 
+                crear_comando(item['carpeta'], exe_final), 
                 item['nombre'].upper(), 
                 item['desc_n'], 
                 item['desc_e']
