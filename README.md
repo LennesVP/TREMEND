@@ -1,4 +1,4 @@
-# 🚀 TREMEND Toolkit V2.5
+# 🚀 TREMEND Toolkit V2.6
 **Desarrollado por:** LDVP (Lennes D. Varela Poveda)
 
 ![Versión](https://img.shields.io/badge/Versi%C3%B3n-2.0%20Stable-blue)
@@ -29,7 +29,7 @@ Un módulo visual interactivo estilo "carrusel" diseñado para despliegues de so
 ### 🌐 Arquitectura Dinámica y Despliegue Inteligente
 A partir de la versión **v2.3**, TREMEND Toolkit incorpora un motor de **Despliegue Inteligente (Smart Deployment)**. El sistema escanea la arquitectura del procesador anfitrión en tiempo real y decide automáticamente si descargar binarios de 32 bits (x86) o de 64 bits (x64) para garantizar el máximo rendimiento y evitar errores de compatibilidad en equipos antiguos.
 
-## 📥 Opciones de Descarga (Release v2.4)
+## 📥 Opciones de Descarga (Release v2.6)
 
 Para comenzar a utilizar **TREMEND Toolkit**, dirígete a la sección de **[Releases](https://github.com/LennesVP/TREMEND/releases/latest)** (Lanzamientos) en la parte derecha de este repositorio. 
 

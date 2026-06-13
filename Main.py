@@ -22,7 +22,7 @@ import webbrowser
 from tkinter import messagebox
 
 # Define la versión de este archivo físico
-VERSION_ACTUAL = "2.5"
+VERSION_ACTUAL = "2.6"
 
 # ============================================================================
 # 0. ESCUDO DE ADMINISTRADOR AUTOMÁTICO (UAC)
@@ -752,6 +752,8 @@ def logica_ejecutar_portable(log, carpeta, ejecutable):
 
 # Variables globales para el efecto "Libro"
 datos_enciclopedia = []
+datos_tienda = []
+indice_tienda = 0
 indice_enciclopedia = 0
 
 def logica_instalar_herramienta(log, carpeta, archivos, comando):
@@ -1357,11 +1359,16 @@ def cargar_categoria_portables():
         ctk.CTkLabel(tools_frame, text=f"Error al conectar con el catálogo en GitHub:\n{e}", text_color="#FF4444").pack(pady=20)
 
 def cargar_categoria_enciclopedia():
-    import urllib.request, json, time, threading
-    global app, datos_enciclopedia, indice_enciclopedia
+    import urllib.request, json, time, threading, webbrowser
+    global app, datos_enciclopedia
     
     limpiar_panel()
-    ctk.CTkLabel(tools_frame, text="📚 Enciclopedia de Herramientas", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
+    
+    # --- ENCABEZADO CON SISTEMA DE FILTRADO ---
+    header_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    header_frame.pack(fill="x", pady=(0, 20))
+    
+    ctk.CTkLabel(header_frame, text="📚 Enciclopedia de Apps", font=("Arial", 24, "bold")).pack(side="left")
     
     # Descargar el índice JSON si aún no lo hemos descargado en esta sesión
     if not datos_enciclopedia:
@@ -1378,6 +1385,17 @@ def cargar_categoria_enciclopedia():
         ctk.CTkLabel(tools_frame, text="La enciclopedia está vacía.", text_color="#AAAAAA").pack(pady=20)
         return
 
+    # --- LÓGICA DE FILTRADO DINÁMICO ---
+    # Extraemos todas las categorías únicas automáticamente del JSON
+    categorias_unicas = set()
+    for item in datos_enciclopedia:
+        categorias_unicas.add(item.get('categoria', 'Sin Categoría'))
+        
+    lista_filtros = ["Mostrar Todas"] + sorted(list(categorias_unicas))
+    datos_filtrados = datos_enciclopedia.copy()
+    indice_actual = 0
+    var_filtro = ctk.StringVar(value="Mostrar Todas")
+
     # --- DISEÑO DE LA PÁGINA (El Libro) ---
     tarjeta_frame = ctk.CTkFrame(tools_frame, fg_color="#1E293B", corner_radius=15)
     tarjeta_frame.pack(fill="both", expand=True, padx=10, pady=10)
@@ -1386,7 +1404,10 @@ def cargar_categoria_enciclopedia():
     lbl_titulo.pack(pady=(30, 5), padx=30, anchor="w")
     
     lbl_autor = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 14, "italic"), text_color="#94A3B8")
-    lbl_autor.pack(pady=(0, 20), padx=30, anchor="w")
+    lbl_autor.pack(pady=(0, 5), padx=30, anchor="w")
+    
+    lbl_cat = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 12, "bold"), text_color="#A78BFA")
+    lbl_cat.pack(pady=(0, 20), padx=30, anchor="w")
     
     lbl_desc = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 15), justify="left", wraplength=550)
     lbl_desc.pack(pady=10, padx=30, anchor="w")
@@ -1397,51 +1418,182 @@ def cargar_categoria_enciclopedia():
     btn_frame = ctk.CTkFrame(tarjeta_frame, fg_color="transparent")
     btn_frame.pack(pady=30)
 
+    # --- CONTROLES DEL CARRUSEL ---
+    nav_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    nav_frame.pack(fill="x", pady=20)
+    
+    btn_prev = ctk.CTkButton(nav_frame, text="⬅️ Anterior", width=120, fg_color="#334155", hover_color="#475569")
+    btn_prev.pack(side="left", padx=30)
+    
+    lbl_contador = ctk.CTkLabel(nav_frame, text="", font=("Arial", 14, "bold"))
+    lbl_contador.pack(side="left", expand=True)
+    
+    btn_next = ctk.CTkButton(nav_frame, text="Siguiente ➡️", width=120, fg_color="#334155", hover_color="#475569")
+    btn_next.pack(side="right", padx=30)
+
     # --- FUNCIÓN: RENDERIZAR PÁGINA ---
     def mostrar_pagina(idx):
-        item = datos_enciclopedia[idx]
-        lbl_titulo.configure(text=item['titulo'])
-        lbl_autor.configure(text=f"Autor: {item['autor']}")
-        lbl_desc.configure(text=item['descripcion'])
-        lbl_adv.configure(text=item['advertencia'])
+        if not datos_filtrados:
+            lbl_titulo.configure(text="No hay resultados para este filtro.")
+            lbl_autor.configure(text="")
+            lbl_cat.configure(text="")
+            lbl_desc.configure(text="")
+            lbl_adv.configure(text="")
+            lbl_contador.configure(text="0 de 0")
+            for widget in btn_frame.winfo_children(): widget.destroy()
+            return
+
+        item = datos_filtrados[idx]
+        lbl_titulo.configure(text=item.get('titulo', ''))
+        lbl_autor.configure(text=f"Autor: {item.get('autor', '')}")
+        lbl_cat.configure(text=f"🏷️ Categoría: {item.get('categoria', 'Sin Categoría')}")
+        lbl_desc.configure(text=item.get('descripcion', ''))
+        lbl_adv.configure(text=item.get('advertencia', ''))
         
-        for widget in btn_frame.winfo_children():
-            widget.destroy()
+        for widget in btn_frame.winfo_children(): widget.destroy()
             
-        def accionar_instalacion():
-            # Función puente para la consola negra
-            def comando_puente(log):
-                logica_instalar_herramienta(log, item['carpeta'], item['archivos'], item['comando_instalacion'])
-            
-            # Lanzamos la consola oficial de TREMEND
-            app_consola = ctk.CTkToplevel(app)
-            app_consola.title(f"Instalando: {item['titulo']}")
-            app_consola.geometry("600x400")
-            app_consola.configure(bg="#0F172A")
-            app_consola.attributes("-topmost", True)
-            
-            txt_log = ctk.CTkTextbox(app_consola, width=580, height=380, fg_color="#000000", text_color="#00FF00", font=("Consolas", 12))
-            txt_log.pack(padx=10, pady=10)
-            
-            def log_a_consola(texto):
-                txt_log.insert("end", texto + "\n")
-                txt_log.see("end")
+        if item.get('es_enlace', False):
+            def abrir_repo(url=item.get('enlace', '')): webbrowser.open(url)
+            ctk.CTkButton(btn_frame, text="🌐 Abrir Repositorio Oficial", font=("Arial", 16, "bold"), height=50, fg_color="#3B82F6", hover_color="#2563EB", text_color="#FFFFFF", command=abrir_repo).pack()
+        else:
+            def accionar_instalacion():
+                def comando_puente(log): logica_instalar_herramienta(log, item.get('carpeta',''), item.get('archivos',[]), item.get('comando_instalacion',''))
+                app_consola = ctk.CTkToplevel(app)
+                app_consola.title(f"Instalando: {item.get('titulo', '')}")
+                app_consola.geometry("600x400")
+                app_consola.configure(bg="#0F172A")
+                app_consola.attributes("-topmost", True)
+                txt_log = ctk.CTkTextbox(app_consola, width=580, height=380, fg_color="#000000", text_color="#00FF00", font=("Consolas", 12))
+                txt_log.pack(padx=10, pady=10)
+                def log_a_consola(texto): txt_log.insert("end", texto + "\n"); txt_log.see("end")
+                threading.Thread(target=comando_puente, args=(log_a_consola,), daemon=True).start()
                 
-            # Hilo en segundo plano para no congelar la GUI
-            threading.Thread(target=comando_puente, args=(log_a_consola,), daemon=True).start()
+            ctk.CTkButton(btn_frame, text=f"⬇️ Instalar {item.get('titulo', '')}", font=("Arial", 16, "bold"), height=50, fg_color="#10B981", hover_color="#059669", text_color="#FFFFFF", command=accionar_instalacion).pack()
             
-        ctk.CTkButton(btn_frame, text=f"⬇️ Instalar {item['titulo']}", font=("Arial", 16, "bold"), height=50, fg_color="#10B981", hover_color="#059669", command=accionar_instalacion).pack()
+        lbl_contador.configure(text=f"Página {idx + 1} de {len(datos_filtrados)}")
+
+    def cambiar_pagina(direccion):
+        nonlocal indice_actual
+        if not datos_filtrados: return
+        indice_actual += direccion
+        if indice_actual < 0: indice_actual = len(datos_filtrados) - 1
+        elif indice_actual >= len(datos_filtrados): indice_actual = 0
+        mostrar_pagina(indice_actual)
+
+    btn_prev.configure(command=lambda: cambiar_pagina(-1))
+    btn_next.configure(command=lambda: cambiar_pagina(1))
+
+    # --- FUNCIÓN PARA EJECUTAR EL FILTRO ---
+    def aplicar_filtro(seleccion):
+        nonlocal datos_filtrados, indice_actual
+        if seleccion == "Mostrar Todas":
+            datos_filtrados = datos_enciclopedia.copy()
+        else:
+            datos_filtrados = [item for item in datos_enciclopedia if item.get('categoria', 'Sin Categoría') == seleccion]
+        
+        indice_actual = 0  # Volver a la página 1 del nuevo filtro
+        mostrar_pagina(indice_actual)
+
+    # --- EL BOTÓN DESPLEGABLE (ComboBox) ---
+    combo_filtro = ctk.CTkOptionMenu(header_frame, values=lista_filtros, variable=var_filtro, command=aplicar_filtro, fg_color="#3B82F6", button_color="#2563EB", button_hover_color="#1D4ED8", font=("Arial", 14, "bold"))
+    combo_filtro.pack(side="right")
+    ctk.CTkLabel(header_frame, text="🔍 Filtrar: ", font=("Arial", 14, "bold"), text_color="#94A3B8").pack(side="right", padx=10)
+
+    # Iniciar la lectura del libro
+    mostrar_pagina(0)
+
+def cargar_categoria_tienda():
+    import urllib.request, json, time, webbrowser
+    global app, datos_tienda, indice_tienda
+    
+    limpiar_panel()
+    ctk.CTkLabel(tools_frame, text="🛒 Venta de Licencias Oficiales", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
+    
+    if not datos_tienda:
+        url_tienda = f"https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/tienda.json?t={time.time()}"
+        try:
+            req = urllib.request.Request(url_tienda, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
+            respuesta = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
+            datos_tienda = json.loads(respuesta)
+        except Exception as e:
+            ctk.CTkLabel(tools_frame, text=f"Error al conectar con la Tienda:\n{e}", text_color="#FF4444").pack(pady=20)
+            return
+
+    if not datos_tienda:
+        ctk.CTkLabel(tools_frame, text="La tienda está vacía por ahora.", text_color="#AAAAAA").pack(pady=20)
+        return
+
+    # --- DISEÑO DEL CARRUSEL COMERCIAL ---
+    tarjeta_frame = ctk.CTkFrame(tools_frame, fg_color="#1E293B", corner_radius=15, border_width=2, border_color="#F59E0B")
+    tarjeta_frame.pack(fill="both", expand=True, padx=10, pady=10)
+    
+    lbl_titulo = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 22, "bold"), text_color="#FCD34D", wraplength=550)
+    lbl_titulo.pack(pady=(20, 5), padx=30, anchor="w")
+    
+    frame_precios = ctk.CTkFrame(tarjeta_frame, fg_color="transparent")
+    frame_precios.pack(fill="x", padx=30, pady=5)
+    lbl_precio_oficial = ctk.CTkLabel(frame_precios, text="", font=("Arial", 14, "overstrike"), text_color="#94A3B8")
+    lbl_precio_oficial.pack(side="left", padx=(0, 10))
+    lbl_precio_tremend = ctk.CTkLabel(frame_precios, text="", font=("Arial", 18, "bold"), text_color="#10B981")
+    lbl_precio_tremend.pack(side="left")
+    
+    lbl_desc = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 15), justify="left", wraplength=550)
+    lbl_desc.pack(pady=10, padx=30, anchor="w")
+    
+    lbl_caract = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 14), justify="left", text_color="#E2E8F0", wraplength=550)
+    lbl_caract.pack(pady=10, padx=30, anchor="w")
+    
+    lbl_adv = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 13, "bold"), text_color="#EF4444", justify="left", wraplength=550)
+    lbl_adv.pack(pady=20, padx=30, anchor="w")
+
+    # --- NUEVO TEXTO DE ADVERTENCIA DE PRECIOS ---
+    lbl_variacion = ctk.CTkLabel(
+        tarjeta_frame, 
+        text="📌 Nota Legal: Los precios mostrados son aproximados y están sujetos a cambios sin previo aviso. El valor final puede ser menor o mayor dependiendo de las ofertas del proveedor y la tasa de cambio al momento de confirmar la compra.", 
+        font=("Arial", 12, "italic"), 
+        text_color="#F87171",
+        wraplength=550, 
+        justify="left"
+    )
+    lbl_variacion.pack(pady=(0, 10), padx=30, anchor="w")
+    
+    btn_frame = ctk.CTkFrame(tarjeta_frame, fg_color="transparent")
+    btn_frame.pack(pady=20)
+
+    # --- FUNCIÓN: RENDERIZAR PRODUCTO ---
+    def mostrar_producto(idx):
+        item = datos_tienda[idx]
+        lbl_titulo.configure(text=item.get('producto', ''))
+        lbl_precio_tremend.configure(text=f"Precio TREMEND: {item.get('precio_tremend', '')}")
+        lbl_desc.configure(text=item.get('descripcion', ''))
+        lbl_caract.configure(text=item.get('caracteristicas', ''))
+        lbl_adv.configure(text=item.get('advertencia', ''))
+        
+        for widget in btn_frame.winfo_children(): widget.destroy()
+            
+        def comprar_wp():
+            numero_wa = "573025524549"  
+            mensaje = f"Hola Lennes, me interesa adquirir la licencia de: {item.get('producto', '')} que vi en TREMEND Toolkit."
+            url = f"https://wa.me/{numero_wa}?text={urllib.parse.quote(mensaje)}"
+            webbrowser.open(url)
+            
+        def enviar_correo():
+            correo = "tremend67@gmail.com"  
+            asunto = f"Soporte / Compra de Licencia: {item.get('producto', '')}"
+            url = f"mailto:{correo}?subject={urllib.parse.quote(asunto)}"
+            webbrowser.open(url)
+            
+        ctk.CTkButton(btn_frame, text="📲 Comprar por WhatsApp", font=("Arial", 15, "bold"), height=45, fg_color="#25D366", hover_color="#1DA851", text_color="#FFFFFF", command=comprar_wp).pack(side="left", padx=10)
+        ctk.CTkButton(btn_frame, text="✉️ Soporte / Correo", font=("Arial", 15, "bold"), height=45, fg_color="#3B82F6", hover_color="#2563EB", text_color="#FFFFFF", command=enviar_correo).pack(side="left", padx=10)
 
     # --- CONTROLES DEL CARRUSEL ---
     def cambiar_pagina(direccion):
-        global indice_enciclopedia
-        indice_enciclopedia += direccion
-        if indice_enciclopedia < 0:
-            indice_enciclopedia = len(datos_enciclopedia) - 1
-        elif indice_enciclopedia >= len(datos_enciclopedia):
-            indice_enciclopedia = 0
-        mostrar_pagina(indice_enciclopedia)
-        lbl_contador.configure(text=f"Página {indice_enciclopedia + 1} de {len(datos_enciclopedia)}")
+        global indice_tienda
+        indice_tienda += direccion
+        if indice_tienda < 0: indice_tienda = len(datos_tienda) - 1
+        elif indice_tienda >= len(datos_tienda): indice_tienda = 0
+        mostrar_producto(indice_tienda)
+        lbl_contador.configure(text=f"Producto {indice_tienda + 1} de {len(datos_tienda)}")
 
     nav_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
     nav_frame.pack(fill="x", pady=20)
@@ -1451,25 +1603,163 @@ def cargar_categoria_enciclopedia():
     lbl_contador.pack(side="left", expand=True)
     ctk.CTkButton(nav_frame, text="Siguiente ➡️", width=120, fg_color="#334155", hover_color="#475569", command=lambda: cambiar_pagina(1)).pack(side="right", padx=30)
     
-    # Iniciar la lectura del libro
-    mostrar_pagina(indice_enciclopedia)
-    lbl_contador.configure(text=f"Página {indice_enciclopedia + 1} de {len(datos_enciclopedia)}")
+    mostrar_producto(indice_tienda)
+    lbl_contador.configure(text=f"Producto {indice_tienda + 1} de {len(datos_tienda)}")
+
+def cargar_categoria_webs():
+    import urllib.request, json, time, webbrowser
+    global app
+    limpiar_panel()
+    
+    # Título temático
+    ctk.CTkLabel(tools_frame, text="🌐 Enciclopedia de Páginas Web", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
+
+    # Descarga e inyección del catálogo JSON
+    url_webs = f"https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/webs.json?t={time.time()}"
+    try:
+        req = urllib.request.Request(url_webs, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
+        respuesta = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
+        datos_webs = json.loads(respuesta)
+    except Exception as e:
+        ctk.CTkLabel(tools_frame, text=f"Error al conectar con la Nube:\n{e}", text_color="#FF4444").pack(pady=20)
+        return
+
+    if not datos_webs:
+        ctk.CTkLabel(tools_frame, text="El directorio web está vacío.", text_color="#AAAAAA").pack(pady=20)
+        return
+
+    # --- RENDERIZADO DE TARJETAS WEB (Lista Deslizable) ---
+    for item in datos_webs:
+        # Contenedor de la tarjeta (Borde Púrpura)
+        tarjeta = ctk.CTkFrame(tools_frame, fg_color="#1E293B", corner_radius=10, border_width=1, border_color="#8B5CF6")
+        tarjeta.pack(fill="x", pady=10, padx=10)
+
+        # Encabezado: Título y Etiqueta de Categoría (Margen aumentado a 30)
+        header_frame = ctk.CTkFrame(tarjeta, fg_color="transparent")
+        header_frame.pack(fill="x", padx=30, pady=(15, 5)) 
+        
+        ctk.CTkLabel(header_frame, text=item.get('nombre', ''), font=("Arial", 18, "bold"), text_color="#C4B5FD").pack(side="left")
+        ctk.CTkLabel(header_frame, text=f"  |  {item.get('categoria', '')}", font=("Arial", 13, "italic"), text_color="#A78BFA").pack(side="left", padx=10)
+
+        # Cuerpo: Descripción de la página (Wraplength ajustado a 550 y margen a 30)
+        ctk.CTkLabel(tarjeta, text=item.get('descripcion', ''), font=("Arial", 14), justify="left", wraplength=550).pack(padx=30, pady=10, anchor="w")
+
+        # Botón de enlace (Alineado con el nuevo margen de 30)
+        def abrir_web(url=item.get('enlace', '')):
+            webbrowser.open(url)
+        
+        ctk.CTkButton(tarjeta, text="🌐 Abrir Página Web", font=("Arial", 14, "bold"), height=40, fg_color="#8B5CF6", hover_color="#7C3AED", text_color="#FFFFFF", command=abrir_web).pack(padx=30, pady=(0, 15), anchor="e")
+
+def cargar_categoria_android():
+    import urllib.request, json, time, webbrowser
+    global app
+    limpiar_panel()
+    
+    # Título temático
+    ctk.CTkLabel(tools_frame, text="🤖 Aplicaciones y APKs para Android", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
+
+    # Descarga e inyección del catálogo JSON
+    url_android = f"https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/android.json?t={time.time()}"
+    try:
+        req = urllib.request.Request(url_android, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
+        respuesta = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
+        datos_android = json.loads(respuesta)
+    except Exception as e:
+        ctk.CTkLabel(tools_frame, text=f"Error al conectar con la Nube:\n{e}", text_color="#FF4444").pack(pady=20)
+        return
+
+    if not datos_android:
+        ctk.CTkLabel(tools_frame, text="El catálogo de Android está vacío.", text_color="#AAAAAA").pack(pady=20)
+        return
+
+    # --- RENDERIZADO DE TARJETAS DESLIZABLES ---
+    for item in datos_android:
+        tarjeta = ctk.CTkFrame(tools_frame, fg_color="#1E293B", corner_radius=10, border_width=1, border_color="#3DDC84")
+        tarjeta.pack(fill="x", pady=10, padx=10)
+
+        header_frame = ctk.CTkFrame(tarjeta, fg_color="transparent")
+        header_frame.pack(fill="x", padx=20, pady=(15, 5))
+        
+        ctk.CTkLabel(header_frame, text=item.get('nombre', ''), font=("Arial", 18, "bold"), text_color="#3DDC84").pack(side="left")
+        
+        badge_text = "🔓 Código Abierto (Open Source)" if item.get('es_open_source', False) else "🔒 Código Cerrado"
+        badge_color = "#10B981" if item.get('es_open_source', False) else "#EF4444"
+        ctk.CTkLabel(header_frame, text=f"  |  Autor: {item.get('autor', '')}  |  {badge_text}", font=("Arial", 12, "italic"), text_color=badge_color).pack(side="left", padx=10)
+
+        ctk.CTkLabel(tarjeta, text=item.get('descripcion', ''), font=("Arial", 14), justify="left", wraplength=700).pack(padx=20, pady=5, anchor="w")
+        
+        ctk.CTkLabel(tarjeta, text="Características y Funciones:", font=("Arial", 12, "bold"), text_color="#94A3B8").pack(padx=20, pady=(10, 0), anchor="w")
+        ctk.CTkLabel(tarjeta, text=item.get('ventajas', ''), font=("Arial", 13), justify="left", wraplength=700).pack(padx=20, pady=(5, 15), anchor="w")
+
+        def abrir_repo(url=item.get('enlace', '')):
+            webbrowser.open(url)
+        
+        ctk.CTkButton(tarjeta, text="🌐 Ver Repositorio y Release Oficial", font=("Arial", 14, "bold"), height=40, fg_color="#3DDC84", hover_color="#2EB86A", text_color="#000000", command=abrir_repo).pack(padx=20, pady=(0, 15), anchor="e")
         
 # ============================================================================
-# 6. MENÚ LATERAL Y ARRANQUE
+# 6. MENÚ LATERAL Y ARRANQUE (REDISEÑO CON SUBCATEGORÍAS)
 # ============================================================================
 ctk.CTkLabel(sidebar, text="TREMEND", font=("Arial", 32, "bold"), text_color="#00FFCC").pack(pady=30, padx=20)
-ctk.CTkLabel(sidebar, text="CATEGORÍAS", font=("Arial", 12, "bold"), text_color="#888888").pack(pady=(0, 10))
 
-ctk.CTkButton(sidebar, text="🌐 Redes e Internet", fg_color="transparent", border_width=1, command=cargar_categoria_redes).pack(pady=5, padx=20, fill="x")
-ctk.CTkButton(sidebar, text="🧹 Mantenimiento", fg_color="transparent", border_width=1, command=cargar_categoria_mantenimiento).pack(pady=5, padx=20, fill="x")
-ctk.CTkButton(sidebar, text="🖥️ Diagnóstico", fg_color="transparent", border_width=1, command=cargar_categoria_diagnostico).pack(pady=5, padx=20, fill="x")
-ctk.CTkButton(sidebar, text="📦 Software/Licencias", fg_color="transparent", border_width=1, command=cargar_categoria_software).pack(pady=5, padx=20, fill="x")
-ctk.CTkButton(sidebar, text="🛠️ Soporte Técnico", fg_color="transparent", border_width=1, command=cargar_categoria_soporte).pack(pady=5, padx=20, fill="x")
-ctk.CTkButton(sidebar, text="🧰 Portables en la Nube", fg_color="transparent", border_width=1, command=cargar_categoria_portables).pack(pady=5, padx=20, fill="x")
-ctk.CTkButton(sidebar, text="📚 Enciclopedia de Herramientas", fg_color="transparent", border_width=1, command=cargar_categoria_enciclopedia).pack(pady=5, padx=20, fill="x")
+# Motor de expansión de subcategorías (Acordeón)
+def toggle_submenu(frame_sub):
+    if frame_sub.winfo_ismapped():
+        frame_sub.pack_forget()
+    else:
+        frame_sub.pack(fill="x", pady=(0, 5))
 
-cargar_categoria_redes()
+# --- PLATAFORMAS / SISTEMAS OPERATIVOS ---
+ctk.CTkLabel(sidebar, text="SISTEMAS OPERATIVOS", font=("Arial", 11, "bold"), text_color="#888888").pack(pady=(0, 5))
+
+# 1. WINDOWS (Contenedor Maestro)
+container_win = ctk.CTkFrame(sidebar, fg_color="transparent")
+container_win.pack(fill="x", padx=10)
+sub_win = ctk.CTkFrame(container_win, fg_color="transparent")
+
+btn_win = ctk.CTkButton(container_win, text="🪟 Windows  ▼", font=("Arial", 14, "bold"), fg_color="#1E293B", hover_color="#334155", border_width=1, border_color="#38BDF8", command=lambda: toggle_submenu(sub_win))
+btn_win.pack(fill="x", pady=2)
+
+# Subcategorías de Windows anidadas
+ctk.CTkButton(sub_win, text="🌐 Redes e Internet", fg_color="transparent", anchor="w", command=cargar_categoria_redes).pack(pady=1, padx=(30, 0), fill="x")
+ctk.CTkButton(sub_win, text="🧹 Mantenimiento", fg_color="transparent", anchor="w", command=cargar_categoria_mantenimiento).pack(pady=1, padx=(30, 0), fill="x")
+ctk.CTkButton(sub_win, text="🖥️ Diagnóstico", fg_color="transparent", anchor="w", command=cargar_categoria_diagnostico).pack(pady=1, padx=(30, 0), fill="x")
+ctk.CTkButton(sub_win, text="📦 Software/Licencias", fg_color="transparent", anchor="w", command=cargar_categoria_software).pack(pady=1, padx=(30, 0), fill="x")
+ctk.CTkButton(sub_win, text="🛠️ Soporte Técnico", fg_color="transparent", anchor="w", command=cargar_categoria_soporte).pack(pady=1, padx=(30, 0), fill="x")
+
+sub_win.pack(fill="x") # Windows arranca expandido por defecto
+
+# 2. OTROS SISTEMAS (Plantillas Preparadas para el Futuro)
+def cargar_placeholder(os_name):
+    limpiar_panel()
+    ctk.CTkLabel(tools_frame, text=f"Soporte para {os_name}", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
+    ctk.CTkLabel(tools_frame, text=f"El ecosistema de herramientas para {os_name} estará disponible en futuras actualizaciones de TREMEND Toolkit.", text_color="#AAAAAA").pack(pady=10)
+
+ctk.CTkButton(sidebar, text="🐧 Linux", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=lambda: cargar_placeholder("Linux")).pack(pady=2, padx=10, fill="x")
+ctk.CTkButton(sidebar, text="🍏 Mac", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=lambda: cargar_placeholder("Mac")).pack(pady=2, padx=10, fill="x")
+ctk.CTkButton(sidebar, text="🤖 Android", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=cargar_categoria_android).pack(pady=2, padx=10, fill="x")
+ctk.CTkButton(sidebar, text="📱 iOS", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=lambda: cargar_placeholder("iOS")).pack(pady=2, padx=10, fill="x")
+
+# --- SERVICIOS EN LA NUBE Y TIENDA ---
+ctk.CTkLabel(sidebar, text="NUBE Y TIENDA", font=("Arial", 11, "bold"), text_color="#888888").pack(pady=(15, 5))
+
+# Contenedor Maestro "Herramientas en la Nube"
+container_nube = ctk.CTkFrame(sidebar, fg_color="transparent")
+container_nube.pack(fill="x", padx=10)
+sub_nube = ctk.CTkFrame(container_nube, fg_color="transparent")
+
+# Botón principal desplegable (con borde púrpura para diferenciarlo)
+btn_nube = ctk.CTkButton(container_nube, text="☁️ Herramientas Nube  ▼", font=("Arial", 14, "bold"), fg_color="#1E293B", hover_color="#334155", border_width=1, border_color="#8B5CF6", command=lambda: toggle_submenu(sub_nube))
+btn_nube.pack(fill="x", pady=2)
+
+# Subcategorías anidadas
+ctk.CTkButton(sub_nube, text="🧰 Portables en la Nube", fg_color="transparent", anchor="w", command=cargar_categoria_portables).pack(pady=1, padx=(30, 0), fill="x")
+ctk.CTkButton(sub_nube, text="📚 Enciclopedia Apps", fg_color="transparent", anchor="w", command=cargar_categoria_enciclopedia).pack(pady=1, padx=(30, 0), fill="x")
+ctk.CTkButton(sub_nube, text="🌐 Enciclopedia Web", fg_color="transparent", anchor="w", command=cargar_categoria_webs).pack(pady=1, padx=(30, 0), fill="x")
+
+# Ventas de licencias (Afuera como botón principal para maximizar la visibilidad)
+ctk.CTkButton(sidebar, text="🛒 Venta de Licencias", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=cargar_categoria_tienda).pack(pady=5, padx=10, fill="x")
+
+cargar_categoria_redes() # Arranca en Windows -> Redes
 
 def mostrar_filosofia():
     # Creamos una ventana emergente profesional
