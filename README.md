@@ -1,77 +1,67 @@
-# 🚀 TREMEND Toolkit V2.6
+# 🚀 TREMEND Toolkit V2.6 [ESTABLE Y BLINDADO]
 **Desarrollado por:** LDVP (Lennes D. Varela Poveda)
 
-![Versión](https://img.shields.io/badge/Versi%C3%B3n-2.0%20Stable-blue)
-![Plataforma](https://img.shields.io/badge/OS-Windows%2010%20%7C%2011-lightgrey)
+![Versión](https://img.shields.io/badge/Versi%C3%B3n-2.6%20Stable-blue)
+![Plataforma](https://img.shields.io/badge/OS-Windows%20%7C%20Android-lightgrey)
 ![Licencia](https://img.shields.io/badge/Licencia-Open%20Source-brightgreen)
 
-TREMEND Toolkit es una suite avanzada, portátil y sigilosa de diagnóstico y soporte técnico. Diseñada para administradores de sistemas y técnicos de hardware, centraliza más de 70 comandos y utilidades nativas en una interfaz gráfica interactiva, eliminando la necesidad de recordar extensas líneas de código en PowerShell o CMD.
+TREMEND Toolkit es una suite avanzada, portátil y sigilosa de diagnóstico y soporte técnico. Diseñada para administradores de sistemas y técnicos de hardware, centraliza comandos nativos y herramientas de élite en una interfaz gráfica interactiva, eliminando la necesidad de recordar extensas líneas de código en PowerShell o CMD.
 
-## 🛠️ Categorías y Arsenal
+## 🏗️ Arquitectura del Proyecto (Menú Dinámico)
 
-1. **🌐 Redes e Internet:** Escáner de puertos (Sockets nativos), resolución DNS, radar de espectro Wi-Fi, extracción forense de claves inalámbricas y manipulación de Firewall.
-2. **🧹 Mantenimiento y Optimización:** Limpieza de WinSxS, reparación de imagen (DISM/SFC), purga de VSS y debloat del sistema.
-3. **🖥️ Diagnóstico e Info del Sistema:** Volcado de memoria RAM (Ghost), extracción de telemetría S.M.A.R.T, monitores de confiabilidad y auditoría de BSOD.
-4. **📦 Software y Licencias:** Extracción de licencias OEM, inventario de software a CSV y gestor de paquetes Winget.
-5. **⚙️ Soporte Técnico:** Borrado forense (Wipe), bypass de contraseñas SAM locales, contenedor Sandbox y descargas multimedia de alta fidelidad.
-### 🧰 Categoría 6: Programas Portables (Nube)
-Una auténtica "App Store" privada y táctica para técnicos. Esta categoría no almacena los programas en el ejecutable principal, sino que lee un catálogo dinámico (`.json`) desde un repositorio satélite. Al hacer clic, descarga la herramienta en la memoria temporal del equipo (`%TEMP%`), la ejecuta y la **destruye automáticamente** en el milisegundo en que se cierra, garantizando cero rastros en la computadora del cliente.
-* **Herramientas Destacadas:** 7-Zip, AnyDesk, BlueScreenView (Visor BSOD), Autoruns, CrystalMark & Retro (Benchmarks), Rufus, FAT32 Formatter, LaZagne, entre más de 25 utilidades de diagnóstico.
-* **Autores y Créditos:** Integra motores de *Sysinternals, NirSoft, AnyDesk Software, hiyohiyo (Crystal Dew World), Igor Pavlov*, y múltiples desarrolladores Open Source de la comunidad.
+A partir de la versión V2.6, la interfaz cuenta con un sistema de subcategorías colapsables (Acordeón) y módulos de filtrado inteligente, dividiendo la suite en dos grandes entornos:
 
-### 📚 Categoría 7: Enciclopedia de Herramientas
-Un módulo visual interactivo estilo "carrusel" diseñado para despliegues de software complejos (Zero-Touch Install). Permite explorar un catálogo informativo con advertencias de licenciamiento y realizar instalaciones avanzadas desatendidas con un solo clic. Descarga los empaquetados y ejecuta los comandos silenciosos en segundo plano sin requerir intervención del usuario.
-* **Despliegues Destacados:** Microsoft Office 2024 Professional Plus (Instalación limpia y automatizada en background mediante ODT y configuración `.xml`).
-* **Autores y Créditos:** *Microsoft Corporation*.
+### 🪟 SISTEMAS OPERATIVOS
+
+**1. Ecosistema Windows (Ejecución Nativa)**
+* **🌐 Redes e Internet:** Escáner de puertos (Sockets nativos), resolución DNS, radar de espectro Wi-Fi, extracción forense de claves inalámbricas, manipulación de Firewall y auditoría de latencia.
+* **🧹 Mantenimiento y Optimización:** Limpieza de WinSxS, reparación de imagen (DISM/SFC), purga de VSS y debloat del sistema.
+* **🖥️ Diagnóstico e Info del Sistema:** Volcado forense de RAM (Ghost), extracción S.M.A.R.T, monitores de confiabilidad y auditoría de BSOD.
+* **📦 Software y Licencias:** Extracción de licencias OEM, inventario a CSV y gestor de paquetes Winget.
+* **⚙️ Soporte Técnico:** Borrado forense (Wipe), bypass de contraseñas SAM, Sandbox virtual, destructor de carpetas y descargas multimedia (yt-dlp).
+
+**2. Ecosistemas Móviles y Alternativos**
+* **🤖 Android:** Catálogo visual deslizable de aplicaciones (.apk) enfocado en herramientas Open Source y productividad (Ej. Minima Launcher). Cuenta con enlaces directos a los repositorios oficiales.
+* **🍏 Mac, 🐧 Linux, 📱 iOS:** Plataformas en fase de despliegue para futuras actualizaciones.
+
+### ☁️ NUBE Y TIENDA
+
+TREMEND Toolkit no almacena binarios pesados en su código fuente. Utiliza catálogos dinámicos (`.json`) alojados en repositorios satélite para operar:
+* **🧰 Portables en la Nube:** Descarga programas en la memoria temporal (`%TEMP%`), los ejecuta y los **destruye automáticamente** al cerrarlos, garantizando cero rastros. (Incluye LaZagne, CrystalMark, AnyDesk, Autoruns, etc).
+* **📚 Enciclopedia de Apps:** Módulo visual para despliegues de software complejos (Zero-Touch Install). Permite instalaciones avanzadas desatendidas en segundo plano (Ej. Office 2024) y cuenta con **Filtro Inteligente de Categorías**.
+* **🌐 Enciclopedia Web:** Directorio interactivo de marcadores vitales para el técnico (ROMs, Firmwares, bases de datos).
+* **🛒 Venta de Licencias Oficiales:** Terminal POS comercial integrada. Muestra un catálogo de software original conectando directamente al WhatsApp de soporte para su adquisición.
 
 ---
 
-### 🌐 Arquitectura Dinámica y Despliegue Inteligente
-A partir de la versión **v2.3**, TREMEND Toolkit incorpora un motor de **Despliegue Inteligente (Smart Deployment)**. El sistema escanea la arquitectura del procesador anfitrión en tiempo real y decide automáticamente si descargar binarios de 32 bits (x86) o de 64 bits (x64) para garantizar el máximo rendimiento y evitar errores de compatibilidad en equipos antiguos.
-
 ## 📥 Opciones de Descarga (Release v2.6)
 
-Para comenzar a utilizar **TREMEND Toolkit**, dirígete a la sección de **[Releases](https://github.com/LennesVP/TREMEND/releases/latest)** (Lanzamientos) en la parte derecha de este repositorio. 
+Dirígete a la sección de **[Releases](https://github.com/LennesVP/TREMEND/releases/latest)** para obtener la suite. Tienes dos opciones completamente portables:
 
-Allí encontrarás dos opciones de descarga diseñadas para adaptarse a tu estilo de soporte técnico. Ambas son completamente portables y no requieren instalación:
+1. **El Ejecutable Principal (`TREMEND.exe`):** El programa completo y horneado. Descárgalo y dale doble clic para acceder al instante. Ideal para tener en tu propia estación de trabajo.
+2. **El Lanzador en la Nube (`Iniciar_TREMEND.bat`):** Un "Dropper" ultraligero (< 1 KB). Se conecta a este repositorio, descarga silenciosamente la última versión en la memoria RAM y la abre. No deja basura en el disco duro del cliente. Ideal para llevar en una USB.
 
-### 1. El Ejecutable Principal (`TREMEND.exe`)
-* **Ideal para:** Tu propia computadora o para dejar la herramienta de forma permanente en un equipo.
-* **Uso:** Es el programa completo y horneado. Descárgalo y dale doble clic para acceder al instante a toda la suite de diagnósticos y herramientas de red.
+## 🤝 Créditos y Reconocimientos (Motores Integrados)
+Este proyecto actúa como una interfaz unificada que rinde tributo y facilita el despliegue del trabajo de desarrolladores de élite. Los derechos pertenecen a sus respectivos autores:
 
-### 2. El Lanzador en la Nube (`Iniciar_TREMEND.bat`)
-* **Ideal para:** Llevar en una memoria USB y hacer soporte técnico en computadoras de clientes.
-* **Uso:** Es un "Dropper" ultraligero (pesa menos de 1 KB). Al darle doble clic, pide permisos de administrador, se conecta a este repositorio, descarga silenciosamente la última versión de TREMEND en la memoria temporal del equipo y la abre. Te permite usar todo el programa sin dejar basura ni archivos pesados en el disco duro del cliente.
-
-## 🤝 Créditos y Reconocimientos
-Este proyecto no sería posible sin el trabajo de la comunidad Open Source. TREMEND integra y facilita el despliegue de las siguientes herramientas de terceros, cuyos derechos pertenecen a sus respectivos autores:
-
-* **[yt-dlp contributors](https://github.com/yt-dlp/yt-dlp):** Por el motor de extracción de medios y video.
-* **[massgravel (MAS)](https://github.com/massgravel/Microsoft-Activation-Scripts):** Por el script de activación y gestión de licencias.
-* **[pandaadir05 (Ghost)](https://github.com/pandaadir05/ghost):** Por el motor en Rust para el análisis forense de memoria RAM.
-* **[AlessandroZ (LaZagne)](https://github.com/AlessandroZ/LaZagne):** Por el payload de recuperación de credenciales y contraseñas.
-* **[Chris Titus Tech](https://github.com/ChrisTitusTech/winutil):** Por la utilidad maestra de optimización en Windows.
-* **Microsoft Corp:** Por las librerías nativas Sysinternals, módulos WMI/CIM y comandos core del sistema operativo.
-* **Cloudflare / ip-api / goqr.me:** Por las APIs públicas utilizadas en los módulos de red.
+* **Chris Titus Tech:** Utilidad maestra de optimización (winutil).
+* **massgravel:** Microsoft Activation Scripts (MAS).
+* **AlessandroZ:** LaZagne (Payload forense de contraseñas).
+* **pandaadir05:** Ghost (Escáner de memoria RAM en Rust).
+* **yt-dlp contributors:** Descargador multimedia y multiplexado.
+* **0-manbir:** Minima Launcher (Ecosistema Android).
+* **Tungtata:** MiFirm (Base de datos Xiaomi - Enciclopedia Web).
+* **hiyohiyo (Crystal Dew World) / Igor Pavlov (7-Zip):** Herramientas portables.
+* **Sysinternals & NirSoft:** Múltiples utilidades de diagnóstico.
+* **Microsoft Corp:** Motores base de OS, PowerShell, Winget y comandos core.
 
 ## ☕ Apoya el Proyecto
-Si TREMEND Toolkit te ha salvado la vida o te ha ahorrado horas de trabajo en tu taller, considera apoyar el desarrollo. Tu donación me permite investigar nuevas vulnerabilidades y mantener la herramienta gratuita. 
-
-**Opciones de Donación:**
-
+Tu apoyo me permite investigar nuevas vulnerabilidades y mantener la herramienta gratuita. 
 [![MercadoPago](https://img.shields.io/badge/MercadoPago-Donar_un_Café-00B1EA?style=for-the-badge&logo=mercadopago)](https://link.mercadopago.com.co/tremend)
-
 * 🟣 **Transferencia:** LLave De Bre-B: @LVP671
 
-## 🐛 Soporte y Reporte de Errores (Bugs)
-¿Una herramienta no funciona como debería? ¿Tienes una idea brillante para una nueva función? ¡Quiero escucharte!
-Para mantener un orden técnico profesional, atiendo todo el soporte por correo electrónico. 
-
-**Si reportas un error, por favor incluye:**
-1. Una captura de pantalla del error o comportamiento extraño.
-2. Qué botón presionaste.
-3. Qué versión de Windows estabas usando.
-
+## 🐛 Soporte y Contacto
+¿Tienes una sugerencia, propuesta de colaboración o encontraste un bug? 
 📧 **Correo Oficial:** [tremend67@gmail.com](mailto:tremend67@gmail.com)
 
 ---
