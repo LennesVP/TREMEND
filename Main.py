@@ -67,12 +67,16 @@ def abrir_consola_y_ejecutar(titulo, funcion_python_nativa):
     global app
     win_term = ctk.CTkToplevel(app)
     win_term.title(f"Terminal TREMEND: {titulo}")
-    win_term.geometry("950x650") # La hicimos un poco más alta para acomodar la barra
+    win_term.geometry("950x650") 
     
-    # Ventana 100% independiente para arrastrar a otros monitores
+    # --- FIX: FORZAR LA VENTANA AL FRENTE SIEMPRE ---
+    win_term.lift() # Levanta la ventana en la jerarquía del sistema
+    win_term.attributes("-topmost", True) # La bloquea arriba de todo
+    # Soltamos el bloqueo después de 100 milisegundos para que no estorbe a otras apps
+    win_term.after(100, lambda: win_term.attributes("-topmost", False)) 
     win_term.focus_force()
     
-    # --- BARRA SUPERIOR DE HERRAMIENTAS (NUEVO) ---
+    # --- BARRA SUPERIOR DE HERRAMIENTAS (HEADER) ---
     top_frame = ctk.CTkFrame(win_term, fg_color="transparent")
     top_frame.pack(fill="x", padx=10, pady=(10, 0))
     
@@ -110,7 +114,7 @@ def abrir_consola_y_ejecutar(titulo, funcion_python_nativa):
         except Exception as e: log(f"\n[!] ERROR CRÍTICO: {e}")
         log("\n" + "="*85 + "\n[+] SECUENCIA FINALIZADA. Puedes cerrar esta ventana.")
         
-        # Actualizar el indicador de estado al terminar (NUEVO)
+        # Actualizar el indicador de estado al terminar
         def finalizar_ui():
             lbl_estado.configure(text="✅ ESTADO: Finalizado", text_color="#10B981")
         app.after(0, finalizar_ui)
@@ -903,14 +907,137 @@ sidebar.pack(side="left", fill="y")
 main_frame = ctk.CTkFrame(app, corner_radius=0, fg_color="transparent")
 main_frame.pack(side="right", fill="both", expand=True)
 
-# El marco de herramientas ahora ocupa TODO el ancho (Se eliminó la Vista Previa)
+# --- FIX MAESTRO: ORDEN DE EMPAQUETADO ---
+# 1. Empaquetamos PRIMERO el HUD a la derecha para que reserve sus 280px exactos y no se aplaste.
+hud_frame = ctk.CTkFrame(main_frame, width=280, fg_color="#1E293B", corner_radius=15, border_width=1, border_color="#38BDF8")
+hud_frame.pack(side="right", fill="y", padx=(10, 20), pady=20)
+hud_frame.pack_propagate(False) # Congelamos el ancho para que no se deforme
+
+# 2. Empaquetamos DESPUÉS el panel central para que tome solo el espacio restante.
 tools_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
-tools_frame.pack(side="left", fill="both", expand=True, padx=20, pady=20)
+tools_frame.pack(side="left", fill="both", expand=True, padx=(20, 10), pady=20)
 
 def limpiar_panel():
     for widget in tools_frame.winfo_children(): widget.destroy()
 
-# --- MOTOR MAESTRO DE VISTAS (Fábrica de Tarjetas) ---
+# --- DISEÑO DEL HUD ---
+ctk.CTkLabel(hud_frame, text="🎛️ Monitor de Sistema", font=("Arial", 18, "bold"), text_color="#38BDF8").pack(pady=(20, 15))
+
+# [1] Sección CPU
+ctk.CTkLabel(hud_frame, text="Procesador (CPU)", font=("Arial", 13, "bold"), text_color="#94A3B8").pack(anchor="w", padx=20)
+lbl_cpu_val = ctk.CTkLabel(hud_frame, text="Calculando...", font=("Arial", 12))
+lbl_cpu_val.pack(anchor="e", padx=20, pady=(0, 2))
+pb_cpu = ctk.CTkProgressBar(hud_frame, progress_color="#10B981", height=10)
+pb_cpu.pack(fill="x", padx=20)
+pb_cpu.set(0)
+
+# [2] Sección RAM
+ctk.CTkLabel(hud_frame, text="Memoria RAM", font=("Arial", 13, "bold"), text_color="#94A3B8").pack(anchor="w", padx=20, pady=(20, 0))
+lbl_ram_val = ctk.CTkLabel(hud_frame, text="Calculando...", font=("Arial", 12))
+lbl_ram_val.pack(anchor="e", padx=20, pady=(0, 2))
+pb_ram = ctk.CTkProgressBar(hud_frame, progress_color="#3B82F6", height=10)
+pb_ram.pack(fill="x", padx=20)
+pb_ram.set(0)
+
+# [3] Sección Disco
+ctk.CTkLabel(hud_frame, text="Disco Principal (C:)", font=("Arial", 13, "bold"), text_color="#94A3B8").pack(anchor="w", padx=20, pady=(20, 0))
+lbl_disco_val = ctk.CTkLabel(hud_frame, text="Calculando...", font=("Arial", 12))
+lbl_disco_val.pack(anchor="e", padx=20, pady=(0, 2))
+pb_disco = ctk.CTkProgressBar(hud_frame, progress_color="#8B5CF6", height=10)
+pb_disco.pack(fill="x", padx=20)
+pb_disco.set(0)
+
+# [4] Separador e Info Fija del Equipo
+ctk.CTkFrame(hud_frame, height=2, fg_color="#334155").pack(fill="x", padx=20, pady=30)
+ctk.CTkLabel(hud_frame, text="Info del Equipo", font=("Arial", 13, "bold"), text_color="#94A3B8").pack(anchor="w", padx=20, pady=(0, 10))
+
+lbl_os = ctk.CTkLabel(hud_frame, text=f"🖥️ Windows {platform.release()} ({platform.machine()})", font=("Arial", 12))
+lbl_os.pack(anchor="w", padx=20, pady=2)
+lbl_hostname = ctk.CTkLabel(hud_frame, text=f"💻 {socket.gethostname()}", font=("Arial", 12))
+lbl_hostname.pack(anchor="w", padx=20, pady=2)
+try: ip_local = socket.gethostbyname(socket.gethostname())
+except: ip_local = "127.0.0.1"
+lbl_ip = ctk.CTkLabel(hud_frame, text=f"🌐 IP: {ip_local}", font=("Arial", 12))
+lbl_ip.pack(anchor="w", padx=20, pady=2)
+
+# --- MOTOR LÓGICO DEL HUD (100% NATIVO, SIN LAG) ---
+from ctypes import wintypes
+
+class MEMORYSTATUSEX(ctypes.Structure):
+    _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong), ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong), ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong), ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+
+class FILETIME(ctypes.Structure):
+    _fields_ = [("dwLowDateTime", wintypes.DWORD), ("dwHighDateTime", wintypes.DWORD)]
+
+def arrancar_motor_hud():
+    # Función para leer los latidos del procesador desde el Kernel
+    def get_system_times():
+        idleTime, kernelTime, userTime = FILETIME(), FILETIME(), FILETIME()
+        ctypes.windll.kernel32.GetSystemTimes(ctypes.byref(idleTime), ctypes.byref(kernelTime), ctypes.byref(userTime))
+        idle = (idleTime.dwHighDateTime << 32) | idleTime.dwLowDateTime
+        sys_time = ((kernelTime.dwHighDateTime << 32) | kernelTime.dwLowDateTime) + ((userTime.dwHighDateTime << 32) | userTime.dwLowDateTime)
+        return idle, sys_time
+
+    def tarea_actualizacion():
+        idle_prev, sys_prev = get_system_times()
+        while True:
+            time.sleep(1.5) # Refresco ultra rápido en tiempo real
+            
+            # 1. CPU (Cálculo milimétrico idéntico al Administrador de Tareas)
+            idle_now, sys_now = get_system_times()
+            idle_diff = idle_now - idle_prev
+            sys_diff = sys_now - sys_prev
+            cpu_percent = int((sys_diff - idle_diff) * 100.0 / sys_diff) if sys_diff > 0 else 0
+            idle_prev, sys_prev = idle_now, sys_now
+
+            # 2. RAM (Lectura en tiempo real)
+            try:
+                stat = MEMORYSTATUSEX()
+                stat.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+                ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
+                ram_percent = stat.dwMemoryLoad
+                ram_total = stat.ullTotalPhys / (1024**3)
+                ram_usada = (stat.ullTotalPhys - stat.ullAvailPhys) / (1024**3)
+            except: ram_percent, ram_total, ram_usada = 0, 0, 0
+
+            # 3. Disco C: (Lectura instantánea de bytes físicos)
+            try:
+                total_b, _, free_b = shutil.disk_usage("C:\\")
+                disco_total = total_b / (1024**3)
+                disco_usado = (total_b - free_b) / (1024**3)
+                disco_percent = (disco_usado / disco_total) * 100 if disco_total > 0 else 0
+            except: disco_percent, disco_total, disco_usado = 0, 0, 0
+
+            # 4. Semáforos de Colores Dinámicos (Verde, Naranja, Rojo)
+            color_cpu = "#EF4444" if cpu_percent > 85 else ("#F59E0B" if cpu_percent > 60 else "#10B981")
+            color_ram = "#EF4444" if ram_percent > 85 else ("#F59E0B" if ram_percent > 60 else "#3B82F6")
+            color_disco = "#EF4444" if disco_percent > 90 else "#8B5CF6"
+
+            # 5. Inyección a la Interfaz Gráfica
+            def refrescar_ui():
+                try:
+                    lbl_cpu_val.configure(text=f"{cpu_percent}%")
+                    pb_cpu.set(cpu_percent / 100.0)
+                    pb_cpu.configure(progress_color=color_cpu)
+
+                    lbl_ram_val.configure(text=f"{ram_usada:.1f} GB / {ram_total:.1f} GB ({ram_percent}%)")
+                    pb_ram.set(ram_percent / 100.0)
+                    pb_ram.configure(progress_color=color_ram)
+
+                    lbl_disco_val.configure(text=f"{disco_usado:.1f} GB / {disco_total:.1f} GB ({disco_percent:.1f}%)")
+                    pb_disco.set(disco_percent / 100.0)
+                    pb_disco.configure(progress_color=color_disco)
+                except: pass 
+
+            app.after(0, refrescar_ui)
+    
+    threading.Thread(target=tarea_actualizacion, daemon=True).start()
+
+arrancar_motor_hud()
+
+# --- MOTOR MAESTRO DE VISTAS (Fábrica de Tarjetas Responsiva) ---
 def construir_vista_dinamica(titulo_categoria, placeholder, lista_herramientas):
     limpiar_panel()
     
@@ -919,14 +1046,23 @@ def construir_vista_dinamica(titulo_categoria, placeholder, lista_herramientas):
     header_frame.pack(fill="x", pady=(0, 20))
     ctk.CTkLabel(header_frame, text=titulo_categoria, font=("Arial", 24, "bold")).pack(side="left")
     
-    # ... (código anterior: barra de búsqueda) ...
     search_var = ctk.StringVar()
     barra = ctk.CTkEntry(header_frame, textvariable=search_var, placeholder_text=placeholder, width=350, font=("Arial", 14), corner_radius=15, border_color="#38BDF8")
     barra.pack(side="right", padx=10)
 
-    # --- EL FIX DE PAGINACIÓN ---
+    # ====================================================================
+    # --- CEREBRO DE PAGINACIÓN DINÁMICA Y RESPONSIVA ---
+    espacio_libre_vertical = alto_app - 260 
+    
+    if "Enciclopedia" in titulo_categoria or "Portables" in titulo_categoria:
+        altura_estimada_tarjeta = 175 
+    else:
+        altura_estimada_tarjeta = 135
+        
+    ITEMS_POR_PAGINA = max(1, int(espacio_libre_vertical / altura_estimada_tarjeta))
+    # ====================================================================
+
     estado = {"pagina": 0, "filtradas": lista_herramientas}
-    ITEMS_POR_PAGINA = 3 # Reducido a 4 para que respiren las descripciones
 
     # 1. Empaquetamos los controles PRIMERO y los anclamos al fondo (side="bottom")
     nav_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
@@ -954,30 +1090,37 @@ def construir_vista_dinamica(titulo_categoria, placeholder, lista_herramientas):
         inicio = estado["pagina"] * ITEMS_POR_PAGINA
         lote = estado["filtradas"][inicio:inicio+ITEMS_POR_PAGINA]
         
+        # Cálculo matemático seguro para que el texto salte de línea antes de chocar con el botón
+        espacio_texto = ancho_app - 700 
+        
         for item in lote:
             color_borde = item.get("color_borde", "#38BDF8")
             if "Wipe" in item["nombre"] or "Destructor" in item["nombre"] or "Sysprep" in item["nombre"]:
-                color_borde = "#EF4444" # Rojo para herramientas peligrosas
+                color_borde = "#EF4444" 
             
-            tarjeta = ctk.CTkFrame(lista_frame, fg_color="#1E293B", corner_radius=10, border_width=1, border_color=color_borde)
-            tarjeta.pack(fill="x", pady=8, padx=10)
+            # 1. LA TARJETA (Se encogerá automáticamente)
+            tarjeta = ctk.CTkFrame(lista_frame, fg_color="#1E293B", corner_radius=8, border_width=1, border_color=color_borde)
+            tarjeta.pack(fill="x", pady=6, padx=10)
             
-            # Encabezado de la Tarjeta (Título y Experto)
-            th = ctk.CTkFrame(tarjeta, fg_color="transparent")
-            th.pack(fill="x", padx=20, pady=(12, 5))
-            ctk.CTkLabel(th, text=item["nombre"], font=("Arial", 16, "bold"), text_color="#FFFFFF").pack(side="left")
-            if "exp" in item:
-                ctk.CTkLabel(th, text=f"  |  {item['exp']}", font=("Arial", 12, "italic"), text_color="#94A3B8").pack(side="left", padx=10)
-            
-            # Descripción (Novato)
-            if "nov" in item:
-                ctk.CTkLabel(tarjeta, text=item["nov"], font=("Arial", 14), justify="left", wraplength=850).pack(padx=20, pady=(0, 10), anchor="w")
-            
-            # Botón de Ejecución
+            # 2. EL BOTÓN (Empaquetado PRIMERO a la derecha)
             txt_btn = item.get("txt_btn", "⚡ Ejecutar Herramienta")
             color_btn = "#10B981" if txt_btn == "⚡ Ejecutar Herramienta" else "#3B82F6"
             if color_borde == "#EF4444": color_btn = "#EF4444"
-            ctk.CTkButton(tarjeta, text=txt_btn, font=("Arial", 14, "bold"), height=35, fg_color=color_btn, hover_color="#059669", command=item["cmd"]).pack(padx=20, pady=(0, 15), anchor="e")
+            
+            btn = ctk.CTkButton(tarjeta, text=txt_btn, font=("Arial", 13, "bold"), width=160, height=40, fg_color=color_btn, hover_color="#059669", command=item["cmd"])
+            btn.pack(side="right", padx=20) 
+            
+            # 3. EL TEXTO (Empaquetado DESPUÉS a la izquierda)
+            text_frame = ctk.CTkFrame(tarjeta, fg_color="transparent")
+            text_frame.pack(side="left", fill="both", expand=True, padx=20, pady=12)
+            
+            ctk.CTkLabel(text_frame, text=item["nombre"], font=("Arial", 16, "bold"), text_color="#FFFFFF").pack(anchor="w")
+            
+            if "exp" in item:
+                ctk.CTkLabel(text_frame, text=item['exp'], font=("Arial", 12, "italic"), text_color="#94A3B8", justify="left", wraplength=espacio_texto).pack(anchor="w", pady=(2, 4))
+            
+            if "nov" in item:
+                ctk.CTkLabel(text_frame, text=item["nov"], font=("Arial", 13), justify="left", wraplength=espacio_texto).pack(anchor="w")
             
         lbl_contador.configure(text=f"Página {estado['pagina'] + 1} de {tot_pag}  |  Total: {total}")
 
@@ -1276,7 +1419,6 @@ def cargar_categoria_enciclopedia():
     
     ctk.CTkLabel(header_frame, text="📚 Enciclopedia de Apps", font=("Arial", 24, "bold")).pack(side="left")
     
-    # Descargar el índice JSON si aún no lo hemos descargado en esta sesión
     if not datos_enciclopedia:
         url_indice = f"https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/enciclopedia.json?t={time.time()}"
         try:
@@ -1291,8 +1433,6 @@ def cargar_categoria_enciclopedia():
         ctk.CTkLabel(tools_frame, text="La enciclopedia está vacía.", text_color="#AAAAAA").pack(pady=20)
         return
 
-    # --- LÓGICA DE FILTRADO DINÁMICO ---
-    # Extraemos todas las categorías únicas automáticamente del JSON
     categorias_unicas = set()
     for item in datos_enciclopedia:
         categorias_unicas.add(item.get('categoria', 'Sin Categoría'))
@@ -1302,11 +1442,15 @@ def cargar_categoria_enciclopedia():
     indice_actual = 0
     var_filtro = ctk.StringVar(value="Mostrar Todas")
 
-    # --- DISEÑO DE LA PÁGINA (El Libro) ---
-    tarjeta_frame = ctk.CTkFrame(tools_frame, fg_color="#1E293B", corner_radius=15)
+    # --- DISEÑO DEL CARRUSEL (El Libro Clásico, ahora Responsivo) ---
+    # Cálculo Matemático: Ancho total de la App, menos el Menú(240), HUD(280) y márgenes(~80)
+    # Esto asegura que el texto se acomode a los bordes y JAMÁS se corte por la izquierda.
+    ancho_seguro_texto = ancho_app - 600
+
+    tarjeta_frame = ctk.CTkFrame(tools_frame, fg_color="#1E293B", corner_radius=15, border_width=1, border_color="#38BDF8")
     tarjeta_frame.pack(fill="both", expand=True, padx=10, pady=10)
     
-    lbl_titulo = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 22, "bold"), text_color="#38BDF8", wraplength=550)
+    lbl_titulo = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 22, "bold"), text_color="#38BDF8", wraplength=ancho_seguro_texto)
     lbl_titulo.pack(pady=(30, 5), padx=30, anchor="w")
     
     lbl_autor = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 14, "italic"), text_color="#94A3B8")
@@ -1315,16 +1459,16 @@ def cargar_categoria_enciclopedia():
     lbl_cat = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 12, "bold"), text_color="#A78BFA")
     lbl_cat.pack(pady=(0, 20), padx=30, anchor="w")
     
-    lbl_desc = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 15), justify="left", wraplength=550)
+    lbl_desc = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 15), justify="left", wraplength=ancho_seguro_texto)
     lbl_desc.pack(pady=10, padx=30, anchor="w")
     
-    lbl_adv = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 14, "bold"), text_color="#EF4444", justify="left", wraplength=550)
+    lbl_adv = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 14, "bold"), text_color="#EF4444", justify="left", wraplength=ancho_seguro_texto)
     lbl_adv.pack(pady=20, padx=30, anchor="w")
     
     btn_frame = ctk.CTkFrame(tarjeta_frame, fg_color="transparent")
     btn_frame.pack(pady=30)
 
-    # --- CONTROLES DEL CARRUSEL ---
+    # --- CONTROLES DE PÁGINA ---
     nav_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
     nav_frame.pack(fill="x", pady=20)
     
@@ -1337,7 +1481,6 @@ def cargar_categoria_enciclopedia():
     btn_next = ctk.CTkButton(nav_frame, text="Siguiente ➡️", width=120, fg_color="#334155", hover_color="#475569")
     btn_next.pack(side="right", padx=30)
 
-    # --- FUNCIÓN: RENDERIZAR PÁGINA ---
     def mostrar_pagina(idx):
         if not datos_filtrados:
             lbl_titulo.configure(text="No hay resultados para este filtro.")
@@ -1356,6 +1499,9 @@ def cargar_categoria_enciclopedia():
         lbl_desc.configure(text=item.get('descripcion', ''))
         lbl_adv.configure(text=item.get('advertencia', ''))
         
+        # Efecto visual: Si hay una advertencia (Como en Office), el borde se pinta de naranja
+        tarjeta_frame.configure(border_color="#F59E0B" if item.get('advertencia', '') else "#38BDF8")
+        
         for widget in btn_frame.winfo_children(): widget.destroy()
             
         if item.get('es_enlace', False):
@@ -1364,15 +1510,8 @@ def cargar_categoria_enciclopedia():
         else:
             def accionar_instalacion():
                 def comando_puente(log): logica_instalar_herramienta(log, item.get('carpeta',''), item.get('archivos',[]), item.get('comando_instalacion',''))
-                app_consola = ctk.CTkToplevel(app)
-                app_consola.title(f"Instalando: {item.get('titulo', '')}")
-                app_consola.geometry("600x400")
-                app_consola.configure(bg="#0F172A")
-                app_consola.attributes("-topmost", True)
-                txt_log = ctk.CTkTextbox(app_consola, width=580, height=380, fg_color="#000000", text_color="#00FF00", font=("Consolas", 12))
-                txt_log.pack(padx=10, pady=10)
-                def log_a_consola(texto): txt_log.insert("end", texto + "\n"); txt_log.see("end")
-                threading.Thread(target=comando_puente, args=(log_a_consola,), daemon=True).start()
+                # Llama a tu hermosa Terminal Nativa Matrix para la instalación
+                abrir_consola_y_ejecutar(f"INSTALADOR DESATENDIDO: {item.get('titulo', '')}", comando_puente)
                 
             ctk.CTkButton(btn_frame, text=f"⬇️ Instalar {item.get('titulo', '')}", font=("Arial", 16, "bold"), height=50, fg_color="#10B981", hover_color="#059669", text_color="#FFFFFF", command=accionar_instalacion).pack()
             
@@ -1389,7 +1528,6 @@ def cargar_categoria_enciclopedia():
     btn_prev.configure(command=lambda: cambiar_pagina(-1))
     btn_next.configure(command=lambda: cambiar_pagina(1))
 
-    # --- FUNCIÓN PARA EJECUTAR EL FILTRO ---
     def aplicar_filtro(seleccion):
         nonlocal datos_filtrados, indice_actual
         if seleccion == "Mostrar Todas":
@@ -1397,15 +1535,13 @@ def cargar_categoria_enciclopedia():
         else:
             datos_filtrados = [item for item in datos_enciclopedia if item.get('categoria', 'Sin Categoría') == seleccion]
         
-        indice_actual = 0  # Volver a la página 1 del nuevo filtro
+        indice_actual = 0 
         mostrar_pagina(indice_actual)
 
-    # --- EL BOTÓN DESPLEGABLE (ComboBox) ---
     combo_filtro = ctk.CTkOptionMenu(header_frame, values=lista_filtros, variable=var_filtro, command=aplicar_filtro, fg_color="#3B82F6", button_color="#2563EB", button_hover_color="#1D4ED8", font=("Arial", 14, "bold"))
     combo_filtro.pack(side="right")
     ctk.CTkLabel(header_frame, text="🔍 Filtrar: ", font=("Arial", 14, "bold"), text_color="#94A3B8").pack(side="right", padx=10)
 
-    # Iniciar la lectura del libro
     mostrar_pagina(0)
 
 def cargar_categoria_tienda():
