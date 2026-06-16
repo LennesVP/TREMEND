@@ -22,7 +22,7 @@ import webbrowser
 from tkinter import messagebox
 
 # Define la versión de este archivo físico
-VERSION_ACTUAL = "2.6"
+VERSION_ACTUAL = "2.7"
 
 # ============================================================================
 # 0. ESCUDO DE ADMINISTRADOR AUTOMÁTICO (UAC)
