@@ -1678,6 +1678,52 @@ btn_filosofia = ctk.CTkButton(
 )
 btn_filosofia.pack(side="bottom", pady=20, padx=20)
 
+def mostrar_inicios():
+    import webbrowser
+    ventana_inicios = ctk.CTkToplevel(app)
+    ventana_inicios.title("El Origen de TREMEND")
+    ventana_inicios.geometry("550x330")
+    ventana_inicios.attributes("-topmost", True)
+    ventana_inicios.resizable(False, False)
+    
+    ctk.CTkLabel(ventana_inicios, text="🌱 Mis Inicios", font=("Arial", 22, "bold"), text_color="#3DDC84").pack(pady=(20, 10))
+    
+    texto = (
+        "Todo gran proyecto tiene un comienzo humilde.\n\n"
+        "Estas métricas de Junio de 2026 son el testimonio de cuando TREMEND Toolkit "
+        "apenas empezaba a dar sus primeros pasos, a recibir sus primeros clones "
+        "y a ser descubierto en internet.\n\n"
+        "Un recordatorio de que nunca debes desanimarte por empezar desde cero."
+    )
+    ctk.CTkLabel(ventana_inicios, text=texto, font=("Arial", 14), wraplength=480, justify="center").pack(padx=20, pady=10)
+
+    # Funciones para abrir las imágenes alojadas en tu nube
+    def abrir_foto(nombre_archivo):
+        # Asegúrate de que esta URL apunte al repositorio donde subiste las fotos
+        url_raw = f"https://github.com/LennesVP/TREMEND/tree/main/Inicios/{nombre_archivo}"
+        webbrowser.open(url_raw)
+
+    btn_frame = ctk.CTkFrame(ventana_inicios, fg_color="transparent")
+    btn_frame.pack(pady=15)
+    
+    ctk.CTkButton(btn_frame, text="📊 Clones y Tráfico", width=120, fg_color="#1E3A8A", hover_color="#2563EB", command=lambda: abrir_foto("trafico.png")).pack(side="left", padx=5)
+    ctk.CTkButton(btn_frame, text="👁️ Vistas Totales", width=120, fg_color="#1E3A8A", hover_color="#2563EB", command=lambda: abrir_foto("vistas.png")).pack(side="left", padx=5)
+    ctk.CTkButton(btn_frame, text="🔗 Referencias", width=120, fg_color="#1E3A8A", hover_color="#2563EB", command=lambda: abrir_foto("origen.png")).pack(side="left", padx=5)
+
+# --- BOTÓN EN EL MENÚ LATERAL ---
+# Este botón se empaquetará justo arriba de "Filosofía" y "Actualizaciones"
+btn_inicios = ctk.CTkButton(
+    sidebar, 
+    text="🌱 Mis Inicios", 
+    command=mostrar_inicios, 
+    fg_color="transparent", 
+    border_width=1, 
+    border_color="#3DDC84",
+    text_color="#3DDC84",
+    hover_color="#15803D"
+)
+btn_inicios.pack(side="bottom", pady=(0, 10), padx=20)
+
 # =========================================================================
 # EL RADAR DE ACTUALIZACIONES (MODO SILENCIOSO Y MANUAL)
 # =========================================================================
