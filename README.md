@@ -1,7 +1,7 @@
 # 🚀 TREMEND Toolkit V2.7 [ESTABLE Y BLINDADO]
 **Desarrollado por:** LDVP (Lennes D. Varela Poveda)
 
-![Versión](https://img.shields.io/badge/Versi%C3%B3n-2.6%20Stable-blue)
+![Versión](https://img.shields.io/badge/Versi%C3%B3n-2.7%20Stable-blue)
 ![Plataforma](https://img.shields.io/badge/OS-Windows%20%7C%20Android-lightgrey)
 ![Licencia](https://img.shields.io/badge/Licencia-Open%20Source-brightgreen)
 ![Visitas](https://komarev.com/ghpvc/?username=LennesVP&repo=TREMEND&label=Visitas+al+Repositorio&color=8B5CF6&style=flat)
@@ -23,7 +23,7 @@ A partir de la versión V2.7, la interfaz cuenta con un sistema de subcategoría
 * **⚙️ Soporte Técnico:** Borrado forense (Wipe), bypass de contraseñas SAM, Sandbox virtual, destructor de carpetas y descargas multimedia (yt-dlp).
 
 **2. Ecosistemas Móviles y Alternativos**
-* **🤖 Android:** Catálogo visual deslizable de aplicaciones (.apk) enfocado en herramientas Open Source y productividad (Ej. Minima Launcher). Cuenta con enlaces directos a los repositorios oficiales.
+* **🤖 Android:** Catálogo visual deslizable de aplicaciones (.apk) enfocado en herramientas Open Source y productividad (Ej. Minima Launcher, Aegis, Aurora). Cuenta con enlaces directos a los repositorios oficiales.
 * **🍏 Mac, 🐧 Linux, 📱 iOS:** Plataformas en fase de despliegue para futuras actualizaciones.
 
 ### ☁️ NUBE Y TIENDA
@@ -31,8 +31,8 @@ A partir de la versión V2.7, la interfaz cuenta con un sistema de subcategoría
 TREMEND Toolkit no almacena binarios pesados en su código fuente. Utiliza catálogos dinámicos (`.json`) alojados en repositorios satélite para operar:
 * **🧰 Portables en la Nube:** Descarga programas en la memoria temporal (`%TEMP%`), los ejecuta y los **destruye automáticamente** al cerrarlos, garantizando cero rastros. (Incluye LaZagne, CrystalMark, AnyDesk, Autoruns, etc).
 * **📚 Enciclopedia de Apps:** Módulo visual para despliegues de software complejos (Zero-Touch Install). Permite instalaciones avanzadas desatendidas en segundo plano (Ej. Office 2024) y cuenta con **Filtro Inteligente de Categorías**.
-* **🌐 Enciclopedia Web:** Directorio interactivo de marcadores vitales para el técnico (ROMs, Firmwares, bases de datos).
-* **🛒 Venta de Licencias Oficiales:** Terminal POS comercial integrada. Muestra un catálogo de software original conectando directamente al WhatsApp de soporte para su adquisición.
+* **🌐 Enciclopedia Web:** Directorio interactivo de marcadores vitales para el técnico. Incluye bases de datos (ROMs, Firmwares), modelos de **Inteligencia Artificial** de ciberseguridad, y plataformas de **Entretenimiento y Estilo de Vida**.
+* **🛒 Venta de Licencias Oficiales:** Terminal POS comercial integrada. Muestra un catálogo de software original (Ej. Bandizip Profesional, Internet Download Manager, Office) conectando directamente al WhatsApp de soporte para su adquisición.
 
 ---
 
@@ -43,6 +43,12 @@ Dirígete a la sección de **[Releases](https://github.com/LennesVP/TREMEND/rele
 1. **El Ejecutable Principal (`TREMEND.exe`):** El programa completo y horneado. Descárgalo y dale doble clic para acceder al instante. Ideal para tener en tu propia estación de trabajo.
 2. **El Lanzador en la Nube (`Iniciar_TREMEND.bat`):** Un "Dropper" ultraligero (< 1 KB). Se conecta a este repositorio, descarga silenciosamente la última versión en la memoria RAM y la abre. No deja basura en el disco duro del cliente. Ideal para llevar en una USB.
 
+## 💬 Comunidad y Soporte (Foro Oficial)
+¡Únete a nuestra comunidad de técnicos! Dirígete a la pestaña de **[Discussions](https://github.com/LennesVP/TREMEND/discussions)** del repositorio para:
+* 💡 Proponer **Ideas** sobre qué programas Portables o Sitios Web agregar al catálogo de la Nube.
+* ❓ Recibir ayuda inmediata en la sección de **Preguntas y Respuestas (Q&A)** si alguna herramienta falla.
+* 📢 Enterarte de las novedades de desarrollo y los anuncios oficiales del proyecto.
+
 ## 🤝 Créditos y Reconocimientos (Motores Integrados)
 Este proyecto actúa como una interfaz unificada que rinde tributo y facilita el despliegue del trabajo de desarrolladores de élite. Los derechos pertenecen a sus respectivos autores:
 
@@ -51,20 +57,12 @@ Este proyecto actúa como una interfaz unificada que rinde tributo y facilita el
 * **AlessandroZ:** LaZagne (Payload forense de contraseñas).
 * **pandaadir05:** Ghost (Escáner de memoria RAM en Rust).
 * **yt-dlp contributors:** Descargador multimedia y multiplexado.
-* **0-manbir:** Minima Launcher (Ecosistema Android).
-* **Tungtata:** MiFirm (Base de datos Xiaomi - Enciclopedia Web).
-* **hiyohiyo (Crystal Dew World) / Igor Pavlov (7-Zip):** Herramientas portables.
-* **Sysinternals & NirSoft:** Múltiples utilidades de diagnóstico.
 * **Microsoft Corp:** Motores base de OS, PowerShell, Winget y comandos core.
 
 ## ☕ Apoya el Proyecto
 Tu apoyo me permite investigar nuevas vulnerabilidades y mantener la herramienta gratuita. 
 [![MercadoPago](https://img.shields.io/badge/MercadoPago-Donar_un_Café-00B1EA?style=for-the-badge&logo=mercadopago)](https://link.mercadopago.com.co/tremend)
 * 🟣 **Transferencia:** LLave De Bre-B: @LVP671
-
-## 🐛 Soporte y Contacto
-¿Tienes una sugerencia, propuesta de colaboración o encontraste un bug? 
-📧 **Correo Oficial:** [tremend67@gmail.com](mailto:tremend67@gmail.com)
 
 ---
 *⚠️ **Aviso de Responsabilidad:** Herramienta diseñada para fines educativos y auditorías autorizadas. El uso indebido de las opciones forenses o destructivas es responsabilidad exclusiva del usuario final.*

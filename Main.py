@@ -67,14 +67,29 @@ def abrir_consola_y_ejecutar(titulo, funcion_python_nativa):
     global app
     win_term = ctk.CTkToplevel(app)
     win_term.title(f"Terminal TREMEND: {titulo}")
-    win_term.geometry("950x600")
+    win_term.geometry("950x650") # La hicimos un poco más alta para acomodar la barra
     
-    # Eliminamos .transient(app) para que esta ventana sea 100% independiente.
-    # Ahora podrás arrastrarla a un segundo monitor sin que se oculte o se ate a la app principal.
+    # Ventana 100% independiente para arrastrar a otros monitores
     win_term.focus_force()
     
-    # Añadimos wrap="word" para garantizar que ningún texto largo se corte a la derecha
-    txt_consola = ctk.CTkTextbox(win_term, width=930, height=580, fg_color="#0A0A0A", text_color="#00FFCC", font=("Consolas", 13), wrap="word")
+    # --- BARRA SUPERIOR DE HERRAMIENTAS (NUEVO) ---
+    top_frame = ctk.CTkFrame(win_term, fg_color="transparent")
+    top_frame.pack(fill="x", padx=10, pady=(10, 0))
+    
+    lbl_estado = ctk.CTkLabel(top_frame, text="⚡ ESTADO: En Ejecución...", font=("Consolas", 14, "bold"), text_color="#F59E0B")
+    lbl_estado.pack(side="left")
+    
+    def copiar_log():
+        win_term.clipboard_clear()
+        win_term.clipboard_append(txt_consola.get("1.0", "end"))
+        btn_copiar.configure(text="✔️ ¡Copiado!", text_color="#10B981")
+        win_term.after(2000, lambda: btn_copiar.configure(text="📋 Copiar Registro", text_color="#FFFFFF"))
+
+    btn_copiar = ctk.CTkButton(top_frame, text="📋 Copiar Registro", width=120, fg_color="#334155", hover_color="#475569", command=copiar_log)
+    btn_copiar.pack(side="right")
+    
+    # --- LA CONSOLA TIPO MATRIX ---
+    txt_consola = ctk.CTkTextbox(win_term, width=930, height=560, fg_color="#0A0A0A", text_color="#00FFCC", font=("Consolas", 13), wrap="word", border_width=1, border_color="#334155")
     txt_consola.pack(padx=10, pady=10, fill="both", expand=True)
     
     txt_consola.insert("end", f"[*] {titulo}\n")
@@ -94,6 +109,11 @@ def abrir_consola_y_ejecutar(titulo, funcion_python_nativa):
         try: funcion_python_nativa(log)
         except Exception as e: log(f"\n[!] ERROR CRÍTICO: {e}")
         log("\n" + "="*85 + "\n[+] SECUENCIA FINALIZADA. Puedes cerrar esta ventana.")
+        
+        # Actualizar el indicador de estado al terminar (NUEVO)
+        def finalizar_ui():
+            lbl_estado.configure(text="✅ ESTADO: Finalizado", text_color="#10B981")
+        app.after(0, finalizar_ui)
 
     import threading
     threading.Thread(target=correr_proceso, daemon=True).start()
