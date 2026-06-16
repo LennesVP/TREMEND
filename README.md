@@ -4,6 +4,7 @@
 ![Versión](https://img.shields.io/badge/Versi%C3%B3n-2.6%20Stable-blue)
 ![Plataforma](https://img.shields.io/badge/OS-Windows%20%7C%20Android-lightgrey)
 ![Licencia](https://img.shields.io/badge/Licencia-Open%20Source-brightgreen)
+![Visitas](https://komarev.com/ghpvc/?username=LennesVP&repo=TREMEND&label=Visitas+al+Repositorio&color=8B5CF6&style=flat)
 
 TREMEND Toolkit es una suite avanzada, portátil y sigilosa de diagnóstico y soporte técnico. Diseñada para administradores de sistemas y técnicos de hardware, centraliza comandos nativos y herramientas de élite en una interfaz gráfica interactiva, eliminando la necesidad de recordar extensas líneas de código en PowerShell o CMD.
 

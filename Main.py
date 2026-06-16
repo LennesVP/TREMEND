@@ -36,14 +36,29 @@ if not is_admin():
     sys.exit()
 
 # ============================================================================
-# 1. CONFIGURACIÓN DEL TEMA
+# 1. CONFIGURACIÓN DEL TEMA Y RESPONSIVIDAD UNIVERSAL
 # ============================================================================
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 app = ctk.CTk()
-app.geometry("1150x750")
-app.title("TREMEND Toolkit V2 [ESTABLE Y BLINDADO]")
+
+# Motor de Adaptabilidad de Pantalla
+ancho_pantalla = app.winfo_screenwidth()
+alto_pantalla = app.winfo_screenheight()
+
+# Si es una pantalla inmensa (TV), ocupa el 70%. Si es laptop, ocupa el 85%
+factor_escala = 0.7 if ancho_pantalla > 1920 else 0.85 
+ancho_app = int(ancho_pantalla * factor_escala)
+alto_app = int(alto_pantalla * factor_escala)
+
+app.geometry(f"{ancho_app}x{alto_app}")
+# Centramos la ventana automáticamente en la pantalla
+x_pos = int((ancho_pantalla - ancho_app) / 2)
+y_pos = int((alto_pantalla - alto_app) / 2)
+app.geometry(f"+{x_pos}+{y_pos}")
+
+app.title("TREMEND Toolkit V2.6 [ESTABLE Y BLINDADO]")
 
 # ============================================================================
 # 2. MOTOR DE TERMINAL NATIVA Y EJECUCIÓN (SEGURO CONTRA CRASHES)
@@ -51,21 +66,22 @@ app.title("TREMEND Toolkit V2 [ESTABLE Y BLINDADO]")
 def abrir_consola_y_ejecutar(titulo, funcion_python_nativa):
     global app
     win_term = ctk.CTkToplevel(app)
-    win_term.title(titulo)
+    win_term.title(f"Terminal TREMEND: {titulo}")
     win_term.geometry("950x600")
     
-    # CORRECCIÓN: Quitamos el '-topmost' y usamos 'transient' y 'focus_force'
-    # Esto mantiene la consola a la vista, pero permite que MAS y GridView salgan al frente
-    win_term.transient(app)
+    # Eliminamos .transient(app) para que esta ventana sea 100% independiente.
+    # Ahora podrás arrastrarla a un segundo monitor sin que se oculte o se ate a la app principal.
     win_term.focus_force()
     
-    txt_consola = ctk.CTkTextbox(win_term, width=930, height=580, fg_color="#0A0A0A", text_color="#00FFCC", font=("Consolas", 13))
-    txt_consola.pack(padx=10, pady=10)
+    # Añadimos wrap="word" para garantizar que ningún texto largo se corte a la derecha
+    txt_consola = ctk.CTkTextbox(win_term, width=930, height=580, fg_color="#0A0A0A", text_color="#00FFCC", font=("Consolas", 13), wrap="word")
+    txt_consola.pack(padx=10, pady=10, fill="both", expand=True)
+    
     txt_consola.insert("end", f"[*] {titulo}\n")
     txt_consola.insert("end", "="*85 + "\n")
     txt_consola.configure(state="disabled")
 
-    # Inyección de seguridad (app.after) para que procesos pesados no congelen la ventana
+    # Inyección asíncrona de la UI
     def log(texto):
         def update_ui():
             txt_consola.configure(state="normal")
@@ -79,6 +95,7 @@ def abrir_consola_y_ejecutar(titulo, funcion_python_nativa):
         except Exception as e: log(f"\n[!] ERROR CRÍTICO: {e}")
         log("\n" + "="*85 + "\n[+] SECUENCIA FINALIZADA. Puedes cerrar esta ventana.")
 
+    import threading
     threading.Thread(target=correr_proceso, daemon=True).start()
 
 def run_cmd(log, comando_str):
@@ -136,25 +153,81 @@ def logica_geolocalizar_ip(log):
         else: log("[-] Error de la API al buscar la IP.")
     except Exception as e: log(f"[-] Error de conexión: {e}")
 
-def logica_wifi_forense(log):
-    log("\n[*] Extrayendo perfiles y contraseñas Wi-Fi (Motor Nativo)...")
-    try:
-        out = subprocess.run('netsh wlan show profiles', shell=True, capture_output=True, text=True, encoding='cp850').stdout
-        perfiles = [line.split(":")[1].strip() for line in out.splitlines() if ("Perfil" in line or "Profile" in line) and ":" in line]
-        if not perfiles: log("[-] No se encontraron redes guardadas."); return
-        for p in perfiles:
-            detalles = subprocess.run(f'netsh wlan show profile name="{p}" key=clear', shell=True, capture_output=True, text=True, encoding='cp850').stdout
-            clave = "SIN CLAVE / RED ABIERTA"
-            for line in detalles.splitlines():
-                if ("Contenido de la clave" in line or "Key Content" in line) and ":" in line:
-                    clave = line.split(":")[1].strip()
-            log(f" -> RED: {p.ljust(20)} | CLAVE: {clave}")
-    except Exception as e: log(f"[-] Error: {e}")
+def logica_wifi_forense(log, accion):
+    if accion == '1':
+        log("\n[*] Extrayendo perfiles y contraseñas Wi-Fi (Motor Nativo)...")
+        try:
+            out = subprocess.run('netsh wlan show profiles', shell=True, capture_output=True, text=True, encoding='cp850').stdout
+            perfiles = [line.split(":")[1].strip() for line in out.splitlines() if ("Perfil" in line or "Profile" in line) and ":" in line]
+            if not perfiles: log("[-] No se encontraron redes guardadas."); return
+            for p in perfiles:
+                detalles = subprocess.run(f'netsh wlan show profile name="{p}" key=clear', shell=True, capture_output=True, text=True, encoding='cp850').stdout
+                clave = "SIN CLAVE / RED ABIERTA"
+                for line in detalles.splitlines():
+                    if ("Contenido de la clave" in line or "Key Content" in line) and ":" in line:
+                        clave = line.split(":")[1].strip()
+                log(f" -> RED: {p.ljust(20)} | CLAVE: {clave}")
+        except Exception as e: log(f"[-] Error: {e}")
+    
+    elif accion == '2':
+        log("\n[*] Exportando perfiles Wi-Fi (Backup para migración)...")
+        ruta_backup = os.path.join(os.environ.get("USERPROFILE"), "Desktop", "TREMEND_WiFi_Backup")
+        if not os.path.exists(ruta_backup): os.makedirs(ruta_backup)
+        run_cmd(log, f'netsh wlan export profile key=clear folder="{ruta_backup}"')
+        log(f"[+] Backup completado. Archivos XML guardados en el Escritorio: {ruta_backup}")
+        
+    elif accion == '3':
+        log("\n[*] Importando perfiles Wi-Fi desde el Backup...")
+        ruta_backup = os.path.join(os.environ.get("USERPROFILE"), "Desktop", "TREMEND_WiFi_Backup")
+        if not os.path.exists(ruta_backup):
+            log("[-] No se encontró la carpeta 'TREMEND_WiFi_Backup' en el Escritorio."); return
+        script = f"Get-ChildItem -Path '{ruta_backup}' -Filter '*.xml' | ForEach-Object {{ netsh wlan add profile filename=$_.FullName }}"
+        run_ps_script(log, script)
+        log("[+] Perfiles inyectados exitosamente en el sistema.")
 
-def logica_dns_cloudflare(log):
-    log("\n[*] Inyectando DNS de Cloudflare (1.1.1.1) en todos los adaptadores activos...")
-    run_ps_script(log, 'Get-NetAdapter | Where-Object {$_.Status -eq "Up"} | Set-DnsClientServerAddress -ServerAddresses ("1.1.1.1", "1.0.0.1")')
-    log("[+] DNS optimizados con éxito para máxima velocidad.")
+def logica_optimizar_dns(log, opcion):
+    log("\n[*] Reconfigurando la resolución de nombres de dominio (DNS) en todos los adaptadores activos...")
+    dns_map = {
+        '1': ("1.1.1.1, 1.0.0.1", "Cloudflare (Máxima Rapidez y Privacidad)"),
+        '2': ("8.8.8.8, 8.8.4.4", "Google (Alta Estabilidad y Resolución)"),
+        '3': ("9.9.9.9, 149.112.112.112", "Quad9 (Bloqueo Nativo de Malware)"),
+        '4': ("94.140.14.14, 94.140.15.15", "AdGuard (Bloqueo de Anuncios / Ads)"),
+        '5': ("208.67.222.222, 208.67.220.220", "OpenDNS (Seguridad y Filtro Parental)")
+    }
+    
+    if opcion in dns_map:
+        ips, nombre = dns_map[opcion]
+        log(f"[*] Inyectando Servidores: {nombre}")
+        run_ps_script(log, f'Get-NetAdapter | Where-Object {{$_.Status -eq "Up"}} | Set-DnsClientServerAddress -ServerAddresses {ips}')
+        log(f"[+] Servidores DNS cambiados a {ips} exitosamente.")
+    elif opcion == '6':
+        log("[*] Restaurando DNS Automático (DHCP por defecto)...")
+        run_ps_script(log, 'Get-NetAdapter | Where-Object {{$_.Status -eq "Up"}} | Set-DnsClientServerAddress -ResetServerAddresses')
+        log("[+] DNS restaurados a la configuración de fábrica de tu proveedor de internet.")
+    
+    run_cmd(log, "ipconfig /flushdns")
+
+def logica_reinicio_bios(log):
+    log("\n[*] Iniciando secuencia de reinicio forzado hacia la BIOS/UEFI...")
+    log("[!] ATENCIÓN: El equipo se reiniciará INMEDIATAMENTE. Cierra tus trabajos.")
+    
+    script_ps = """
+    try {
+        Write-Host "[*] Comprobando compatibilidad de firmware de la Placa Base..."
+        # Verifica si el sistema arranca con UEFI (Requisito para el reinicio remoto a BIOS)
+        if (Test-Path "HKLM:\\System\\CurrentControlSet\\Control\\SecureBoot\\State") {
+            Write-Host "[+] Sistema UEFI detectado. Ejecutando reinicio en 3 segundos..." -ForegroundColor Green
+            Start-Sleep -Seconds 3
+            shutdown.exe /r /fw /t 0
+        } else {
+            Write-Host "[-] Tu sistema utiliza BIOS Legacy antigua." -ForegroundColor Red
+            Write-Host "[-] El salto directo a BIOS solo es soportado por placas base UEFI modernas." -ForegroundColor Yellow
+        }
+    } catch {
+        Write-Host "[-] Error al invocar el comando de energía."
+    }
+    """
+    run_ps_script(log, script_ps)
 
 def logica_limpiar_arp(log):
     log("\n[*] Purgando caché de enrutamiento (ARP)...")
@@ -810,553 +883,366 @@ sidebar.pack(side="left", fill="y")
 main_frame = ctk.CTkFrame(app, corner_radius=0, fg_color="transparent")
 main_frame.pack(side="right", fill="both", expand=True)
 
-tools_frame = ctk.CTkScrollableFrame(main_frame, fg_color="transparent")
+# El marco de herramientas ahora ocupa TODO el ancho (Se eliminó la Vista Previa)
+tools_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
 tools_frame.pack(side="left", fill="both", expand=True, padx=20, pady=20)
-
-preview_frame = ctk.CTkFrame(main_frame, width=350, corner_radius=10, border_width=2, border_color="#444444")
-preview_frame.pack(side="right", fill="y", padx=20, pady=20)
-preview_frame.pack_propagate(False)
-
-lbl_preview_titulo = ctk.CTkLabel(preview_frame, text="VISTA PREVIA", font=("Arial", 20, "bold"), text_color="#444444")
-lbl_preview_titulo.pack(pady=(20, 15))
-
-lbl_novato_texto = ctk.CTkLabel(preview_frame, text="Pasa el cursor sobre una herramienta.", font=("Arial", 12), wraplength=300, justify="left")
-lbl_novato_texto.pack(anchor="w", padx=15, pady=5)
-
-lbl_experto_texto = ctk.CTkLabel(preview_frame, text="Esperando selección...", font=("Arial", 12), wraplength=300, justify="left")
-lbl_experto_texto.pack(anchor="w", padx=15, pady=5)
-
-def on_enter(event, titulo, txt_novato, txt_experto):
-    preview_frame.configure(border_color="#00FFCC")
-    lbl_preview_titulo.configure(text=titulo, text_color="#00FFCC")
-    lbl_novato_texto.configure(text="🟢 Novato: " + txt_novato)
-    lbl_experto_texto.configure(text="🔴 Experto: " + txt_experto)
-
-def on_leave(event):
-    preview_frame.configure(border_color="#444444")
-    lbl_preview_titulo.configure(text="VISTA PREVIA", text_color="#444444")
-    lbl_novato_texto.configure(text="Pasa el cursor sobre una herramienta.")
-    lbl_experto_texto.configure(text="Esperando selección...")
 
 def limpiar_panel():
     for widget in tools_frame.winfo_children(): widget.destroy()
 
-def crear_boton_herramienta(texto, comando_python, tit_prev, txt_nov, txt_exp):
-    btn = ctk.CTkButton(tools_frame, text=texto, height=45, font=("Arial", 14), fg_color="#1E3A8A", hover_color="#2563EB", command=lambda: abrir_consola_y_ejecutar(tit_prev, comando_python))
-    btn.pack(fill="x", pady=5)
-    btn.bind("<Enter>", lambda e: on_enter(e, tit_prev, txt_nov, txt_exp))
-    btn.bind("<Leave>", on_leave)
+# --- MOTOR MAESTRO DE VISTAS (Fábrica de Tarjetas) ---
+def construir_vista_dinamica(titulo_categoria, placeholder, lista_herramientas):
+    limpiar_panel()
+    
+    # Encabezado
+    header_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    header_frame.pack(fill="x", pady=(0, 20))
+    ctk.CTkLabel(header_frame, text=titulo_categoria, font=("Arial", 24, "bold")).pack(side="left")
+    
+    # ... (código anterior: barra de búsqueda) ...
+    search_var = ctk.StringVar()
+    barra = ctk.CTkEntry(header_frame, textvariable=search_var, placeholder_text=placeholder, width=350, font=("Arial", 14), corner_radius=15, border_color="#38BDF8")
+    barra.pack(side="right", padx=10)
 
-# === VISTAS DE LAS CATEGORÍAS ===
+    # --- EL FIX DE PAGINACIÓN ---
+    estado = {"pagina": 0, "filtradas": lista_herramientas}
+    ITEMS_POR_PAGINA = 3 # Reducido a 4 para que respiren las descripciones
+
+    # 1. Empaquetamos los controles PRIMERO y los anclamos al fondo (side="bottom")
+    nav_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    nav_frame.pack(side="bottom", fill="x", pady=10)
+    btn_prev = ctk.CTkButton(nav_frame, text="⬅️ Anterior", width=120, fg_color="#334155", hover_color="#475569")
+    btn_prev.pack(side="left", padx=30)
+    lbl_contador = ctk.CTkLabel(nav_frame, text="", font=("Arial", 14, "bold"), text_color="#38BDF8")
+    lbl_contador.pack(side="left", expand=True)
+    btn_next = ctk.CTkButton(nav_frame, text="Siguiente ➡️", width=120, fg_color="#334155", hover_color="#475569")
+    btn_next.pack(side="right", padx=30)
+
+    # 2. Empaquetamos la lista DESPUÉS para que se ajuste al espacio restante
+    lista_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    lista_frame.pack(side="top", fill="both", expand=True)
+
+    def renderizar():
+        for w in lista_frame.winfo_children(): w.destroy()
+        total = len(estado["filtradas"])
+        if total == 0:
+            ctk.CTkLabel(lista_frame, text="No se encontraron resultados.", text_color="#AAAAAA", font=("Arial", 16)).pack(pady=50)
+            lbl_contador.configure(text="0 Resultados")
+            return
+        
+        tot_pag = (total - 1) // ITEMS_POR_PAGINA + 1
+        inicio = estado["pagina"] * ITEMS_POR_PAGINA
+        lote = estado["filtradas"][inicio:inicio+ITEMS_POR_PAGINA]
+        
+        for item in lote:
+            color_borde = item.get("color_borde", "#38BDF8")
+            if "Wipe" in item["nombre"] or "Destructor" in item["nombre"] or "Sysprep" in item["nombre"]:
+                color_borde = "#EF4444" # Rojo para herramientas peligrosas
+            
+            tarjeta = ctk.CTkFrame(lista_frame, fg_color="#1E293B", corner_radius=10, border_width=1, border_color=color_borde)
+            tarjeta.pack(fill="x", pady=8, padx=10)
+            
+            # Encabezado de la Tarjeta (Título y Experto)
+            th = ctk.CTkFrame(tarjeta, fg_color="transparent")
+            th.pack(fill="x", padx=20, pady=(12, 5))
+            ctk.CTkLabel(th, text=item["nombre"], font=("Arial", 16, "bold"), text_color="#FFFFFF").pack(side="left")
+            if "exp" in item:
+                ctk.CTkLabel(th, text=f"  |  {item['exp']}", font=("Arial", 12, "italic"), text_color="#94A3B8").pack(side="left", padx=10)
+            
+            # Descripción (Novato)
+            if "nov" in item:
+                ctk.CTkLabel(tarjeta, text=item["nov"], font=("Arial", 14), justify="left", wraplength=850).pack(padx=20, pady=(0, 10), anchor="w")
+            
+            # Botón de Ejecución
+            txt_btn = item.get("txt_btn", "⚡ Ejecutar Herramienta")
+            color_btn = "#10B981" if txt_btn == "⚡ Ejecutar Herramienta" else "#3B82F6"
+            if color_borde == "#EF4444": color_btn = "#EF4444"
+            ctk.CTkButton(tarjeta, text=txt_btn, font=("Arial", 14, "bold"), height=35, fg_color=color_btn, hover_color="#059669", command=item["cmd"]).pack(padx=20, pady=(0, 15), anchor="e")
+            
+        lbl_contador.configure(text=f"Página {estado['pagina'] + 1} de {tot_pag}  |  Total: {total}")
+
+    def buscar(*args):
+        txt = search_var.get().lower().strip().replace("-","").replace(" ","").replace(".","")
+        if len(txt) >= 2 or txt.isdigit():
+            estado["filtradas"] = [
+                h for h in lista_herramientas
+                if txt in h["nombre"].lower().replace("-","").replace(" ","").replace(".","")
+                or txt == h.get("id", "")
+                or txt in h.get("nov", "").lower().replace("-","").replace(" ","").replace(".","")
+                or txt in h.get("exp", "").lower().replace("-","").replace(" ","").replace(".","")
+            ]
+        else: estado["filtradas"] = lista_herramientas
+        estado["pagina"] = 0; renderizar()
+
+    search_var.trace_add("write", buscar)
+    def cambiar(dir):
+        tot_pag = (len(estado["filtradas"]) - 1) // ITEMS_POR_PAGINA + 1
+        n_pag = estado["pagina"] + dir
+        if n_pag < 0: n_pag = tot_pag - 1
+        elif n_pag >= tot_pag: n_pag = 0
+        estado["pagina"] = n_pag; renderizar()
+
+    btn_prev.configure(command=lambda: cambiar(-1))
+    btn_next.configure(command=lambda: cambiar(1))
+    renderizar(); barra.focus()
+
+# === VISTAS DE LAS CATEGORÍAS (AHORA USAN LA FÁBRICA) ===
 def cargar_categoria_redes():
     global app
-    limpiar_panel()
-    ctk.CTkLabel(tools_frame, text="🌐 Redes e Internet", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
-    
-    # --- CUADROS DE DIÁLOGO ---
     def btn_ping():
         dest = simpledialog.askstring("Ping", "Ingresa IP o Dominio a escanear:", parent=app)
         if dest:
-            puerto = simpledialog.askstring("TCP", "Puerto TCP (Opcional, vacío para normal):", parent=app)
+            puerto = simpledialog.askstring("TCP", "Puerto TCP (Opcional):", parent=app)
             abrir_consola_y_ejecutar("PING Y TCP", lambda log: logica_ping_tcp(log, dest, puerto))
-
     def btn_puerto_proceso():
         puerto = simpledialog.askstring("Rastreo", "Puerto local a investigar (ej. 8080):", parent=app)
         if puerto: abrir_consola_y_ejecutar("PUERTO", lambda log: logica_puerto_proceso(log, puerto))
-
     def btn_qr_wifi():
         ssid = simpledialog.askstring("QR", "Nombre de la red Wi-Fi (SSID):", parent=app)
         if ssid:
             pwd = simpledialog.askstring("Clave", "Contraseña (vacío si es libre):", parent=app)
             abrir_consola_y_ejecutar("QR WI-FI", lambda log: logica_qr_wifi(log, ssid, pwd))
-
     def btn_dns_res():
         dom = simpledialog.askstring("DNS", "Dominio a resolver (ej. facebook.com):", parent=app)
         if dom: abrir_consola_y_ejecutar("DNS", lambda log: logica_resolucion_dns(log, dom))
-
     def btn_bloquear_web():
         dom = simpledialog.askstring("Bloqueo Web", "Dominio a bloquear (ej. tiktok.com):", parent=app)
         if dom: abrir_consola_y_ejecutar("BLOQUEO", lambda log: logica_bloquear_web(log, dom))
-
     def btn_abrir_puerto():
         puerto = simpledialog.askstring("Firewall", "Puerto a ABRIR en Firewall:", parent=app)
         if puerto:
             proto = simpledialog.askstring("Protocolo", "Protocolo (TCP o UDP):", parent=app)
             if proto: abrir_consola_y_ejecutar("FIREWALL", lambda log: logica_abrir_puerto(log, puerto, proto.upper()))
-
     def btn_escaner():
-        ip = simpledialog.askstring("Escáner", "Ingresa la IP de la máquina a auditar (ej. 192.168.1.1):", parent=app)
+        ip = simpledialog.askstring("Escáner", "Ingresa la IP de la máquina (ej. 192.168.1.1):", parent=app)
         if ip: abrir_consola_y_ejecutar("ESCANER NMAP", lambda log: logica_escaner_puertos_python(log, ip))
-        
     def btn_nas():
         ruta = simpledialog.askstring("Servidor NAS", "Ruta de la carpeta (ej. C:\\Trabajo):", parent=app)
         if ruta:
             nombre = simpledialog.askstring("Servidor NAS", "Nombre para el recurso en red:", parent=app)
             if nombre: abrir_consola_y_ejecutar("NAS", lambda log: logica_crear_nas(log, ruta, nombre))
-
     def btn_latencia():
         dest = simpledialog.askstring("Latencia", "Ingresa dominio para medir (ej. google.com):", parent=app)
         if dest: abrir_consola_y_ejecutar("LATENCIA", lambda log: logica_auditoria_latencia(log, dest))
+    def btn_wifi():
+        op = simpledialog.askstring("Forense Wi-Fi", "1. Ver Claves en Pantalla\n2. Exportar Backup\n3. Importar Backup", parent=app)
+        if op in ['1', '2', '3']: abrir_consola_y_ejecutar("WI-FI FORENSE", lambda log: logica_wifi_forense(log, op))
+    def btn_dns_opt():
+        menu = "1. Cloudflare\n2. Google\n3. Quad9\n4. AdGuard\n5. OpenDNS\n6. Restaurar Fábrica"
+        op = simpledialog.askstring("Optimizador DNS", f"Elige el proveedor:\n\n{menu}", parent=app)
+        if op in ['1','2','3','4','5','6']: abrir_consola_y_ejecutar("OPTIMIZAR DNS", lambda log: logica_optimizar_dns(log, op))
 
-    # --- RENDEREIZADO DE BOTONES ---
-    
-    t_red1_n = "Muestra al instante la IP local de tu equipo y tu dirección IP pública real en internet. Útil para configuraciones y diagnósticos rápidos."
-    t_red1_e = "[Autor: Python/MS] Emplea Sockets nativos para resolver el hostname y realiza una petición REST a api.ipify.org para evadir la NAT del router y exponer la IP WAN."
-    crear_boton_herramienta("1. Info Básica de Red e IP", logica_info_red, "INFO DE RED", t_red1_n, t_red1_e)
-    
-    t_red2_n = "Soluciona problemas de conexión a internet con un solo clic. Limpia configuraciones atascadas y solicita una nueva dirección de red al router."
-    t_red2_e = "[Autor: Microsoft OS] Ejecuta una secuencia progresiva de ipconfig /flushdns, reset de la pila TCP/IP (Winsock) y renovación DHCP para mitigar conflictos."
-    crear_boton_herramienta("2. Reparación Total de Red", logica_reparacion_red, "REPARAR RED", t_red2_n, t_red2_e)
-    
-    t_red3_n = "Verifica si una página web o servidor está en línea y responde correctamente, con la opción adicional de escanear puertos específicos."
-    t_red3_e = "[Autor: Microsoft OS] Llama a Test-NetConnection. Permite trazar latencia ICMP o auditar el estado de puertos TCP evadiendo bloqueos básicos de Firewall."
-    b3 = ctk.CTkButton(tools_frame, text="3. Prueba de Conectividad (Ping / TCP)", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_ping); b3.pack(fill="x", pady=5)
-    b3.bind("<Enter>", lambda e: on_enter(e, "PING Y TCP", t_red3_n, t_red3_e)); b3.bind("<Leave>", on_leave)
-
-    t_red4_n = "Escanea y te muestra en tiempo real qué programas de tu computadora están conectados a internet o consumiendo ancho de banda en este momento."
-    t_red4_e = "[Autor: Microsoft OS] Filtra la tabla de enrutamiento mediante Get-NetTCPConnection en estado Established y cruza el PID para revelar el ejecutable subyacente."
-    crear_boton_herramienta("4. Monitor Conexiones TCP", logica_conexiones_tcp, "MONITOR TCP", t_red4_n, t_red4_e)
-    
-    t_red5_n = "Si un programa no funciona porque 'el puerto está en uso', esta herramienta detecta exactamente qué aplicación oculta lo está bloqueando."
-    t_red5_e = "[Autor: Microsoft OS] Interroga puertos locales activos y extrae el OwningProcess para mapear la ruta física del binario que mantiene el socket ocupado."
-    b5 = ctk.CTkButton(tools_frame, text="5. Identificar Proceso por Puerto", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_puerto_proceso); b5.pack(fill="x", pady=5)
-    b5.bind("<Enter>", lambda e: on_enter(e, "RASTREO PUERTO", t_red5_n, t_red5_e)); b5.bind("<Leave>", on_leave)
-
-    t_red6_n = "Recupera y muestra al instante todas las contraseñas de las redes Wi-Fi a las que esta computadora se ha conectado en el pasado."
-    t_red6_e = "[Autor: Microsoft OS] Parsea la salida de netsh wlan show profiles, iterando sobre cada SSID guardado para extraer el Key Content en texto plano."
-    crear_boton_herramienta("6. Extractor Forense Wi-Fi", logica_wifi_forense, "WI-FI FORENSE", t_red6_n, t_red6_e)
-    
-    t_red7_n = "Genera un código QR con el nombre y contraseña de una red para que tus invitados se conecten escaneándolo rápidamente con su celular."
-    t_red7_e = "[Autor: goqr.me API] Ensambla una URI bajo el estándar WIFI:T:WPA y descarga el binario PNG generado por la API REST para su rápida visualización."
-    b7 = ctk.CTkButton(tools_frame, text="7. Código QR para Wi-Fi", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_qr_wifi); b7.pack(fill="x", pady=5)
-    b7.bind("<Enter>", lambda e: on_enter(e, "QR WI-FI", t_red7_n, t_red7_e)); b7.bind("<Leave>", on_leave)
-
-    t_red8_n = "Rastrea cualquier dirección IP para descubrir de qué país, ciudad, coordenadas geográficas y proveedor de internet proviene exactamente la conexión."
-    t_red8_e = "[Autor: ip-api.com] Realiza una triangulación mediante peticiones GET al endpoint JSON de IP-API, extrayendo metadatos ASN y zona horaria."
-    crear_boton_herramienta("8. Geolocalizar IP", logica_geolocalizar_ip, "GEOLOCALIZACIÓN", t_red8_n, t_red8_e)
-    
-    t_red9_n = "Genera un reporte web muy profesional sobre la salud de tu tarjeta Wi-Fi, mostrando un historial de caídas y desconexiones recientes."
-    t_red9_e = "[Autor: Microsoft OS] Invoca el motor nativo ETW (Event Tracing for Windows) compilando un archivo HTML con el log de transiciones de red."
-    crear_boton_herramienta("9. Diagnóstico Wi-Fi (WlanReport)", logica_reporte_wifi, "REPORTE WI-FI", t_red9_n, t_red9_e)
-    
-    t_red10_n = "Convierte el nombre de cualquier página web o dominio en su dirección IP numérica real de servidores (Resolución Inversa)."
-    t_red10_e = "[Autor: Microsoft OS] Utiliza Resolve-DnsName interrumpiendo la caché local para interrogar directamente a los servidores raíz sobre registros A y AAAA."
-    b10 = ctk.CTkButton(tools_frame, text="10. Resolución DNS", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_dns_res); b10.pack(fill="x", pady=5)
-    b10.bind("<Enter>", lambda e: on_enter(e, "RESOLVER DNS", t_red10_n, t_red10_e)); b10.bind("<Leave>", on_leave)
-    
-    t_red11_n = "Bloquea el acceso a páginas web específicas (como redes sociales o sitios peligrosos) modificando de forma nativa los archivos internos de Windows."
-    t_red11_e = "[Autor: OS Base] Inyecta un Sinkhole DNS en la ruta nativa drivers/etc/hosts, redirigiendo las peticiones del dominio a la interfaz loopback."
-    b11 = ctk.CTkButton(tools_frame, text="11. Bloqueador de Webs (Hosts)", height=45, fg_color="#1E3A8A", hover_color="#880000", command=btn_bloquear_web); b11.pack(fill="x", pady=5)
-    b11.bind("<Enter>", lambda e: on_enter(e, "BLOQUEO WEB", t_red11_n, t_red11_e)); b11.bind("<Leave>", on_leave)
-
-    t_red12_n = "Crea reglas rápidas para permitir que juegos o programas compartidos se comuniquen libremente sin que el antivirus los bloquee."
-    t_red12_e = "[Autor: Microsoft OS] Inserta reglas directas Inbound en el Windows Defender Firewall mediante directivas netsh, habilitando el protocolo y puerto definidos."
-    b12 = ctk.CTkButton(tools_frame, text="12. Abrir Puertos Firewall", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_abrir_puerto); b12.pack(fill="x", pady=5)
-    b12.bind("<Enter>", lambda e: on_enter(e, "FIREWALL REGLA", t_red12_n, t_red12_e)); b12.bind("<Leave>", on_leave)
-
-    t_red13_n = "Elimina por completo todas las redes memorizadas en tu PC para resolver problemas de conexión por contraseñas viejas o redes duplicadas."
-    t_red13_e = "[Autor: Microsoft OS] Emplea un wildcard en la interfaz CLI de WLAN (profile name=* i=*) para truncar la base de datos de perfiles guardados."
-    crear_boton_herramienta("13. Purgar Historial Wi-Fi", logica_purgar_wifi_historial, "PURGAR WI-FI", t_red13_n, t_red13_e)
-    
-    t_red14_n = "Si por error bloqueaste tu propio internet o un programa vital, esto restaura las defensas y bloqueos de Windows a su estado original de fábrica."
-    t_red14_e = "[Autor: Microsoft OS] Elimina políticas corruptas de GPO de terceros mediante un reset absoluto de Advanced Firewall, reconstruyendo las tablas predeterminadas."
-    crear_boton_herramienta("14. Reset Firewall a Fábrica", logica_reset_firewall, "RESET FIREWALL", t_red14_n, t_red14_e)
-    
-    t_red15_n = "Obliga a tu computadora a volver a identificar los dispositivos físicos de tu red. Ideal si cambiaste de router y el internet quedó desconectado."
-    t_red15_e = "[Autor: Protocolo ARP] Ejecuta arp -d * requiriendo elevación para vaciar la tabla estática de traducción de direcciones IP a direcciones MAC."
-    crear_boton_herramienta("15. Purgar Caché ARP", logica_limpiar_arp, "PURGAR ARP", t_red15_n, t_red15_e)
-    
-    t_red16_n = "Acelera drásticamente tu velocidad de navegación y salta bloqueos regionales de internet cambiando tus servidores a los ultra rápidos de Cloudflare."
-    t_red16_e = "[Autor: Cloudflare Inc] Inyecta mediante Set-DnsClientServerAddress los resolvers públicos 1.1.1.1 y 1.0.0.1 en todas las interfaces de red físicas."
-    crear_boton_herramienta("16. Optimizar DNS (Cloudflare)", logica_dns_cloudflare, "DNS CLOUDFLARE", t_red16_n, t_red16_e)
-    
-    t_red17_n = "Detecta al instante si alguien más en tu misma red LAN o trabajo está accediendo a tus carpetas compartidas sin permiso o leyendo tus archivos."
-    t_red17_e = "[Autor: Microsoft OS] Audita el servicio Server Message Block (SMB) usando Get-SmbSession, revelando nombres de clientes corporativos conectados."
-    crear_boton_herramienta("17. Gestionar Sesiones SMB", logica_sesiones_smb, "SESIONES SMB", t_red17_n, t_red17_e)
-    
-    t_red18_n = "Escanea a tu alrededor continuamente para ver todas las redes Wi-Fi (incluso las ocultas) y encontrar qué canales están menos saturados."
-    t_red18_e = "[Autor: Microsoft OS] Despliega un loop temporal sobre mode=bssid para realizar barridos de radiofrecuencia, evaluando intensidad de señal y espectro."
-    crear_boton_herramienta("18. Radar Wi-Fi en Tiempo Real", logica_radar_wifi, "RADAR WI-FI", t_red18_n, t_red18_e)
-    
-    t_red19_n = "Si tus juegos tienen lag o tus videollamadas se cortan misteriosamente, esta herramienta envía paquetes continuos para detectar pequeñas caídas ocultas."
-    t_red19_e = "[Autor: Python/ICMP] Combina un loop de Pings discretos con el módulo datetime de Python, logueando milisegundos de respuesta para cazar timeouts intermitentes."
-    b19 = ctk.CTkButton(tools_frame, text="19. Auditoría de Latencia (Microcortes)", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_latencia); b19.pack(fill="x", pady=5)
-    b19.bind("<Enter>", lambda e: on_enter(e, "LATENCIA", t_red19_n, t_red19_e)); b19.bind("<Leave>", on_leave)
-
-    t_red20_n = "Analiza tu propia computadora, o cualquier IP externa, para encontrar vulnerabilidades críticas y puertas traseras dejadas abiertas por posibles virus."
-    t_red20_e = "[Autor: LDVP] Algoritmo Python asíncrono con Sockets nativos para testear puertos estándar TCP. Identifica servicios expuestos utilizando timeouts ultracortos."
-    b20 = ctk.CTkButton(tools_frame, text="20. Motor Avanzado de Escaneo (Puertos)", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_escaner); b20.pack(fill="x", pady=5)
-    b20.bind("<Enter>", lambda e: on_enter(e, "ESCÁNER PUERTOS", t_red20_n, t_red20_e)); b20.bind("<Leave>", on_leave)
-
-    t_red21_n = "Transforma cualquier carpeta de tu PC en un servidor rápido para que celulares, TVs u otros dispositivos en tu casa puedan acceder a su contenido."
-    t_red21_e = "[Autor: Microsoft OS] Automatiza el cmdlet New-SmbShare concediendo permisos de Everyone y aprovisiona el tráfico entrante adaptando dinámicamente el Firewall."
-    b21 = ctk.CTkButton(tools_frame, text="21. Crear Servidor NAS Compartido", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_nas); b21.pack(fill="x", pady=5)
-    b21.bind("<Enter>", lambda e: on_enter(e, "SERVIDOR NAS", t_red21_n, t_red21_e)); b21.bind("<Leave>", on_leave)
-
-    t_red22_n = "Revela una lista oculta de todas las páginas web a las que esta computadora se ha conectado recientemente, incluso si borraron el historial del navegador."
-    t_red22_e = "[Autor: Microsoft OS] Ejecuta un volcado directo del búfer interno del resolver DNS de Windows, exponiendo los registros A/CNAME en memoria RAM."
-    crear_boton_herramienta("22. Auditar Caché DNS (DisplayDNS)", logica_auditar_cache_dns, "AUDITAR DNS", t_red22_n, t_red22_e)
+    h_redes = [
+        {"id": "1", "nombre": "1. Info Básica de Red e IP", "cmd": lambda: abrir_consola_y_ejecutar("INFO DE RED", logica_info_red), "nov": "Muestra IP local y pública al instante. Útil para configuraciones y diagnósticos rápidos.", "exp": "[Sockets nativos / API REST] Resuelve hostname e invoca a api.ipify.org para evadir NAT y exponer IP WAN."},
+        {"id": "2", "nombre": "2. Reparación Total de Red", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR RED", logica_reparacion_red), "nov": "Soluciona problemas de conexión a internet limpiando configuraciones atascadas y solicitando una nueva dirección IP al router.", "exp": "[Microsoft OS] Secuencia progresiva: ipconfig /flushdns, reset de la pila TCP/IP (Winsock) y renovación DHCP."},
+        {"id": "3", "nombre": "3. Prueba de Conectividad (Ping / TCP)", "cmd": btn_ping, "nov": "Verifica si una web está en línea y responde correctamente, con la opción adicional de escanear puertos específicos.", "exp": "[Microsoft OS] Llama a Test-NetConnection para trazar latencia ICMP o auditar el estado de puertos TCP."},
+        {"id": "4", "nombre": "4. Monitor Conexiones TCP", "cmd": lambda: abrir_consola_y_ejecutar("MONITOR TCP", logica_conexiones_tcp), "nov": "Escanea y muestra en tiempo real qué programas de tu computadora están conectados a internet consumiendo ancho de banda.", "exp": "[Microsoft OS] Filtra la tabla de enrutamiento (Get-NetTCPConnection) y cruza el PID para revelar el ejecutable."},
+        {"id": "5", "nombre": "5. Identificar Proceso por Puerto", "cmd": btn_puerto_proceso, "nov": "Si un programa falla porque 'el puerto está en uso', descubre exactamente qué aplicación lo está bloqueando en la sombra.", "exp": "[Microsoft OS] Interroga puertos locales activos y extrae el OwningProcess mapeando la ruta física del binario."},
+        {"id": "6", "nombre": "6. Forense y Migración Wi-Fi", "cmd": btn_wifi, "nov": "Recupera todas las contraseñas Wi-Fi guardadas, expórtalas a una USB para no perderlas al formatear, o impórtalas a una PC nueva.", "exp": "[Microsoft OS] Herramienta modular. Parsea XML nativo de 'netsh wlan export/add profile' para migraciones Zero-Touch."},
+        {"id": "7", "nombre": "7. Código QR para Wi-Fi", "cmd": btn_qr_wifi, "nov": "Genera un código QR de tu red para que invitados se conecten escaneándolo rápidamente con su celular sin dictar claves.", "exp": "[API goqr.me] Ensambla URI WIFI:T:WPA y descarga el binario PNG generado por la API REST para visualización."},
+        {"id": "8", "nombre": "8. Geolocalizar IP", "cmd": lambda: abrir_consola_y_ejecutar("GEOLOCALIZACIÓN", logica_geolocalizar_ip), "nov": "Rastrea cualquier dirección IP para descubrir de qué país, ciudad, coordenadas y proveedor de internet proviene la conexión.", "exp": "[API ip-api.com] Triangulación mediante peticiones GET al endpoint JSON de IP-API, extrayendo metadatos ASN."},
+        {"id": "9", "nombre": "9. Diagnóstico Wi-Fi (WlanReport)", "cmd": lambda: abrir_consola_y_ejecutar("REPORTE WI-FI", logica_reporte_wifi), "nov": "Genera un reporte web muy profesional sobre la salud de tu tarjeta Wi-Fi, mostrando un historial de caídas y desconexiones.", "exp": "[Microsoft OS] Invoca el motor nativo ETW (Event Tracing for Windows) compilando un HTML con transiciones de red."},
+        {"id": "10", "nombre": "10. Resolución DNS", "cmd": btn_dns_res, "nov": "Convierte el nombre de cualquier página web (ej. google.com) en su dirección IP numérica real de servidores (Resolución Inversa).", "exp": "[Microsoft OS] Utiliza Resolve-DnsName interrumpiendo la caché local para interrogar servidores raíz sobre registros."},
+        {"id": "11", "nombre": "11. Bloqueador de Webs (Hosts)", "cmd": btn_bloquear_web, "nov": "Bloquea el acceso a páginas web específicas (como redes sociales o sitios peligrosos) modificando el sistema de forma nativa.", "exp": "[OS Base] Inyecta un Sinkhole DNS en la ruta nativa drivers/etc/hosts, redirigiendo peticiones a la interfaz loopback."},
+        {"id": "12", "nombre": "12. Abrir Puertos Firewall", "cmd": btn_abrir_puerto, "nov": "Crea reglas rápidas para permitir que juegos o programas compartidos se comuniquen libremente sin que el antivirus los bloquee.", "exp": "[Microsoft OS] Inserta reglas directas Inbound en Defender Firewall mediante netsh, habilitando el puerto."},
+        {"id": "13", "nombre": "13. Purgar Historial Wi-Fi", "cmd": lambda: abrir_consola_y_ejecutar("PURGAR WI-FI", logica_purgar_wifi_historial), "nov": "Elimina por completo todas las redes memorizadas en tu PC para resolver problemas de conexión por claves viejas.", "exp": "[Microsoft OS] Emplea un wildcard en la interfaz CLI de WLAN (profile name=* i=*) para truncar la base de perfiles."},
+        {"id": "14", "nombre": "14. Reset Firewall a Fábrica", "cmd": lambda: abrir_consola_y_ejecutar("RESET FIREWALL", logica_reset_firewall), "nov": "Restaura las defensas y bloqueos de Windows a su estado original. Útil si bloqueaste tu propio internet por error.", "exp": "[Microsoft OS] Reset absoluto de Advanced Firewall, reconstruyendo las tablas y eliminando GPOs de terceros."},
+        {"id": "15", "nombre": "15. Purgar Caché ARP", "cmd": lambda: abrir_consola_y_ejecutar("PURGAR ARP", logica_limpiar_arp), "nov": "Obliga a tu computadora a volver a identificar los equipos físicos de tu red. Útil si cambiaste de router recientemente.", "exp": "[Protocolo ARP] Ejecuta arp -d * para vaciar la tabla estática de traducción de IPs a direcciones físicas MAC."},
+        {"id": "16", "nombre": "16. Optimizador Avanzado de DNS", "cmd": btn_dns_opt, "nov": "Acelera tu navegación (Cloudflare), bloquea anuncios de todo el sistema (AdGuard) o protégete de virus web (Quad9).", "exp": "[Inyección PS] Inyecta mediante Set-DnsClientServerAddress arreglos de IPs públicas en todas las interfaces activas."},
+        {"id": "17", "nombre": "17. Gestionar Sesiones SMB", "cmd": lambda: abrir_consola_y_ejecutar("SESIONES SMB", logica_sesiones_smb), "nov": "Detecta al instante si alguien más en tu misma red LAN está accediendo a tus carpetas compartidas sin tu permiso.", "exp": "[Microsoft OS] Audita el servicio Server Message Block (SMB) usando Get-SmbSession, revelando clientes conectados."},
+        {"id": "18", "nombre": "18. Radar Wi-Fi en Tiempo Real", "cmd": lambda: abrir_consola_y_ejecutar("RADAR WI-FI", logica_radar_wifi), "nov": "Escanea a tu alrededor para ver todas las redes Wi-Fi (incluso las ocultas) y encontrar canales menos saturados.", "exp": "[Microsoft OS] Despliega un loop temporal sobre mode=bssid para realizar barridos de radiofrecuencia e intensidad."},
+        {"id": "19", "nombre": "19. Auditoría de Latencia (Microcortes)", "cmd": btn_latencia, "nov": "Envía paquetes de forma continua para detectar pequeñas caídas ocultas de internet que causan lag en tus juegos o llamadas.", "exp": "[Python/ICMP] Combina un loop de Pings discretos con el módulo datetime logueando ms para cazar timeouts."},
+        {"id": "20", "nombre": "20. Motor Avanzado de Escaneo (Puertos)", "cmd": btn_escaner, "nov": "Analiza tu propia computadora o una IP externa para encontrar vulnerabilidades y puertas traseras abiertas por virus.", "exp": "[Python Sockets] Algoritmo asíncrono para testear puertos TCP estándar. Identifica servicios con timeouts ultracortos."},
+        {"id": "21", "nombre": "21. Crear Servidor NAS Compartido", "cmd": btn_nas, "nov": "Transforma cualquier carpeta de tu PC en un servidor rápido para que celulares o TVs de tu casa puedan acceder a su contenido.", "exp": "[Microsoft OS] Automatiza New-SmbShare concediendo permisos a Everyone y adaptando dinámicamente el Firewall."},
+        {"id": "22", "nombre": "22. Auditar Caché DNS (DisplayDNS)", "cmd": lambda: abrir_consola_y_ejecutar("AUDITAR DNS", logica_auditar_cache_dns), "nov": "Revela una lista oculta de las páginas web a las que esta PC se ha conectado, incluso si borraron el historial del navegador.", "exp": "[Microsoft OS] Volcado directo del búfer interno del resolver DNS de Windows, exponiendo registros A/CNAME."}
+    ]
+    construir_vista_dinamica("🌐 Redes e Internet", "🔍 Buscar (Ej: dns, 16, wifi)...", h_redes)
 
 def cargar_categoria_mantenimiento():
-    limpiar_panel()
-    ctk.CTkLabel(tools_frame, text="🧹 Mantenimiento y Optimización", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
-    
+    global app
     def btn_debloat():
-        app_name = simpledialog.askstring("Debloat", "App a eliminar (ej. xbox, zune, bing):", parent=app)
+        app_name = simpledialog.askstring("Debloat", "App a eliminar (ej. xbox, zune):", parent=app)
         if app_name: abrir_consola_y_ejecutar("DEBLOAT", lambda log: logica_debloat(log, app_name))
-
     def btn_chkdsk():
         letra = simpledialog.askstring("CHKDSK", "Letra de unidad a reparar (ej. C):", parent=app)
         if letra: abrir_consola_y_ejecutar("CHKDSK", lambda log: logica_chkdsk(log, letra))
 
-    t_mant_n = "Realiza una limpieza automática y profunda. Elimina gigas de basura oculta en carpetas temporales, lanza el liberador de espacio y verifica que ningún archivo vital de Windows esté dañado, reparándolo automáticamente si es necesario."
-    t_mant_e = "[Autor: Microsoft OS / Python] Ejecuta una limpieza recursiva mediante 'shutil.rmtree' en variables TEMP y Prefetch. Posteriormente invoca los motores DISM (/RestoreHealth) y SFC (/scannow) para validar y descargar componentes corruptos de la imagen del sistema base."
-    crear_boton_herramienta("1. Mantenimiento Profundo y SFC/DISM", logica_mantenimiento_profundo, "MANTENIMIENTO", t_mant_n, t_mant_e)
-
-    t_titus_n = "La mejor herramienta del mundo para acelerar computadoras lentas. Abre un panel avanzado que te permite desactivar funciones inútiles de Windows con un solo clic, instalando programas esenciales y mejorando el rendimiento en juegos."
-    t_titus_e = "[Autor: Chris Titus Tech] Invoca el script remoto de optimización a través de 'irm christitus.com/win | iex'. Despliega una interfaz gráfica en PowerShell (WPF) que aplica tweaks de registro (MicroWin), deshabilita servicios innecesarios y optimiza procesos de red."
-    crear_boton_herramienta("2. Optimización Avanzada (Chris Titus)", logica_titus, "OPTIMIZACIÓN TITUS", t_titus_n, t_titus_e)
-    
-    t_deb_n = "Elimina de raíz esos programas basura que vienen preinstalados en Windows (como Xbox, Zune, o publicidad) que no se pueden desinstalar normalmente desde el panel de control. Acelera el arranque y limpia el menú de inicio."
-    t_deb_e = "[Autor: Microsoft OS] Emplea el cmdlet 'Get-AppxPackage' filtrando mediante comodines el string ingresado, canalizando el output hacia 'Remove-AppxPackage -AllUsers'. Purga paquetes provisionados UWP (Universal Windows Platform) del registro base."
-    b3 = ctk.CTkButton(tools_frame, text="3. Debloat del Sistema (Apps Nativas)", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_debloat); b3.pack(fill="x", pady=5)
-    b3.bind("<Enter>", lambda e: on_enter(e, "DEBLOAT", t_deb_n, t_deb_e)); b3.bind("<Leave>", on_leave)
-
-    t_sp_n = "Soluciona de inmediato el problema clásico cuando mandas a imprimir un documento y la impresora se queda atascada sin hacer nada. Destruye los trabajos trabados y reinicia la comunicación con la impresora."
-    t_sp_e = "[Autor: Microsoft OS] Detiene el servicio Spooler. Purga recursivamente los archivos de caché .SHD y .SPL del directorio System32\\Spool\\Printers, liberando el buffer bloqueado, y restablece el servicio para forzar la reenumeración de colas."
-    crear_boton_herramienta("4. Restablecer Cola Impresión", logica_spooler, "REPARAR IMPRESIÓN", t_sp_n, t_sp_e)
-
-    t_wx_n = "Libera una cantidad masiva de disco duro (a veces más de 10 GB) eliminando copias de seguridad de actualizaciones viejas de Windows. Advertencia: tras usarlo, no podrás desinstalar actualizaciones pasadas."
-    t_wx_e = "[Autor: Microsoft OS] Ejecuta 'DISM /Online /Cleanup-Image /StartComponentCleanup /ResetBase'. Consolida todos los componentes del sistema (WinSxS) reemplazando la línea base, lo que impide el rollback a versiones previas pero minimiza el footprint drásticamente."
-    crear_boton_herramienta("5. Limpieza Extrema WinSxS", logica_winsxs, "LIMPIEZA WINSXS", t_wx_n, t_wx_e)
-
-    t_up_n = "Arregla el problema crítico cuando Windows Update se queda trabado en 'Descargando 0%' y no avanza. Borra el catálogo corrupto de descargas para que el sistema empiece a bajar las actualizaciones desde cero."
-    t_up_e = "[Autor: Microsoft OS] Detiene los servicios criptográficos (wuauserv, cryptSvc, bits). Renombra los directorios SoftwareDistribution y catroot2 a '.old'. Al reiniciar los demonios, el motor de actualización regenera bases de datos limpias."
-    crear_boton_herramienta("6. Reparar Windows Update", logica_reparar_update, "REPARAR UPDATE", t_up_n, t_up_e)
-
-    t_vss_n = "Borra copias de seguridad de Windows muy antiguas (Puntos de Restauración) que consumen espacio oculto en tu disco duro sin que te des cuenta. Es completamente seguro si tu PC funciona bien actualmente."
-    t_vss_e = "[Autor: Microsoft OS] Invoca el gestor nativo de instantáneas de volumen (VSS) mediante 'vssadmin delete shadows /all /quiet'. Purga registros inactivos y shadow copies asignadas por el sistema operativo, recuperando gigabytes de espacio."
-    crear_boton_herramienta("7. Purgar Puntos Restauración", logica_shadowcopies, "BORRAR VSS", t_vss_n, t_vss_e)
-
-    t_wmi_n = "Arregla errores graves en la computadora cuando los programas no pueden leer la información de tu PC (por ejemplo, cuando no te muestra cuánta batería tienes o no se abre la información del sistema)."
-    t_wmi_e = "[Autor: Microsoft OS] Diagnóstico y reparación del Instrumental de Administración de Windows (WMI). Detiene winmgmt, ejecuta la bandera '/resetrepository' para reconstruir los archivos CIM averiados y relanza el servicio principal."
-    crear_boton_herramienta("8. Reparar Repositorio WMI", logica_wmi, "REPARAR WMI", t_wmi_n, t_wmi_e)
-
-    t_tel_n = "Evita que Windows envíe información privada sobre cómo usas tu computadora a los servidores de Microsoft. Mejora el rendimiento de tu internet y cuida tu privacidad al máximo apagando estos reportes."
-    t_tel_e = "[Autor: Lennes Varela / GPO Base] Fuerza la detención del servicio de rastreo DiagTrack. Modifica la directiva de grupo (Registry) DataCollection, estableciendo la llave DWORD AllowTelemetry en 0, cortando el tráfico saliente de recolección de Microsoft."
-    crear_boton_herramienta("9. Bloquear Telemetría Microsoft", logica_telemetria, "BLOQUEO TELEMETRÍA", t_tel_n, t_tel_e)
-
-    t_ntp_n = "Soluciona el temido error 'La conexión no es privada' en las páginas web, que suele ocurrir cuando la hora de tu computadora está atrasada. Obliga a tu PC a sincronizar la hora exacta con los servidores mundiales."
-    t_ntp_e = "[Autor: Microsoft OS] Reinicia el servicio Time Broker (w32time). Modifica el peerlist forzando la sincronización SNTP contra el servidor maestro 'time.windows.com', seguido de un '/resync /force' para reajustar el reloj RTC físico de la motherboard."
-    crear_boton_herramienta("10. Reparar Hora (NTP)", logica_hora, "REPARAR HORA", t_ntp_n, t_ntp_e)
-
-    t_nav_n = "Acelera tus navegadores borrando archivos basura temporales que vuelven lenta la navegación. Es totalmente seguro: no borrará tus contraseñas guardadas, ni tu historial, ni tus marcadores, solo los archivos caché pesados."
-    t_nav_e = "[Autor: Python shutil] Mapea dinámicamente las variables de entorno %LOCALAPPDATA% del sistema. Itera de forma recursiva destruyendo los directorios 'Cache_Data' de motores Chromium (Chrome, Edge, Brave) evadiendo bloqueos de acceso."
-    crear_boton_herramienta("11. Limpiar Navegadores (Caché)", logica_limpiar_navegadores, "PURGAR NAVEGADORES", t_nav_n, t_nav_e)
-
-    t_chk_n = "Repara sectores dañados físicamente en tu disco duro. Si la computadora está extremadamente lenta o lanza errores al intentar copiar un archivo, esta función bloqueará las zonas dañadas del disco para salvar el sistema."
-    t_chk_e = "[Autor: Microsoft OS] Interfaz para la utilidad CheckDisk. Programa una ejecución estructurada de 'chkdsk /f /r /x' en el volumen indicado. Fuerza el desmontaje de inodos y mapea sectores defectuosos trasladando la data recuperable a sectores sanos."
-    b12 = ctk.CTkButton(tools_frame, text="12. Reparación Disco (CHKDSK)", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_chkdsk); b12.pack(fill="x", pady=5)
-    b12.bind("<Enter>", lambda e: on_enter(e, "CHKDSK", t_chk_n, t_chk_e)); b12.bind("<Leave>", on_leave)
-
-    t_ico_n = "Soluciona ese fallo visual fastidioso donde los iconos de tus programas en el escritorio aparecen como hojas en blanco o se ven borrosos. Resetea los gráficos del sistema y todo vuelve a la normalidad en un segundo."
-    t_ico_e = "[Autor: Microsoft OS] Interrupción táctica del Shell de Windows. Destruye la interfaz de usuario (explorer.exe), localiza y purga el archivo base de datos de iconos 'IconCache.db' en el directorio oculto, y relanza el Shell forzando un renderizado nuevo."
-    crear_boton_herramienta("13. Reconstruir Caché de Iconos", logica_iconos, "REPARAR ICONOS", t_ico_n, t_ico_e)
+    h_mant = [
+        {"id": "1", "nombre": "1. Mantenimiento Profundo y SFC/DISM", "cmd": lambda: abrir_consola_y_ejecutar("MANTENIMIENTO", logica_mantenimiento_profundo), "nov": "Realiza una limpieza automática profunda. Elimina gigas de basura oculta y repara archivos vitales dañados de Windows.", "exp": "[Python/OS] shutil.rmtree en TEMP/Prefetch. Luego invoca motores DISM /RestoreHealth y SFC /scannow para validar imagen."},
+        {"id": "2", "nombre": "2. Optimización Avanzada (Chris Titus)", "cmd": lambda: abrir_consola_y_ejecutar("OPTIMIZACIÓN TITUS", logica_titus), "nov": "La mejor herramienta para acelerar PCs lentas. Desactiva funciones inútiles, instala programas base y mejora el rendimiento.", "exp": "[Chris Titus Tech] irm christitus.com/win | iex. Despliega panel WPF para aplicar tweaks de registro y purga de servicios."},
+        {"id": "3", "nombre": "3. Debloat del Sistema (Apps Nativas)", "cmd": btn_debloat, "nov": "Elimina de raíz programas basura preinstalados (como Xbox o Bing) que no se pueden desinstalar desde el panel de control.", "exp": "[Microsoft OS] Get-AppxPackage canalizado hacia Remove-AppxPackage -AllUsers. Purga paquetes provisionados UWP."},
+        {"id": "4", "nombre": "4. Restablecer Cola Impresión", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR IMPRESIÓN", logica_spooler), "nov": "Soluciona de inmediato los atascos cuando envías un documento y la impresora se queda trabada sin hacer nada.", "exp": "[Microsoft OS] Detiene Spooler. Purga recursivamente caché .SHD y .SPL del directorio System32, liberando el buffer."},
+        {"id": "5", "nombre": "5. Limpieza Extrema WinSxS", "cmd": lambda: abrir_consola_y_ejecutar("LIMPIEZA WINSXS", logica_winsxs), "nov": "Libera masivamente espacio de disco duro borrando copias de seguridad de actualizaciones viejas de Windows.", "exp": "[Microsoft OS] DISM /Online /Cleanup-Image /StartComponentCleanup /ResetBase. Minimiza el footprint consolidando el SO."},
+        {"id": "6", "nombre": "6. Reparar Windows Update", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR UPDATE", logica_reparar_update), "nov": "Arregla el problema crítico cuando las actualizaciones de Windows se quedan trabadas en 'Descargando 0%'.", "exp": "[Microsoft OS] Detiene criptográficos (wuauserv, bits), renombra SoftwareDistribution a .old y regenera bases de datos."},
+        {"id": "7", "nombre": "7. Purgar Puntos Restauración", "cmd": lambda: abrir_consola_y_ejecutar("BORRAR VSS", logica_shadowcopies), "nov": "Borra copias de seguridad de Windows muy antiguas que consumen espacio oculto en tu disco duro (Completamente seguro).", "exp": "[Microsoft OS] vssadmin delete shadows /all /quiet. Purga registros inactivos y shadow copies asignadas recuperando GBs."},
+        {"id": "8", "nombre": "8. Reparar Repositorio WMI", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR WMI", logica_wmi), "nov": "Arregla errores graves cuando los programas no pueden leer la información de tu PC (como el nivel de batería).", "exp": "[Microsoft OS] Detiene winmgmt, ejecuta la bandera '/resetrepository' para reconstruir archivos CIM averiados y relanza."},
+        {"id": "9", "nombre": "9. Bloquear Telemetría Microsoft", "cmd": lambda: abrir_consola_y_ejecutar("BLOQUEO TELEMETRÍA", logica_telemetria), "nov": "Evita que Windows envíe reportes de uso a los servidores de Microsoft. Mejora el rendimiento del internet y cuida tu privacidad.", "exp": "[Lennes Varela] Fuerza detención de DiagTrack y altera llave DWORD AllowTelemetry en el Registro cortando el tráfico saliente."},
+        {"id": "10", "nombre": "10. Reparar Hora (NTP)", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR HORA", logica_hora), "nov": "Soluciona el error 'La conexión no es privada' obligando a tu PC a sincronizar la hora exacta con servidores mundiales.", "exp": "[Microsoft OS] Reinicia Time Broker. Modifica peerlist forzando sincronización SNTP contra time.windows.com con resync."},
+        {"id": "11", "nombre": "11. Limpiar Navegadores (Caché)", "cmd": lambda: abrir_consola_y_ejecutar("PURGAR NAVEGADORES", logica_limpiar_navegadores), "nov": "Acelera navegadores borrando archivos temporales pesados. (No borra tus contraseñas, ni historial, ni marcadores).", "exp": "[Python shutil] Destruye de forma recursiva los directorios 'Cache_Data' de motores Chromium en el LOCALAPPDATA."},
+        {"id": "12", "nombre": "12. Reparación Disco (CHKDSK)", "cmd": btn_chkdsk, "nov": "Repara sectores dañados físicamente en tu disco duro si la computadora está extremadamente lenta o lanza errores al copiar.", "exp": "[Microsoft OS] Programa chkdsk /f /r /x para desmontaje de inodos y traslado de data recuperable a sectores sanos."},
+        {"id": "13", "nombre": "13. Reconstruir Caché de Iconos", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR ICONOS", logica_iconos), "nov": "Soluciona el fallo visual donde los iconos de tus programas aparecen como hojas en blanco o se ven borrosos en el escritorio.", "exp": "[Microsoft OS] Destruye el explorer.exe, purga el archivo IconCache.db en AppData y relanza el Shell forzando un render."}
+    ]
+    construir_vista_dinamica("🧹 Mantenimiento y Optimización", "🔍 Buscar (Ej: chkdsk, debloat)...", h_mant)
 
 def cargar_categoria_diagnostico():
-    limpiar_panel()
-    ctk.CTkLabel(tools_frame, text="🖥️ Diagnóstico e Info del Sistema", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
-    
+    global app
     def btn_perfmon():
         op = simpledialog.askstring("Monitor", "1. Monitor | 2. Reporte", parent=app)
         if op in ['1', '2', '01', '02']: abrir_consola_y_ejecutar("PERFMON", lambda log: logica_perfmon(log, op))
-
     def btn_visor():
         op = simpledialog.askstring("Visor", "1. Procesos | 2. Servicios | 3. Errores", parent=app)
         if op in ['1', '2', '3']: abrir_consola_y_ejecutar("VISOR GRÁFICO", lambda log: logica_visor_grafico(log, op))
 
-    t_rap_n = "Muestra un resumen inmediato de tu computadora y verifica si el sistema operativo le ha dado una buena calificación de rendimiento general a tus componentes físicos."
-    t_rap_e = "[Autor: Microsoft OS] Invoca systeminfo extraído mediante CLI y complementa la salida evaluando la clase WMI 'Win32_WinSat', exponiendo la calificación formal de la Evaluación de la Experiencia de Windows (WinEI)."
-    crear_boton_herramienta("1. Diagnóstico Rápido (HW)", logica_diagnostico_rapido, "INFO RÁPIDA", t_rap_n, t_rap_e)
-
-    t_hw_n = "Genera el informe más completo y detallado posible sobre las piezas de tu computadora. Te dice la marca de tu placa madre, modelo de procesador, y exactamente cuánta memoria RAM y ranuras tienes conectadas."
-    t_hw_e = "[Autor: Lennes Varela / CIM] Ejecuta un volcado CIM masivo canalizado. Interroga Win32_BaseBoard, Processor y VideoController. Parsea el array PhysicalMemory para iterar la capacidad, velocidad y part number de cada módulo DIMM instalado en placa."
-    crear_boton_herramienta("2. Radiografía Completa HW", logica_radiografia_hardware_completa, "RADIOGRAFÍA HW", t_hw_n, t_hw_e)
-
-    t_hdd_n = "Lee los sensores internos ocultos de tus discos duros o unidades de estado sólido (SSD) para avisarte a tiempo si están sanos o si están a punto de dañarse y debes hacer una copia de seguridad urgente."
-    t_hdd_e = "[Autor: Microsoft OS] Parsea el firmware físico a través del cmdlet 'Get-PhysicalDisk'. Evalúa la variable HealthStatus y OperationalStatus extraída de los microcontroladores S.M.A.R.T. determinando la vida útil restante de los inodos."
-    crear_boton_herramienta("3. Salud Física Discos (S.M.A.R.T)", logica_salud_discos, "SALUD DE DISCOS", t_hdd_n, t_hdd_e)
-    
-    t_pfm_n = "Abre un historial visual interactivo con gráficas que te dice exactamente qué día, a qué hora y por qué falló un programa, o por qué la computadora se reinició inesperadamente la semana pasada."
-    t_pfm_e = "[Autor: Microsoft OS] Ejecuta 'perfmon /rel' para abrir el Monitor de Confiabilidad de Windows, el cual tabula crasheos de aplicaciones, fallos de hardware y problemas de Windows Update utilizando una escala de índice de estabilidad de 1 a 10."
-    b4 = ctk.CTkButton(tools_frame, text="4. Monitor de Confiabilidad", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_perfmon); b4.pack(fill="x", pady=5)
-    b4.bind("<Enter>", lambda e: on_enter(e, "PERFMON", t_pfm_n, t_pfm_e)); b4.bind("<Leave>", on_leave)
-
-    t_vis_n = "Muestra una tabla avanzada (tipo Excel) para ver exactamente qué procesos, servicios o errores recientes están corriendo en tu PC. Puedes filtrar la tabla para buscar algo específico rápidamente."
-    t_vis_e = "[Autor: Microsoft OS] Redirige el pipeline de salida de Get-Process, Get-Service o Get-EventLog hacia la interfaz interactiva 'Out-GridView'. Permite ordenamiento de memoria y filtrado en tiempo real sin saturar la consola CLI estándar."
-    b5 = ctk.CTkButton(tools_frame, text="5. Visor Gráfico (GridView)", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_visor); b5.pack(fill="x", pady=5)
-    b5.bind("<Enter>", lambda e: on_enter(e, "VISOR GRIDVIEW", t_vis_n, t_vis_e)); b5.bind("<Leave>", on_leave)
-
-    t_upt_n = "Calcula con precisión cronométrica cuántos días, horas y minutos lleva encendida tu computadora sin apagarse realmente. Muy útil para descubrir si la opción de 'Inicio Rápido' te está engañando."
-    t_upt_e = "[Autor: Microsoft OS] Resta el valor LastBootUpTime (extraído asincrónicamente de Win32_OperatingSystem) contra el timestamp del sistema actual. Revela el falso apagado de Windows asociado a la hibernación del kernel S4."
-    crear_boton_herramienta("6. Tiempo de Actividad (Uptime)", logica_uptime, "UPTIME", t_upt_n, t_upt_e)
-
-    t_aud_n = "Te muestra qué programas o mantenimientos están ejecutándose silenciosamente en el fondo de tu PC como tareas programadas sin que te des cuenta. Ideal para auditar lentitud inexplicable."
-    t_aud_e = "[Autor: Microsoft OS] Extrae la tabla de ejecución de 'schtasks' en formato tabular y realiza un pipe estructurado en Get-Service aislando exclusivamente los daemons cuyo System Status equivale a 'Running'."
-    crear_boton_herramienta("7. Auditar Tareas y Servicios", logica_tareas_servicios, "AUDITAR TAREAS", t_aud_n, t_aud_e)
-
-    t_arr_n = "Descubre exactamente qué programas están configurados para abrirse apenas enciendes tu computadora. Si tu PC tarda 3 minutos en mostrar el escritorio, el culpable se encuentra en esta lista."
-    t_arr_e = "[Autor: Microsoft OS] Evalúa las ramas de registro HKLM/HKCU asociadas al Run, RunOnce y Startup a través del wrapper WMI 'Win32_StartupCommand'. Mapea el binario ejecutable y su ruta para análisis de persistencia."
-    crear_boton_herramienta("8. Auditar Arranque de Windows", logica_programas_arranque, "AUDITAR ARRANQUE", t_arr_n, t_arr_e)
-
-    t_usb_n = "Muestra una lista forense de todos los pendrives, celulares y discos externos que se han conectado en esta PC en el pasado, revelando el nombre de los dispositivos aunque ya no estén conectados."
-    t_usb_e = "[Autor: Lennes Varela] Extrae y parsea el registro de dispositivos Plug and Play (PnP) persistentes. Itera sobre las llaves HKLM:\\SYSTEM\\CurrentControlSet\\Enum\\USBSTOR para revelar el FriendlyName del hardware de almacenamiento acoplado."
-    crear_boton_herramienta("9. Historial Forense de USBs", logica_historial_usb, "HISTORIAL USB", t_usb_n, t_usb_e)
-
-    t_bsod_n = "Si tu computadora se reinicia sola y muestra la pantalla azul de la muerte, esta herramienta extrae de la memoria el código de error exacto para que sepas qué pieza física está dañada."
-    t_bsod_e = "[Autor: Microsoft OS] Interroga el visor de eventos del sistema (EventLog). Filtra por System Logs cuyo originador sea la firma 'BugCheck'. Extrae el volcado en crudo asociado a pánicos del kernel por interrupciones de hardware o fallos de paginación."
-    crear_boton_herramienta("10. Auditoría de BSOD (Pantallazos)", logica_pantallazos_azules, "BSOD", t_bsod_n, t_bsod_e)
-
-    t_bat_n = "Calcula la salud real de la batería de tu laptop. Genera un reporte web muy profesional que te muestra de cuántos miliamperios era tu batería en la fábrica, y cuánta vida útil física le queda actualmente."
-    t_bat_e = "[Autor: Microsoft OS] Inyecta comandos ACPI en el controlador de energía. Genera un archivo HTML utilizando 'powercfg /batteryreport' el cual interpola el Full Charge Capacity vs el Design Capacity arrojando el Wear Level estructural."
-    crear_boton_herramienta("11. Reporte Físico de Batería", logica_bateria, "REPORTE BATERÍA", t_bat_n, t_bat_e)
-
-    t_slp_n = "Si tu laptop sufre del molesto problema de descargarse por completo estando guardada en la mochila o 'suspendida', aquí verás qué programa está manteniendo encendido el procesador en la sombra."
-    t_slp_e = "[Autor: Microsoft OS] Analiza los estados S0 Modern Standby generando un volcado 'powercfg /SleepStudy'. Expone el Active-State Power Management (ASPM) y localiza fugas de energía causadas por adaptadores de red o controladores SoC."
-    crear_boton_herramienta("12. Reporte de Suspensión (S0)", logica_sleepstudy, "SLEEPSTUDY", t_slp_n, t_slp_e)
-
-    t_bit_n = "Revisa rápidamente si el disco duro de tu computadora está encriptado con contraseña militar. Si lo está y olvidas la clave o conectas el disco en otra PC, perderás toda tu información para siempre."
-    t_bit_e = "[Autor: Microsoft OS] Verifica el estado del algoritmo AES en los volúmenes montados llamando a la consola de administración 'manage-bde -status'. Revela el porcentaje de encripción y el método de desbloqueo TPM asociado al chip físico."
-    crear_boton_herramienta("13. Estado de Cifrado BitLocker", logica_bitlocker, "BITLOCKER", t_bit_n, t_bit_e)
-
-    t_usr_n = "Lista todas las cuentas de usuario registradas en la computadora y te indica en qué fecha y hora exacta se conectaron por última vez al sistema operativo."
-    t_usr_e = "[Autor: Microsoft OS] Extrae la base de datos de cuentas locales (SAM - Security Accounts Manager) ejecutando Get-LocalUser. Retorna los estados Booleanos (Enabled) y el timestamp del LastLogon de las sesiones locales."
-    crear_boton_herramienta("14. Auditoría de Usuarios Locales", logica_usuarios_locales, "USUARIOS LOCALES", t_usr_n, t_usr_e)
-
-    t_ser_n = "Copia al portapapeles automáticamente el número de serie de fábrica y el modelo exacto de tu computadora. Es indispensable para buscar drivers en internet o pedir soporte de garantía al fabricante."
-    t_ser_e = "[Autor: Microsoft OS] Consulta el WMI class Win32_ComputerSystemProduct. Extrae el atributo 'IdentifyingNumber', un identificador hexadecimal embebido en la BIOS por el Vendor OEM, y transfiere el hash resultante directamente al portapapeles."
-    crear_boton_herramienta("15. Extraer Número de Serie (PC)", logica_numero_serie, "NÚMERO DE SERIE", t_ser_n, t_ser_e)
-
-    t_gh_n = "La mejor defensa contra hackers. Algunos virus no se guardan en el disco duro, sino que se inyectan directamente en la memoria RAM de tu computadora volviéndose invisibles. Esta herramienta escanea tu memoria buscando infecciones silenciosas."
-    t_gh_e = "[Autor: pandaadir05 - GitHub] Inyecta el motor forense 'Ghost' compilado en lenguaje Rust. Escanea mapeos de memoria de procesos localizando banderas RWX anómalas e hilos huérfanos. Detecta vectores de ataque como Process Hollowing y Code Cave injections en Ring 3."
-    crear_boton_herramienta("16. Escáner Forense RAM (Ghost)", logica_memoria_ghost, "GHOST RAM", t_gh_n, t_gh_e)
+    h_diag = [
+        {"id": "1", "nombre": "1. Diagnóstico Rápido (HW)", "cmd": lambda: abrir_consola_y_ejecutar("INFO RÁPIDA", logica_diagnostico_rapido), "nov": "Muestra un resumen inmediato de tu PC y verifica la calificación de rendimiento general que le ha dado Windows.", "exp": "[Microsoft OS] Invoca systeminfo y evalúa la clase WMI 'Win32_WinSat', exponiendo la calificación formal WinEI."},
+        {"id": "2", "nombre": "2. Radiografía Completa HW", "cmd": lambda: abrir_consola_y_ejecutar("RADIOGRAFÍA HW", logica_radiografia_hardware_completa), "nov": "Informe extremo de las piezas físicas: marca de placa madre, modelo de CPU, RAM exacta y ranuras usadas.", "exp": "[CIM Engine] Volcado canalizado. Interroga Win32_BaseBoard, Processor y parsea PhysicalMemory (DIMMs)."},
+        {"id": "3", "nombre": "3. Salud Física Discos (S.M.A.R.T)", "cmd": lambda: abrir_consola_y_ejecutar("SALUD DE DISCOS", logica_salud_discos), "nov": "Lee los sensores internos de tus discos o SSD para avisarte si están sanos o si están a punto de dañarse físicamente.", "exp": "[Microsoft OS] Parsea el firmware físico (Get-PhysicalDisk), evaluando HealthStatus extraído de S.M.A.R.T."},
+        {"id": "4", "nombre": "4. Monitor de Confiabilidad", "cmd": btn_perfmon, "nov": "Abre gráficas que te indican a qué hora falló un programa o por qué la computadora se reinició la semana pasada.", "exp": "[Microsoft OS] perfmon /rel tabula crasheos de aplicaciones y hardware utilizando un índice de estabilidad de 1 a 10."},
+        {"id": "5", "nombre": "5. Visor Gráfico (GridView)", "cmd": btn_visor, "nov": "Abre una tabla avanzada interactiva para buscar y filtrar procesos, servicios o errores recientes que corren en tu PC.", "exp": "[Microsoft OS] Redirige pipeline de Get-Process/Service hacia Out-GridView para ordenamiento y filtrado RAM."},
+        {"id": "6", "nombre": "6. Tiempo de Actividad (Uptime)", "cmd": lambda: abrir_consola_y_ejecutar("UPTIME", logica_uptime), "nov": "Calcula con precisión cuántos días y horas lleva encendida tu computadora sin apagarse realmente (Inicio Rápido).", "exp": "[Microsoft OS] Resta LastBootUpTime (Win32_OperatingSystem) revelando el falso apagado asociado a hibernación S4."},
+        {"id": "7", "nombre": "7. Auditar Tareas y Servicios", "cmd": lambda: abrir_consola_y_ejecutar("AUDITAR TAREAS", logica_tareas_servicios), "nov": "Te muestra qué programas o mantenimientos están ejecutándose escondidos en el fondo de tu PC causando lentitud.", "exp": "[Microsoft OS] Pipe estructurado de la tabla schtasks y Get-Service aislando exclusivamente los daemons en 'Running'."},
+        {"id": "8", "nombre": "8. Auditar Arranque de Windows", "cmd": lambda: abrir_consola_y_ejecutar("AUDITAR ARRANQUE", logica_programas_arranque), "nov": "Descubre exactamente qué programas están configurados para abrirse apenas enciendes tu computadora ralentizando el inicio.", "exp": "[Microsoft OS] Evalúa ramas HKLM/HKCU asociadas a Startup via Win32_StartupCommand. Mapea binarios de persistencia."},
+        {"id": "9", "nombre": "9. Historial Forense de USBs", "cmd": lambda: abrir_consola_y_ejecutar("HISTORIAL USB", logica_historial_usb), "nov": "Muestra una lista forense de todos los pendrives o celulares que se han conectado en esta PC en toda su historia.", "exp": "[Lennes Varela] Parsea registro Plug and Play (PnP). Itera sobre HKLM\\SYSTEM\\CurrentControlSet\\Enum\\USBSTOR."},
+        {"id": "10", "nombre": "10. Auditoría de BSOD (Pantallazos)", "cmd": lambda: abrir_consola_y_ejecutar("BSOD", logica_pantallazos_azules), "nov": "Si tu PC mostró la pantalla azul de la muerte, extrae el código de error exacto para saber qué pieza está dañada.", "exp": "[Microsoft OS] Filtra EventLog System Logs por origen 'BugCheck'. Extrae el volcado crudo asociado a pánicos del kernel."},
+        {"id": "11", "nombre": "11. Reporte Físico de Batería", "cmd": lambda: abrir_consola_y_ejecutar("REPORTE BATERÍA", logica_bateria), "nov": "Genera un reporte web que muestra de cuántos miliamperios era tu batería de fábrica, y cuánta vida útil real le queda.", "exp": "[Microsoft OS] Invoca powercfg /batteryreport que interpola Full Charge Capacity vs Design Capacity (Wear Level)."},
+        {"id": "12", "nombre": "12. Reporte de Suspensión (S0)", "cmd": lambda: abrir_consola_y_ejecutar("SLEEPSTUDY", logica_sleepstudy), "nov": "Si tu laptop se descarga estando guardada o 'suspendida', descubre qué programa mantuvo encendido el procesador.", "exp": "[Microsoft OS] powercfg /SleepStudy analiza S0 Modern Standby exponiendo el Active-State Power Management (ASPM)."},
+        {"id": "13", "nombre": "13. Estado de Cifrado BitLocker", "cmd": lambda: abrir_consola_y_ejecutar("BITLOCKER", logica_bitlocker), "nov": "Avisa si tu disco está encriptado con clave. Si conectas un disco encriptado en otra PC, perderás tu información.", "exp": "[Microsoft OS] Verifica estado del algoritmo AES en volúmenes montados vía manage-bde. Revela método de desbloqueo TPM."},
+        {"id": "14", "nombre": "14. Auditoría de Usuarios Locales", "cmd": lambda: abrir_consola_y_ejecutar("USUARIOS LOCALES", logica_usuarios_locales), "nov": "Lista todas las cuentas registradas en la máquina e indica en qué fecha y hora exacta se conectaron por última vez.", "exp": "[Microsoft OS] Extrae base de datos local (SAM) ejecutando Get-LocalUser para retornar el timestamp del LastLogon."},
+        {"id": "15", "nombre": "15. Extraer Número de Serie (PC)", "cmd": lambda: abrir_consola_y_ejecutar("NÚMERO DE SERIE", logica_numero_serie), "nov": "Copia al portapapeles el número de serie de fábrica de la computadora. Indispensable para soporte de garantía.", "exp": "[Microsoft OS] Consulta Win32_ComputerSystemProduct extrayendo el hash 'IdentifyingNumber' embebido por el Vendor OEM."},
+        {"id": "16", "nombre": "16. Escáner Forense RAM (Ghost)", "cmd": lambda: abrir_consola_y_ejecutar("GHOST RAM", logica_memoria_ghost), "nov": "Escanea la memoria RAM buscando virus invisibles (Fileless) que no se guardan en el disco duro para evadir al antivirus.", "exp": "[pandaadir05] Inyecta motor Ghost en Rust. Analiza procesos localizando banderas RWX anómalas (Process Hollowing) en Ring 3."}
+    ]
+    construir_vista_dinamica("🖥️ Diagnóstico e Info del Sistema", "🔍 Buscar (Ej: bateria, smart, usb)...", h_diag)
 
 def cargar_categoria_software():
-    limpiar_panel()
-    ctk.CTkLabel(tools_frame, text="📦 Software y Licencias", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
-    
-    txt_winget_nov = "Tener programas desactualizados es un riesgo de seguridad. Esta herramienta analiza todos los programas de tu computadora y los actualiza a su última versión oficial automáticamente, sin que tengas que descargar molestos instaladores manualmente."
-    txt_winget_exp = "[Autor: Microsoft Corp] Invoca el gestor de paquetes nativo de Windows (Winget) mediante la terminal. Ejecuta un 'upgrade --all' con banderas silenciosas (--silent) aceptando términos de forma desatendida para parchear vulnerabilidades en segundo plano."
-    crear_boton_herramienta("1. Actualizar Apps (Winget)", logica_gestor_winget, "WINGET UPGRADE", txt_winget_nov, txt_winget_exp)
-
-    txt_clave_nov = "Si necesitas formatear tu PC pero perdiste la caja donde venía tu clave de Windows, esta herramienta escanea el chip de tu placa base y extrae la licencia original de fábrica para que nunca la pierdas."
-    txt_clave_exp = "[Autor: Nativo Windows] Realiza una consulta directa a la tabla ACPI (MSDM) y lee la rama del registro 'SoftwareProtectionPlatform' extrayendo el valor 'BackupProductKeyDefault'. Identifica licencias OEM embebidas en el firmware UEFI."
-    crear_boton_herramienta("2. Clave Original Windows", logica_clave_windows, "CLAVE WINDOWS", txt_clave_nov, txt_clave_exp)
-
-    txt_csv_nov = "Ideal para empresas. Crea un documento Excel instantáneo en tu escritorio que contiene una lista perfecta y ordenada de absolutamente todos los programas que están instalados en tu computadora y sus respectivas versiones."
-    txt_csv_exp = "[Autor: Nativo Python] Itera recursivamente las ramas 'Uninstall' del registro (HKLM y Wow6432Node) usando la librería 'winreg' de Python. Parsea los valores 'DisplayName' y exporta un array estructurado a formato CSV."
-    crear_boton_herramienta("3. Inventario Software CSV", logica_inventario_software, "INVENTARIO CSV", txt_csv_nov, txt_csv_exp)
-
-    txt_drivers_nov = "¿Vas a formatear un PC viejo y no tienes los discos de instalación? Esta opción clona los controladores de tu red, video y sonido actuales y los guarda en la carpeta C:\\RespaldoDrivers para que los restaures luego."
-    txt_drivers_exp = "[Autor: Nativo Windows] Emplea la herramienta de mantenimiento de imágenes de despliegue (DISM). Ejecuta el comando '/export-driver' para volcar todos los archivos .inf, .sys y catálogos de terceros instalados actualmente en el host."
-    crear_boton_herramienta("4. Respaldar Controladores", logica_respaldo_drivers, "CLONAR DRIVERS", txt_drivers_nov, txt_drivers_exp)
-
-    txt_office_nov = "Descubre si tu instalación de Microsoft Word o Excel es original o si fue activada con programas piratas defectuosos. Ideal para auditar la legalidad del software en computadoras de oficina."
-    txt_office_exp = "[Autor: Nativo Windows] Localiza el script de administración OSPP.VBS en los archivos de programa de Office 16. Lo invoca mediante cscript.exe pasando la bandera '/dstatus' para parsear los tickets KMS, MAK o Retail inyectados."
-    crear_boton_herramienta("5. Auditar MS Office", logica_auditar_office, "AUDITAR OFFICE", txt_office_nov, txt_office_exp)
-
-    txt_mas_nov = "Si Windows te pide activación, esta herramienta segura lo soluciona. Vincula una licencia digital permanente a tu placa madre, activando el sistema para siempre sin necesidad de descargar troyanos ni programas piratas."
-    txt_mas_exp = "[Autor: massgravel / MAS] Llama a la herramienta open-source Microsoft Activation Scripts a través de Invoke-RestMethod. Inyecta tickets genuinos HWID en el servicio de protección de software sin modificar ni corromper archivos del sistema."
-    crear_boton_herramienta("6. Activador de Windows (MAS)", logica_activador_mas, "ACTIVADOR MAS", txt_mas_nov, txt_mas_exp)
-
-    txt_pnp_nov = "Si conectaste una impresora, una tarjeta gráfica o un mando y la computadora no lo reconoce, esta herramienta fuerza a Windows a escanear todos los puertos para encontrar piezas nuevas y prepararlas."
-    txt_pnp_exp = "[Autor: Nativo Windows] Interacciona directamente con el administrador Plug and Play (PnP) mediante la utilidad pnputil. Ejecuta un '/scan-devices' para forzar una enumeración completa de hardware en el bus del sistema y solicitar drivers."
-    crear_boton_herramienta("7. Escanear Hardware (PnP)", logica_escanear_pnp, "ESCANEO PNP", txt_pnp_nov, txt_pnp_exp)
+    global app
+    h_soft = [
+        {"id": "1", "nombre": "1. Actualizar Apps (Winget)", "cmd": lambda: abrir_consola_y_ejecutar("WINGET UPGRADE", logica_gestor_winget), "nov": "Analiza los programas de tu computadora y los actualiza a su última versión oficial automáticamente, sin buscar instaladores.", "exp": "[Microsoft Corp] Invoca el gestor Winget. Ejecuta 'upgrade --all' con banderas silenciosas (--silent) aceptando EULAs en background."},
+        {"id": "2", "nombre": "2. Clave Original Windows", "cmd": lambda: abrir_consola_y_ejecutar("CLAVE WINDOWS", logica_clave_windows), "nov": "Si vas a formatear y perdiste tu licencia, esta herramienta escanea el chip de la placa base y extrae la clave de fábrica.", "exp": "[Microsoft OS] Lee tabla ACPI (MSDM) y la rama del registro SoftwareProtectionPlatform extrayendo el 'BackupProductKeyDefault'."},
+        {"id": "3", "nombre": "3. Inventario Software CSV", "cmd": lambda: abrir_consola_y_ejecutar("INVENTARIO CSV", logica_inventario_software), "nov": "Crea un documento Excel (CSV) en tu escritorio con una lista perfecta de todos los programas instalados y sus versiones.", "exp": "[Python winreg] Itera recursivamente ramas 'Uninstall' (HKLM y Wow6432Node) parseando DisplayName hacia un formato delimitado."},
+        {"id": "4", "nombre": "4. Respaldar Controladores", "cmd": lambda: abrir_consola_y_ejecutar("CLONAR DRIVERS", logica_respaldo_drivers), "nov": "Ideal antes de formatear un PC viejo. Clona los controladores de red, video y sonido actuales y los guarda en C:\\RespaldoDrivers.", "exp": "[Microsoft OS] Emplea la utilidad de imágenes DISM con comando '/export-driver' para volcar archivos .inf, .sys y catálogos."},
+        {"id": "5", "nombre": "5. Auditar MS Office", "cmd": lambda: abrir_consola_y_ejecutar("AUDITAR OFFICE", logica_auditar_office), "nov": "Descubre si el paquete de Word o Excel instalado es original o si fue activado ilegalmente con activadores KMS inseguros.", "exp": "[Microsoft OS] Localiza script OSPP.VBS en Office 16 y lo invoca vía cscript /dstatus para parsear tickets Retail/MAK/KMS instalados."},
+        {"id": "6", "nombre": "6. Activador de Windows (MAS)", "cmd": lambda: abrir_consola_y_ejecutar("ACTIVADOR MAS", logica_activador_mas), "nov": "Activa Windows legalmente de por vida vinculando una licencia digital a tu placa madre. Sin descargar troyanos o cracks.", "exp": "[massgravel / MAS] Llama a Microsoft Activation Scripts vía Invoke-RestMethod. Inyecta tickets HWID genuinos sin alterar binarios del SO."},
+        {"id": "7", "nombre": "7. Escanear Hardware (PnP)", "cmd": lambda: abrir_consola_y_ejecutar("ESCANEO PNP", logica_escanear_pnp), "nov": "Si conectaste una impresora o tarjeta gráfica y no la reconoce, fuerza a Windows a escanear todos los puertos buscando hardware.", "exp": "[Microsoft OS] Interacciona con el administrador Plug and Play mediante pnputil. '/scan-devices' fuerza enumeración de bus y petición de drivers."}
+    ]
+    construir_vista_dinamica("📦 Software y Licencias", "🔍 Buscar (Ej: winget, office)...", h_soft)
 
 def cargar_categoria_soporte():
     global app 
-    limpiar_panel()
-    ctk.CTkLabel(tools_frame, text="🛠️ Soporte Técnico y Utilidades", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
-
-# --- CUADROS DE DIÁLOGO NATIVOS ---
     def btn_destructor():
         ruta = simpledialog.askstring("Destructor", "Ruta EXACTA de la carpeta a destruir:", parent=app)
         if ruta: abrir_consola_y_ejecutar("DESTRUCTOR", lambda log: logica_destructor(log, ruta))
-    
     def btn_cambiar_clave():
         usr = simpledialog.askstring("Usuario", "Nombre del usuario local a modificar:", parent=app)
         if usr:
             pwd = simpledialog.askstring("Clave", "Nueva clave (deja vacío para eliminarla):", parent=app)
             if pwd is not None: abrir_consola_y_ejecutar("GESTOR CLAVES", lambda log: logica_cambiar_clave(log, usr, pwd))
-            
     def btn_ytdlp():
-        # VENTANA 1: Pegar URL
         dialog_url = ctk.CTkToplevel(app)
-        dialog_url.title("YouTube-DL - Paso 1: Enlace")
+        dialog_url.title("YouTube-DL - Paso 1")
         dialog_url.geometry("550x200")
         dialog_url.attributes("-topmost", True)
         dialog_url.transient(app)
-        
         ctk.CTkLabel(dialog_url, text="Ingresa el enlace (URL) del video o canción:", font=("Arial", 14)).pack(pady=(20, 5))
-        entrada = ctk.CTkEntry(dialog_url, width=450)
-        entrada.pack(pady=10)
-        
-        btn_frame = ctk.CTkFrame(dialog_url, fg_color="transparent")
-        btn_frame.pack(pady=10)
-        
+        entrada = ctk.CTkEntry(dialog_url, width=450); entrada.pack(pady=10)
+        btn_frame_int = ctk.CTkFrame(dialog_url, fg_color="transparent"); btn_frame_int.pack(pady=10)
         def pegar_texto():
-            try:
-                entrada.delete(0, 'end')
-                entrada.insert(0, dialog_url.clipboard_get())
+            try: entrada.delete(0, 'end'); entrada.insert(0, dialog_url.clipboard_get())
             except: pass
-            
         def procesar_url():
             url = entrada.get()
             if not url: return
-            dialog_url.destroy()
-            abrir_ventana_calidad(url) # Pasa al paso 2
-
-        ctk.CTkButton(btn_frame, text="📋 Pegar Enlace", width=120, fg_color="#444444", hover_color="#666666", command=pegar_texto).pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame, text="Siguiente", width=120, command=procesar_url).pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame, text="Cancelar", width=120, fg_color="#880000", hover_color="#AA0000", command=dialog_url.destroy).pack(side="left", padx=5)
+            dialog_url.destroy(); abrir_ventana_calidad(url)
+        ctk.CTkButton(btn_frame_int, text="📋 Pegar Enlace", width=120, fg_color="#444444", hover_color="#666666", command=pegar_texto).pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame_int, text="Siguiente", width=120, command=procesar_url).pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame_int, text="Cancelar", width=120, fg_color="#880000", hover_color="#AA0000", command=dialog_url.destroy).pack(side="left", padx=5)
 
         def abrir_ventana_calidad(url):
-            # VENTANA 2: Elegir Calidad
             dialog_cal = ctk.CTkToplevel(app)
-            dialog_cal.title("YouTube-DL - Paso 2: Calidad")
+            dialog_cal.title("YouTube-DL - Paso 2")
             dialog_cal.geometry("450x250")
             dialog_cal.attributes("-topmost", True)
             dialog_cal.transient(app)
-            
             ctk.CTkLabel(dialog_cal, text="Elige la calidad de descarga:", font=("Arial", 14, "bold")).pack(pady=(20, 15))
-            
             def sel_calidad(cal):
                 dialog_cal.destroy()
-                if cal == '3':
-                    # Si es MP3, descarga de una vez sin preguntar formato de video
-                    abrir_consola_y_ejecutar("DESCARGADOR MEDIOS", lambda log: logica_ytdlp(log, url, '3', 'mp3'))
-                else:
-                    abrir_ventana_formato(url, cal) # Pasa al paso 3
-                    
+                if cal == '3': abrir_consola_y_ejecutar("DESCARGADOR MEDIOS", lambda log: logica_ytdlp(log, url, '3', 'mp3'))
+                else: abrir_ventana_formato(url, cal)
             ctk.CTkButton(dialog_cal, text="🌟 1. Máxima Calidad Posible (2K/4K/8K)", command=lambda: sel_calidad('1')).pack(fill="x", padx=40, pady=5)
-            ctk.CTkButton(dialog_cal, text="📺 2. Calidad Full HD (1080p Estable)", command=lambda: sel_calidad('2')).pack(fill="x", padx=40, pady=5)
-            ctk.CTkButton(dialog_cal, text="🎵 3. Solo Audio (Música MP3)", fg_color="#107C41", hover_color="#0F5C30", command=lambda: sel_calidad('3')).pack(fill="x", padx=40, pady=15)
+            ctk.CTkButton(dialog_cal, text="📺 2. Calidad Full HD (1080p)", command=lambda: sel_calidad('2')).pack(fill="x", padx=40, pady=5)
+            ctk.CTkButton(dialog_cal, text="🎵 3. Solo Audio (MP3)", fg_color="#107C41", hover_color="#0F5C30", command=lambda: sel_calidad('3')).pack(fill="x", padx=40, pady=15)
 
         def abrir_ventana_formato(url, calidad):
-            # VENTANA 3: Elegir Formato de Video
             dialog_fmt = ctk.CTkToplevel(app)
-            dialog_fmt.title("YouTube-DL - Paso 3: Formato")
+            dialog_fmt.title("YouTube-DL - Paso 3")
             dialog_fmt.geometry("450x250")
             dialog_fmt.attributes("-topmost", True)
             dialog_fmt.transient(app)
-            
             ctk.CTkLabel(dialog_fmt, text="Elige el formato de video:", font=("Arial", 14, "bold")).pack(pady=(20, 15))
-            
             def sel_formato(fmt):
-                dialog_fmt.destroy()
-                abrir_consola_y_ejecutar("DESCARGADOR MEDIOS", lambda log: logica_ytdlp(log, url, calidad, fmt))
-                
+                dialog_fmt.destroy(); abrir_consola_y_ejecutar("DESCARGADOR MEDIOS", lambda log: logica_ytdlp(log, url, calidad, fmt))
             ctk.CTkButton(dialog_fmt, text="🎬 MP4 (Universal / Estándar)", command=lambda: sel_formato('mp4')).pack(fill="x", padx=40, pady=5)
             ctk.CTkButton(dialog_fmt, text="🎞️ MKV (Alta Calidad / PC)", command=lambda: sel_formato('mkv')).pack(fill="x", padx=40, pady=5)
-            ctk.CTkButton(dialog_fmt, text="🍏 MOV (Formato Apple / Mac)", fg_color="#444444", hover_color="#222222", command=lambda: sel_formato('mov')).pack(fill="x", padx=40, pady=15)
+            ctk.CTkButton(dialog_fmt, text="🍏 MOV (Apple / Mac)", fg_color="#444444", hover_color="#222222", command=lambda: sel_formato('mov')).pack(fill="x", padx=40, pady=15)
 
     def btn_diskpart():
         disco = simpledialog.askstring("Desbloqueo USB", "Ingresa el NÚMERO del disco bloqueado (ej. 1, 2):", parent=app)
         if disco: abrir_consola_y_ejecutar("DISKPART", lambda log: logica_diskpart_usb(log, disco))
-        
     def btn_sysprep():
-        confirm = simpledialog.askstring("Sysprep", "Peligro: El PC se apagará y quedará de fábrica.\nEscribe 'CONFIRMAR' para proceder:", parent=app)
+        confirm = simpledialog.askstring("Sysprep", "Peligro: El PC se apagará y quedará de fábrica.\nEscribe 'CONFIRMAR':", parent=app)
         if confirm == "CONFIRMAR": abrir_consola_y_ejecutar("SYSPREP", logica_sysprep)
 
-# --- TEXTOS LARGOS Y RENDEREIZADO DE BOTONES ---
-    t_dest_n = "Hay ocasiones en las que intentas eliminar una carpeta y Windows te lo impide mostrando un error de 'Acceso denegado' o 'El archivo está en uso'. Esto ocurre por protecciones internas. Esta herramienta actúa como un destructor forzado: se salta las reglas del sistema y elimina permanentemente cualquier carpeta bloqueada, virus persistente o archivo rebelde. Solo debes pegar la ruta exacta y el programa la pulverizará sin dejar rastro. Úsala con precaución."
-    t_dest_e = "[Autor: Microsoft OS] Ejecuta una toma de posesión forzada mediante los binarios nativos del sistema. Utiliza 'takeown.exe /f /a /r /d y' para reasignar el Owner al grupo de Administradores. Luego, emplea 'icacls.exe' inyectando el SID universal '*S-1-5-32-544:F' para otorgar permisos Full Control sobre el árbol de directorios ignorando las listas ACL previas. Finalmente, invoca la librería 'shutil.rmtree' para vaciar los inodos y eliminar el directorio recursivamente desde la raíz del disco."
-    b1 = ctk.CTkButton(tools_frame, text="1. Destructor de Carpetas Rebeldes", height=45, fg_color="#1E3A8A", hover_color="#880000", command=btn_destructor); b1.pack(fill="x", pady=5)
-    b1.bind("<Enter>", lambda e: on_enter(e, "DESTRUCTOR", t_dest_n, t_dest_e)); b1.bind("<Leave>", on_leave)
-
-    t_pwd_n = "Olvidar la contraseña para entrar a la computadora es un problema grave, pero esta herramienta te salva la vida. Te permite cambiar la clave de acceso de cualquier usuario registrado en la máquina por una nueva, o si lo prefieres, eliminarla por completo para que la PC inicie directamente al escritorio sin pedir contraseña. No necesitas saber cuál era la clave anterior para que el sistema realice el cambio."
-    t_pwd_e = "[Autor: Microsoft OS] Herramienta de manipulación de la base de datos SAM (Security Account Manager) del sistema local. Realiza una llamada directa al binario 'net.exe user' inyectando el alias del usuario y el string criptográfico en el input. Al operar bajo el contexto de UAC Admin, el kernel bypassa el requerimiento de la contraseña actual, reescribiendo el hash NTLM asociado al SID en milisegundos."
-    b2 = ctk.CTkButton(tools_frame, text="2. Cambiar o Quitar Contraseña de Windows", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_cambiar_clave); b2.pack(fill="x", pady=5)
-    b2.bind("<Enter>", lambda e: on_enter(e, "GESTOR CLAVES", t_pwd_n, t_pwd_e)); b2.bind("<Leave>", on_leave)
-
-    t_laz_n = "Si olvidaste las contraseñas de tus redes sociales o correos, esta herramienta hace magia. Realiza un escaneo profundo en los archivos ocultos de tus navegadores y en las bases de datos de tu computadora para recuperar todas tus contraseñas guardadas históricamente. Al finalizar, genera un documento de texto en tu escritorio con la lista completa de usuarios y claves para que puedas respaldarlas. Tu antivirus podría alertarte temporalmente, pero es completamente seguro."
-    t_laz_e = "[Autor: AlessandroZ - GitHub] Despliega el motor forense open-source LaZagne. Inyecta una exclusión temporal en Defender vía PowerShell (Add-MpPreference) evitando el bloqueo heurístico. Descarga el payload desde la API de GitHub, lo aloja aislado y lanza el módulo 'all' para dumpear secretos del registro, LSA secrets, DPAPI, y credenciales de navegadores en formato SQLite/JSON, canalizando el output hacia un archivo txt local."
-    crear_boton_herramienta("3. Extracción de Credenciales (LaZagne)", logica_lazagne, "LAZAGNE", t_laz_n, t_laz_e)
-
-    t_yt_n = "La herramienta definitiva para descargar videos o música de internet sin publicidad y sin instalar programas extraños. Soporta cientos de páginas web como YouTube, Facebook, o Twitter. Solo necesitas pegar el enlace del video que deseas y elegir si quieres guardarlo en MP4/MKV o extraer únicamente el audio (MP3). El programa descargará el archivo con la máxima calidad posible y lo guardará directamente en tu carpeta de Descargas de forma muy limpia."
-    t_yt_e = "[Autor: yt-dlp contributors] Interfaz gráfica interactiva que envuelve el potente motor de línea de comandos yt-dlp. Descarga el binario ejecutable en memoria temporal y solicita al usuario el formato de multiplexado final (mp4, mkv, mov o mp3). Canaliza el flujo de red directamente al directorio '%USERPROFILE%\\Downloads', evadiendo restricciones de ancho de banda y protecciones DRM básicas. Se autodestruye tras uso."
-    b4 = ctk.CTkButton(tools_frame, text="4. Descargador Multimedia (yt-dlp)", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_ytdlp); b4.pack(fill="x", pady=5)
-    b4.bind("<Enter>", lambda e: on_enter(e, "YT-DLP", t_yt_n, t_yt_e)); b4.bind("<Leave>", on_leave)
-
-    t_usb_n = "Protege tu computadora contra el robo de información y los virus de pendrives. Al activar el bloqueo, los puertos USB seguirán dando energía (podrás cargar celulares o conectar tu teclado sin problemas), pero la computadora rechazará la lectura de cualquier memoria USB. Nadie podrá sacar ni meter archivos. Es ideal para oficinas, cibercafés o si prestas tu equipo. Puedes desbloquearlo en cualquier momento desde esta misma interfaz con un solo clic."
-    t_usb_e = "[Autor: Lennes Varela] Modifica el comportamiento del demonio de almacenamiento de Windows a nivel de Registro. Utiliza la librería 'winreg' de Python para acceder a HKLM\\SYSTEM\\CurrentControlSet\\Services\\USBSTOR y altera el valor DWORD de la llave 'Start'. Un valor de 4 instruye al kernel a no cargar el driver de clase de almacenamiento masivo USB, denegando el montaje de volúmenes extraíbles sin afectar los periféricos."
-    crear_boton_herramienta("5. Bloquear Puertos USB", lambda log: logica_bloquear_usb(log, True), "BLOQUEO USB", t_usb_n, t_usb_e)
-    crear_boton_herramienta("6. Desbloquear Puertos USB", lambda log: logica_bloquear_usb(log, False), "DESBLOQUEO USB", "Habilita nuevamente la lectura de discos externos y memorias USB revertiendo el bloqueo de seguridad previamente aplicado al registro del sistema.", "[Autor: Lennes Varela] Reestablece la llave DWORD Start a valor 3 en USBSTOR.")
-
-    t_disk_n = "A veces las memorias USB o los discos duros se bloquean y no te dejan guardar archivos ni formatearlos porque dicen estar 'Protegidos contra escritura'. Esta función utiliza herramientas profundas del sistema para eliminar esa bandera de seguridad, desbloqueando el disco físico a la fuerza para que vuelva a funcionar normalmente. Solo necesitas saber el número de disco asignado por el sistema para aplicar la reparación."
-    t_disk_e = "[Autor: Microsoft OS] Herramienta de inyección de comandos hacia el motor de particionado 'diskpart'. Crea un script de texto temporal en AppData que contiene las directivas 'select disk X' y 'attributes disk clear readonly'. Luego lanza el ejecutable pasando el archivo por argumento silencioso (/s). Elimina la bandera de solo lectura incrustada a nivel de volumen lógico y firmware del dispositivo."
-    b7 = ctk.CTkButton(tools_frame, text="7. Quitar Protección contra Escritura (USB)", height=45, fg_color="#1E3A8A", hover_color="#2563EB", command=btn_diskpart); b7.pack(fill="x", pady=5)
-    b7.bind("<Enter>", lambda e: on_enter(e, "DISKPART", t_disk_n, t_disk_e)); b7.bind("<Leave>", on_leave)
-
-    t_sb_n = "Crea una computadora virtual completamente desechable y segura dentro de tu propia máquina. Si sospechas que un archivo, programa o enlace que descargaste tiene virus, puedes abrirlo dentro de este Sandbox. Todo lo que ocurra ahí dentro está aislado; si realmente es un virus, no afectará tu PC real. Al cerrar la ventana del Sandbox, todo el contenido malicioso se eliminará de forma permanente como si nunca hubiera existido."
-    t_sb_e = "[Autor: Microsoft OS] Ejecuta una llamada de elevación al paquete Feature Management de Windows. Invoca el comando PowerShell 'Enable-WindowsOptionalFeature -FeatureName Containers-DisposableClientVM' para instalar la característica base del Sandbox. Inicializa un entorno de escritorio en contenedor atado al kernel anfitrión pero aislado hipervisoriamente en memoria y disco."
-    crear_boton_herramienta("8. Activar Windows Sandbox", logica_sandbox, "SANDBOX", t_sb_n, t_sb_e)
-
-    t_sys_n = "La opción nuclear para vendedores y técnicos. Si vas a vender tu computadora o clonar el disco duro para otra PC, debes usar esta herramienta. Elimina todos los identificadores únicos de Windows, borra los drivers específicos de tu placa y apaga la máquina. La próxima vez que alguien la encienda, iniciará como si estuviera recién comprada en la tienda, pidiendo la configuración inicial de idioma y usuario."
-    t_sys_e = "[Autor: Microsoft OS] Utiliza la herramienta de preparación del sistema (Sysprep) alojada en System32. Ejecuta las banderas '/generalize /oobe /shutdown'. La bandera generalize purga el SID (Security Identifier) del host, limpia registros de eventos y elimina hardware instalado, preparando la imagen para ser desplegada en arquitecturas dispares. OOBE fuerza la experiencia de primer inicio."
-    b9 = ctk.CTkButton(tools_frame, text="9. Preparar PC para Venta (Sysprep)", height=45, fg_color="#1E3A8A", hover_color="#880000", command=btn_sysprep); b9.pack(fill="x", pady=5)
-    b9.bind("<Enter>", lambda e: on_enter(e, "SYSPREP", t_sys_n, t_sys_e)); b9.bind("<Leave>", on_leave)
-
-    t_wipe_n = "Cuando borras un archivo de la papelera, realmente no desaparece; queda invisible y puede ser recuperado por hackers o programas especiales. Esta herramienta realiza un borrado militar forense: sobrescribe con ceros todo el espacio vacío de tu disco duro para garantizar que cualquier foto, documento o contraseña que hayas eliminado en el pasado quede destruida e irrecuperable para siempre. Es un proceso muy demorado pero indispensable para tu privacidad."
-    t_wipe_e = "[Autor: Microsoft OS] Invoca el algoritmo nativo de cifrado y sobreescritura de sistema de archivos mediante 'cipher.exe /w:C:\\'. Barre los clústeres marcados como libres o no asignados en la MFT del volumen C:, sobrescribiéndolos con múltiples pasadas (ceros, unos y números aleatorios logrando mitigación contra Data Recovery y file carving avanzado en análisis forense)."
-    crear_boton_herramienta("10. Borrado Forense Militar (Wipe)", logica_borrado_seguro, "BORRADO WIPE", t_wipe_n, t_wipe_e)
+    h_sop = [
+        {"id": "1", "nombre": "1. Destructor de Carpetas Rebeldes", "cmd": btn_destructor, "nov": "Un destructor forzado. Elimina permanentemente cualquier carpeta bloqueada, virus persistente o archivo que Windows no te deje borrar.", "exp": "[Microsoft OS] takeown /f /a + icacls inyectando SID Admin *S-1-5-32-544:F + shutil.rmtree para vaciar inodos."},
+        {"id": "2", "nombre": "2. Cambiar o Quitar Contraseña Windows", "cmd": btn_cambiar_clave, "nov": "Te permite cambiar la clave de acceso de cualquier usuario por una nueva o eliminarla para que la PC inicie directamente sin pedir contraseña.", "exp": "[Microsoft OS] Manipulación de SAM inyectando net.exe user bajo UAC, bypassando requerimiento de hash original."},
+        {"id": "3", "nombre": "3. Extracción de Credenciales (LaZagne)", "cmd": lambda: abrir_consola_y_ejecutar("LAZAGNE", logica_lazagne), "nov": "Escaneo forense para recuperar todas las contraseñas guardadas en navegadores. Genera un documento de texto en tu escritorio.", "exp": "[AlessandroZ] Exclusión Defender temporal. Dumpea LSA secrets y bases SQLite vía payload descargado de GitHub."},
+        {"id": "4", "nombre": "4. Descargador Multimedia (yt-dlp)", "cmd": btn_ytdlp, "nov": "Descarga videos o música (MP3/MP4) a máxima calidad de YouTube, Facebook o Twitter, sin instalar programas con publicidad.", "exp": "[yt-dlp] Motor CLI + FFmpeg embebidos en memoria temporal para merge de flujos de video y audio libres de DRM."},
+        {"id": "5", "nombre": "5. Bloquear Puertos USB", "cmd": lambda: abrir_consola_y_ejecutar("BLOQUEO USB", lambda log: logica_bloquear_usb(log, True)), "nov": "Impide la lectura de memorias USB para evitar robo de información. Podrás seguir conectando tu teclado o cargando el celular.", "exp": "[Lennes Varela] Modifica HKLM SYSTEM USBSTOR 'Start' a DWORD 4. Deniega el montaje del driver masivo."},
+        {"id": "6", "nombre": "6. Desbloquear Puertos USB", "cmd": lambda: abrir_consola_y_ejecutar("DESBLOQUEO USB", lambda log: logica_bloquear_usb(log, False)), "nov": "Habilita nuevamente la lectura de discos externos y memorias USB en la computadora.", "exp": "[Lennes Varela] Reestablece la llave DWORD Start a valor 3 en USBSTOR, rehabilitando el montaje PnP."},
+        {"id": "7", "nombre": "7. Quitar Protección contra Escritura (USB)", "cmd": btn_diskpart, "nov": "Desbloquea memorias USB que no te dejan guardar archivos ni formatear porque dicen estar 'Protegidas contra escritura'.", "exp": "[Microsoft OS] Inyecta script temporal 'attributes disk clear readonly' hacia el motor lógico diskpart /s."},
+        {"id": "8", "nombre": "8. Activar Windows Sandbox", "cmd": lambda: abrir_consola_y_ejecutar("SANDBOX", logica_sandbox), "nov": "Crea una PC desechable aislada dentro de tu máquina. Ideal para abrir archivos sospechosos de virus sin poner en riesgo tu sistema real.", "exp": "[Microsoft OS] Enable-WindowsOptionalFeature Containers-DisposableClientVM. Inicializa entorno aislado vía hipervisor."},
+        {"id": "9", "nombre": "9. Preparar PC para Venta (Sysprep)", "cmd": btn_sysprep, "nov": "Ideal para vendedores. Borra los identificadores únicos y drivers de tu placa. Al prender, la PC pedirá la configuración inicial de idioma.", "exp": "[Microsoft OS] Sysprep /generalize purga el SID del host y logs; /oobe fuerza la experiencia out-of-box."},
+        {"id": "10", "nombre": "10. Borrado Forense Militar (Wipe)", "cmd": lambda: abrir_consola_y_ejecutar("BORRADO WIPE", logica_borrado_seguro), "nov": "Sobrescribe con ceros todo el espacio vacío del disco para garantizar que ninguna foto o documento que borraste pueda ser recuperado por hackers.", "exp": "[Microsoft OS] cipher /w:C:\\ barre los clusters libres de la MFT sobrescribiéndolos con múltiples pasadas."},
+        {"id": "11", "nombre": "11. Reiniciar directo a la BIOS (UEFI)", "cmd": lambda: abrir_consola_y_ejecutar("REINICIO BIOS", logica_reinicio_bios), "nov": "Un salvavidas: Reinicia la PC y te lleva directamente a la pantalla de la BIOS/UEFI sin que tengas que machacar F2 o SUPR repetidas veces.", "exp": "[Microsoft OS] Llamada ACPI ejecutando shutdown.exe /r /fw delegando la interrupción POST al firmware UEFI."}
+    ]
+    construir_vista_dinamica("🛠️ Soporte Técnico y Utilidades", "🔍 Buscar (Ej: lazagne, usb, wipe)...", h_sop)
 
 def cargar_categoria_portables():
     import urllib.request, json, time, platform
     global app
-    limpiar_panel()
-    ctk.CTkLabel(tools_frame, text="🧰 Programas Portables (Nube)", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
     
     url_catalogo = f"https://raw.githubusercontent.com/LennesVP/Programas_Portables/main/Programas_Portables/catalogo.json?t={time.time()}"
-    
     try:
         req = urllib.request.Request(url_catalogo, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
         datos = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
         catalogo = json.loads(datos)
         
-        # MAGIA 1: Ordenamiento alfabético instantáneo
         catalogo.sort(key=lambda x: x['nombre'])
-        
-        # MAGIA 2: Escáner táctico de Arquitectura del Sistema (32 vs 64 bits)
         es_64bits = platform.machine().endswith('64')
         
+        h_portables = []
         for index, item in enumerate(catalogo):
-            titulo_boton = f"{index + 1}. {item['nombre']}"
-            
-            # MAGIA 3: Evaluación inteligente del ejecutable
             ejecutable_crudo = item['ejecutable']
+            exe_final = ejecutable_crudo["64"] if isinstance(ejecutable_crudo, dict) and es_64bits else (ejecutable_crudo["32"] if isinstance(ejecutable_crudo, dict) else ejecutable_crudo)
             
-            # Si el JSON tiene las dos versiones (es un diccionario), elegimos la correcta
-            if isinstance(ejecutable_crudo, dict):
-                exe_final = ejecutable_crudo["64"] if es_64bits else ejecutable_crudo["32"]
-            # Si el JSON solo tiene un texto normal (compatibilidad con tus programas viejos)
-            else:
-                exe_final = ejecutable_crudo
+            # Constructor de closures (lambda binds the current value instead of loop reference)
+            def make_cmd(c, e, nombre):
+                return lambda: abrir_consola_y_ejecutar(nombre.upper(), lambda log: logica_ejecutar_portable(log, c, e))
             
-            # Función puente para asegurar que cada botón ejecute su propio programa
-            def crear_comando(c, e):
-                return lambda log: logica_ejecutar_portable(log, c, e)
+            h_portables.append({
+                "id": str(index + 1),
+                "nombre": f"{index + 1}. {item['nombre']}",
+                "nov": item.get('desc_n', 'Sin descripción para este programa.'),
+                "exp": item.get('desc_e', 'Portable en la nube.'),
+                "cmd": make_cmd(item['carpeta'], exe_final, item['nombre']),
+                "txt_btn": "☁️ Descargar y Ejecutar",
+                "color_borde": "#A78BFA" # Borde color Púrpura especial para Nube
+            })
             
-            crear_boton_herramienta(
-                titulo_boton, 
-                crear_comando(item['carpeta'], exe_final), 
-                item['nombre'].upper(), 
-                item['desc_n'], 
-                item['desc_e']
-            )
+        construir_vista_dinamica("🧰 Programas Portables (Nube)", "🔍 Buscar aplicación en la nube...", h_portables)
             
     except Exception as e:
-        ctk.CTkLabel(tools_frame, text=f"Error al conectar con el catálogo en GitHub:\n{e}", text_color="#FF4444").pack(pady=20)
+        limpiar_panel()
+        ctk.CTkLabel(tools_frame, text=f"Error crítico de red. Imposible conectar con GitHub:\n{e}", text_color="#FF4444", font=("Arial", 16)).pack(pady=40)
 
 def cargar_categoria_enciclopedia():
     import urllib.request, json, time, threading, webbrowser
@@ -1609,46 +1495,40 @@ def cargar_categoria_tienda():
 def cargar_categoria_webs():
     import urllib.request, json, time, webbrowser
     global app
-    limpiar_panel()
     
-    # Título temático
-    ctk.CTkLabel(tools_frame, text="🌐 Enciclopedia de Páginas Web", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
-
-    # Descarga e inyección del catálogo JSON
     url_webs = f"https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/webs.json?t={time.time()}"
     try:
         req = urllib.request.Request(url_webs, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
         respuesta = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
         datos_webs = json.loads(respuesta)
     except Exception as e:
+        limpiar_panel()
         ctk.CTkLabel(tools_frame, text=f"Error al conectar con la Nube:\n{e}", text_color="#FF4444").pack(pady=20)
         return
 
     if not datos_webs:
+        limpiar_panel()
         ctk.CTkLabel(tools_frame, text="El directorio web está vacío.", text_color="#AAAAAA").pack(pady=20)
         return
 
-    # --- RENDERIZADO DE TARJETAS WEB (Lista Deslizable) ---
-    for item in datos_webs:
-        # Contenedor de la tarjeta (Borde Púrpura)
-        tarjeta = ctk.CTkFrame(tools_frame, fg_color="#1E293B", corner_radius=10, border_width=1, border_color="#8B5CF6")
-        tarjeta.pack(fill="x", pady=10, padx=10)
-
-        # Encabezado: Título y Etiqueta de Categoría (Margen aumentado a 30)
-        header_frame = ctk.CTkFrame(tarjeta, fg_color="transparent")
-        header_frame.pack(fill="x", padx=30, pady=(15, 5)) 
+    # --- ADAPTACIÓN AL MOTOR MAESTRO DE VISTAS ---
+    h_webs = []
+    for index, item in enumerate(datos_webs):
+        # Función constructora para congelar la URL correcta en cada botón
+        def make_cmd(url):
+            return lambda: webbrowser.open(url)
+            
+        h_webs.append({
+            "id": str(index + 1),
+            "nombre": f"{index + 1}. {item.get('nombre', 'Sitio Web')}",
+            "exp": item.get("categoria", ""),     # Se ubicará al lado del título (ideal para la Categoría/Etiqueta)
+            "nov": item.get("descripcion", ""),   # Se ubicará en el cuerpo del texto
+            "cmd": make_cmd(item.get("enlace", "")),
+            "txt_btn": "🌐 Abrir Página Web",
+            "color_borde": "#8B5CF6"              # Mantiene la identidad visual púrpura neón
+        })
         
-        ctk.CTkLabel(header_frame, text=item.get('nombre', ''), font=("Arial", 18, "bold"), text_color="#C4B5FD").pack(side="left")
-        ctk.CTkLabel(header_frame, text=f"  |  {item.get('categoria', '')}", font=("Arial", 13, "italic"), text_color="#A78BFA").pack(side="left", padx=10)
-
-        # Cuerpo: Descripción de la página (Wraplength ajustado a 550 y margen a 30)
-        ctk.CTkLabel(tarjeta, text=item.get('descripcion', ''), font=("Arial", 14), justify="left", wraplength=550).pack(padx=30, pady=10, anchor="w")
-
-        # Botón de enlace (Alineado con el nuevo margen de 30)
-        def abrir_web(url=item.get('enlace', '')):
-            webbrowser.open(url)
-        
-        ctk.CTkButton(tarjeta, text="🌐 Abrir Página Web", font=("Arial", 14, "bold"), height=40, fg_color="#8B5CF6", hover_color="#7C3AED", text_color="#FFFFFF", command=abrir_web).pack(padx=30, pady=(0, 15), anchor="e")
+    construir_vista_dinamica("🌐 Enciclopedia de Páginas Web", "🔍 Buscar (Ej: extensiones, inteligencia, roms)...", h_webs)
 
 def cargar_categoria_android():
     import urllib.request, json, time, webbrowser
@@ -1799,9 +1679,9 @@ btn_filosofia = ctk.CTkButton(
 btn_filosofia.pack(side="bottom", pady=20, padx=20)
 
 # =========================================================================
-# EL RADAR DE ACTUALIZACIONES (COMPLETO Y BLINDADO)
+# EL RADAR DE ACTUALIZACIONES (MODO SILENCIOSO Y MANUAL)
 # =========================================================================
-def verificar_actualizaciones():
+def verificar_actualizaciones(silencioso=False):
     import urllib.request, time, webbrowser
     from tkinter import messagebox
     
@@ -1814,24 +1694,29 @@ def verificar_actualizaciones():
         with urllib.request.urlopen(req, timeout=5) as response:
             version_nube = response.read().decode('utf-8').strip()
         
-        # 3. Decisiones (¡Con alertas garantizadas!)
+        # 3. Decisiones Lógicas
         if version_nube != VERSION_ACTUAL:
+            # Si hay actualización, SIEMPRE avisa, sea silencioso o no.
             respuesta = messagebox.askyesno(
                 "¡Actualización Disponible!", 
                 f"¡Tu radar detectó una nueva versión!\n\nTu PC: {VERSION_ACTUAL}\nGitHub: {version_nube}\n\n¿Deseas descargarla ahora?"
             )
             if respuesta: webbrowser.open("https://github.com/LennesVP/TREMEND")
         else:
-            messagebox.showinfo("Radar de Nube", f"Conexión perfecta con GitHub.\nTu versión {VERSION_ACTUAL} está al día.")
+            # Si está actualizado, SOLO avisa si el usuario presionó el botón manualmente
+            if not silencioso:
+                messagebox.showinfo("Radar de Nube", f"Conexión perfecta con GitHub.\nTu versión {VERSION_ACTUAL} está al día.")
             
     except Exception as e:
-        messagebox.showerror("Error de Radar", f"Fallo al conectar con GitHub. Detalle:\n{e}")
+        # Solo muestra errores de conexión si lo buscaste manualmente
+        if not silencioso:
+            messagebox.showerror("Error de Radar", f"Fallo al conectar con GitHub. Detalle:\n{e}")
 
-# 4. EL BOTÓN MANUAL (Amarillo brillante)
+# 4. EL BOTÓN MANUAL (Amarillo brillante) - Llama a la función en modo NO silencioso
 btn_actualizar = ctk.CTkButton(
     sidebar, 
     text="🔄 Buscar Actualizaciones", 
-    command=verificar_actualizaciones, 
+    command=lambda: verificar_actualizaciones(silencioso=False), 
     fg_color="transparent", 
     border_width=1, 
     border_color="#FFDD00",
@@ -1840,7 +1725,7 @@ btn_actualizar = ctk.CTkButton(
 )
 btn_actualizar.pack(side="bottom", pady=(0, 10), padx=20)
 
-# 5. LA CHISPA DE ARRANQUE AUTOMÁTICO (La que faltaba)
-app.after(1500, verificar_actualizaciones)
+# 5. LA CHISPA DE ARRANQUE AUTOMÁTICO - Llama a la función en modo SILENCIOSO
+app.after(1500, lambda: verificar_actualizaciones(silencioso=True))
 
 app.mainloop()
