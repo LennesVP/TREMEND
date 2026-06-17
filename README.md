@@ -60,18 +60,22 @@ Este proyecto actúa como una interfaz unificada que rinde tributo y facilita el
 * **Microsoft Corp:** Motores base de OS, PowerShell, Winget y comandos core.
 
 ## ☕ Apoya el Proyecto
-Tu apoyo me permite investigar nuevas vulnerabilidades, costear mi tiempo de desarrollo y mantener esta herramienta 100% gratuita y sin publicidad.
+Tu apoyo me permite investigar nuevas vulnerabilidades, costear mi tiempo de desarrollo y mantener TREMEND Toolkit 100% gratuito. Pero más allá de eso, tu apoyo construye el futuro.
 
-### 🎁 Apoyo Internacional (Opción Principal)
-Si valoras mi trabajo y quieres darme un apoyo directo, ¡puedes enviarme un detalle físico! He creado una lista de Amazon con herramientas, hardware barato y café que me ayudan a seguir programando. Cualquier regalo es inmensamente agradecido:
+### 🎁 Apoyo Internacional y Proyecto "TREMEND Cloud" (Opción Principal)
+Si valoras mi trabajo, ¡puedes apoyarme enviándome un detalle físico! He creado una lista de Amazon que incluye desde café para las largas noches de código, hasta herramientas y componentes de hardware especializado.
+
+**¿Por qué hay piezas de hardware de alto valor en la lista?**
+Estos componentes no son simples herramientas; son las primeras piedras de mi próximo gran emprendimiento profesional: la construcción física de una **Nube Privada** orientada a ofrecer la máxima seguridad y privacidad del mercado. Al adquirir uno de estos equipos o componentes, estás ayudando a levantar la infraestructura de este futuro servidor.
+
+🌟 **Beneficio Exclusivo para Patrocinadores:** Quien decida apoyarme adquiriendo artículos de esta lista se convierte en un pionero de mi empresa. Como muestra de mi total gratitud, **todos los patrocinadores obtendrán un 50% de descuento** en los futuros servicios de nuestra nube privada una vez que la base física esté 100% operativa (el lanzamiento oficial de los servicios se anunciará a través de este mismo Toolkit). 
+
+Cualquier aporte para poner estas primeras piedras, sea grande o pequeño, es inmensamente agradecido:
 
 [![Amazon Wishlist](https://img.shields.io/badge/Amazon-Ver_mi_Lista_de_Deseos-FF9900?style=for-the-badge&logo=amazon&logoColor=black)](https://www.amazon.com/hz/wishlist/ls/3129WX8TBY0J6?ref_=wl_share)
 
 ### 🇨🇴 Apoyo Local (Colombia)
-Si estás en Colombia y prefieres invitarme un café virtualmente, puedes hacerlo de forma rápida y segura por estos medios:
+Si estás en Colombia y prefieres invitarme un café virtualmente de forma rápida y directa, puedes hacerlo por estos medios:
 
 [![MercadoPago](https://img.shields.io/badge/MercadoPago-Donar_un_Café-00B1EA?style=for-the-badge&logo=mercadopago)](https://link.mercadopago.com.co/tremend)
 * 🟣 **Transferencia Bancaria:** LLave De Bre-B: `@LVP671`
-
----
-*⚠️ **Aviso de Responsabilidad:** Herramienta diseñada para fines educativos y auditorías autorizadas. El uso indebido de las opciones forenses o destructivas es responsabilidad exclusiva del usuario final.*
