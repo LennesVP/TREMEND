@@ -62,7 +62,7 @@ Este proyecto actúa como una interfaz unificada que rinde tributo y facilita el
 ## ☕ Apoya el Proyecto
 Tu apoyo me permite investigar nuevas vulnerabilidades, costear mi tiempo de desarrollo y mantener TREMEND Toolkit 100% gratuito. Pero más allá de eso, tu apoyo construye el futuro.
 
-### 🎁 Apoyo Internacional y Proyecto "TREMEND Cloud" (Opción Principal)
+### 🎁 Apoyo Internacional y Proyecto "TrueNAS" (Opción Principal)
 Si valoras mi trabajo, ¡puedes apoyarme enviándome un detalle físico! He creado una lista de Amazon que incluye desde café para las largas noches de código, hasta herramientas y componentes de hardware especializado.
 
 **¿Por qué hay piezas de hardware de alto valor en la lista?**
