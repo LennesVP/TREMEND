@@ -60,9 +60,18 @@ Este proyecto actúa como una interfaz unificada que rinde tributo y facilita el
 * **Microsoft Corp:** Motores base de OS, PowerShell, Winget y comandos core.
 
 ## ☕ Apoya el Proyecto
-Tu apoyo me permite investigar nuevas vulnerabilidades y mantener la herramienta gratuita. 
+Tu apoyo me permite investigar nuevas vulnerabilidades, costear mi tiempo de desarrollo y mantener esta herramienta 100% gratuita y sin publicidad.
+
+### 🎁 Apoyo Internacional (Opción Principal)
+Si valoras mi trabajo y quieres darme un apoyo directo, ¡puedes enviarme un detalle físico! He creado una lista de Amazon con herramientas, hardware barato y café que me ayudan a seguir programando. Cualquier regalo es inmensamente agradecido:
+
+[![Amazon Wishlist](https://img.shields.io/badge/Amazon-Ver_mi_Lista_de_Deseos-FF9900?style=for-the-badge&logo=amazon&logoColor=black)](https://www.amazon.com/hz/wishlist/ls/3129WX8TBY0J6?ref_=wl_share)
+
+### 🇨🇴 Apoyo Local (Colombia)
+Si estás en Colombia y prefieres invitarme un café virtualmente, puedes hacerlo de forma rápida y segura por estos medios:
+
 [![MercadoPago](https://img.shields.io/badge/MercadoPago-Donar_un_Café-00B1EA?style=for-the-badge&logo=mercadopago)](https://link.mercadopago.com.co/tremend)
-* 🟣 **Transferencia:** LLave De Bre-B: @LVP671
+* 🟣 **Transferencia Bancaria:** LLave De Bre-B: `@LVP671`
 
 ---
 *⚠️ **Aviso de Responsabilidad:** Herramienta diseñada para fines educativos y auditorías autorizadas. El uso indebido de las opciones forenses o destructivas es responsabilidad exclusiva del usuario final.*
