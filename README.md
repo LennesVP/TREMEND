@@ -1,4 +1,4 @@
-# 🚀 TREMEND Toolkit V2.7 [ESTABLE Y BLINDADO]
+# 🚀 TREMEND Toolkit V2.8 [ESTABLE Y BLINDADO]
 **Desarrollado por:** LDVP (Lennes D. Varela Poveda)
 
 ![Versión](https://img.shields.io/badge/Versi%C3%B3n-2.7%20Stable-blue)
@@ -11,7 +11,7 @@ TREMEND Toolkit es una suite avanzada, portátil y sigilosa de diagnóstico y so
 
 ## 🏗️ Arquitectura del Proyecto (Menú Dinámico)
 
-A partir de la versión V2.7, la interfaz cuenta con un sistema de subcategorías colapsables (Acordeón) y módulos de filtrado inteligente, dividiendo la suite en dos grandes entornos:
+A partir de la versión V2.8, la interfaz cuenta con un sistema de subcategorías colapsables (Acordeón) y módulos de filtrado inteligente, dividiendo la suite en dos grandes entornos:
 
 ### 🪟 SISTEMAS OPERATIVOS
 
@@ -36,7 +36,7 @@ TREMEND Toolkit no almacena binarios pesados en su código fuente. Utiliza catá
 
 ---
 
-## 📥 Opciones de Descarga (Release v2.7)
+## 📥 Opciones de Descarga (Release v2.8)
 
 Dirígete a la sección de **[Releases](https://github.com/LennesVP/TREMEND/releases/latest)** para obtener la suite. Tienes dos opciones completamente portables:
 

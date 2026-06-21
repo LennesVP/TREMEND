@@ -22,7 +22,7 @@ import webbrowser
 from tkinter import messagebox
 
 # Define la versión de este archivo físico
-VERSION_ACTUAL = "2.7"
+VERSION_ACTUAL = "2.8"
 
 # ============================================================================
 # 0. ESCUDO DE ADMINISTRADOR AUTOMÁTICO (UAC)
@@ -562,7 +562,7 @@ def logica_memoria_ghost(log):
     log("\n[*] Iniciando Auditoría Forense RAM (Ghost por pandaadir05)...")
     temp_dir = r"C:\Tremend_Scanner"
     
-    # CORRECCIÓN DE PRIVILEGIOS: Añadimos cabecera User-Agent para evadir el bloqueo de GitHub API
+    # CORRECCIÓN DE PRIVILEGIOS Y EJECUCIÓN NATIVA
     script = fr"""
     if (!(Test-Path "{temp_dir}")) {{ New-Item -ItemType Directory -Force -Path "{temp_dir}" | Out-Null }}
     try {{
@@ -576,8 +576,14 @@ def logica_memoria_ghost(log):
             Expand-Archive -Path "{temp_dir}\ghost.zip" -DestinationPath "{temp_dir}" -Force -ErrorAction SilentlyContinue
             $exe = Get-ChildItem -Path "{temp_dir}" -Filter "*ghost*.exe" -Recurse | Select-Object -ExpandProperty FullName -First 1
             if ($exe) {{ 
-                Write-Host "[*] Ejecutando escaneo profundo en anillos de memoria..."
-                & $exe | Out-String | Write-Host
+                Write-Host "[*] Lanzando el Dashboard Original de Ghost..."
+                Write-Host "[!] Se abrirá una ventana externa con gráficos nativos."
+                Write-Host "[!] Cuando termines de auditar la RAM, presiona la tecla 'Q' en esa ventana para salir."
+                
+                # FIX MAESTRO: Ejecutamos el archivo en su propia consola nativa y pausamos TREMEND hasta que se cierre
+                Start-Process -FilePath $exe -Wait
+                
+                Write-Host "[+] Análisis de anillos de memoria finalizado."
             }}
         }}
     }} catch {{ Write-Host "[-] Error de comunicación con los servidores de GitHub: $($_.Exception.Message)" }}
