@@ -21,8 +21,46 @@ import urllib.request
 import webbrowser
 from tkinter import messagebox
 
+class LinuxToolkit:
+    @staticmethod
+    def ejecutar_comando(comando):
+        try:
+            resultado = subprocess.run(comando, shell=True, capture_output=True, text=True, check=True)
+            return resultado.stdout
+        except subprocess.CalledProcessError as e:
+            return f"❌ Error al ejecutar:\n{e.stderr}"
+
+    @staticmethod
+    def listar_avanzado(ruta="."): return LinuxToolkit.ejecutar_comando(f"ls -lah {ruta}")
+    @staticmethod
+    def analizar_espacio_disco(): return LinuxToolkit.ejecutar_comando("df -h")
+    @staticmethod
+    def ver_interfaces_red(): return LinuxToolkit.ejecutar_comando("ip a | grep inet")
+    @staticmethod
+    def probar_conectividad(host="google.com"): return LinuxToolkit.ejecutar_comando(f"ping -c 4 {host}")
+    @staticmethod
+    def abrir_monitor_htop():
+        try:
+            subprocess.Popen(["gnome-terminal", "--", "htop"])
+            return "✅ Monitor de recursos (htop) abierto en una nueva ventana."
+        except FileNotFoundError:
+            return "❌ No se encontró una terminal compatible. Instala htop o gnome-terminal."
+        
+import pyttsx3
+
+def notificar_voz(mensaje):
+    """Reproduce el mensaje por los altavoces."""
+    try:
+        motor = pyttsx3.init()
+        # El número 150 es la velocidad. Puedes subirlo o bajarlo luego si quieres.
+        motor.setProperty('rate', 150) 
+        motor.say(mensaje)
+        motor.runAndWait()
+    except Exception as e:
+        print(f"No se pudo reproducir la voz: {e}")
+
 # Define la versión de este archivo físico
-VERSION_ACTUAL = "2.8"
+VERSION_ACTUAL = "2.9"
 
 # ============================================================================
 # 0. ESCUDO DE ADMINISTRADOR AUTOMÁTICO (UAC)
@@ -36,29 +74,30 @@ if not is_admin():
     sys.exit()
 
 # ============================================================================
-# 1. CONFIGURACIÓN DEL TEMA Y RESPONSIVIDAD UNIVERSAL
+# 1. MOTOR DE ADAPTABILIDAD FLUIDA (LIQUID UI)
 # ============================================================================
 ctk.set_appearance_mode("dark")
 ctk.set_default_color_theme("blue")
 
 app = ctk.CTk()
 
-# Motor de Adaptabilidad de Pantalla
+# 1. Analizamos el hardware de la pantalla en tiempo real
 ancho_pantalla = app.winfo_screenwidth()
 alto_pantalla = app.winfo_screenheight()
 
-# Si es una pantalla inmensa (TV), ocupa el 70%. Si es laptop, ocupa el 85%
-factor_escala = 0.7 if ancho_pantalla > 1920 else 0.85 
+# 2. Geometría porcentual: La app ocupará el 85% de la pantalla (se auto-acopla)
+factor_escala = 0.85 
 ancho_app = int(ancho_pantalla * factor_escala)
 alto_app = int(alto_pantalla * factor_escala)
 
 app.geometry(f"{ancho_app}x{alto_app}")
-# Centramos la ventana automáticamente en la pantalla
+
+# 3. Centramos la ventana automáticamente en cualquier monitor
 x_pos = int((ancho_pantalla - ancho_app) / 2)
 y_pos = int((alto_pantalla - alto_app) / 2)
 app.geometry(f"+{x_pos}+{y_pos}")
 
-app.title("TREMEND Toolkit V2.6 [ESTABLE Y BLINDADO]")
+app.title("TREMEND Toolkit V2.8 [ESTABLE Y BLINDADO]")
 
 # ============================================================================
 # 2. MOTOR DE TERMINAL NATIVA Y EJECUCIÓN (SEGURO CONTRA CRASHES)
@@ -265,6 +304,8 @@ def logica_ping_tcp(log, destino, puerto):
         run_ps_script(log, f"Test-NetConnection -ComputerName '{destino}' -Port {puerto} | Format-List")
     else:
         run_cmd(log, f"ping {destino} -n 4")
+        
+        notificar_voz("La Prueba De Conectividad ha terminado.")
 
 def logica_puerto_proceso(log, puerto):
     log(f"\n[*] Mapeando procesos en el puerto local {puerto}...")
@@ -294,6 +335,8 @@ def logica_reporte_wifi(log):
     ruta = r"C:\ProgramData\Microsoft\Windows\WlanReport\wlan-report-latest.html"
     if os.path.exists(ruta): log(f"[+] Reporte generado en: {ruta}"); os.startfile(ruta)
     else: log("[-] No se pudo generar el reporte.")
+
+    notificar_voz("El Reporte De WIfi ha terminado.")
 
 def logica_resolucion_dns(log, dominio):
     log(f"\n[*] Interrogando servidores raíz para el dominio: {dominio}")
@@ -339,6 +382,8 @@ def logica_radar_wifi(log):
         time.sleep(2)
     log("\n[+] Análisis de espectro finalizado.")
 
+    notificar_voz("El Radar Wi-Fi ha terminado.")
+
 def logica_auditoria_latencia(log, destino):
     import time, datetime
     log(f"\n[*] Iniciando Auditoría de Latencia Continua hacia {destino} (10 paquetes con reloj atómico)...")
@@ -352,6 +397,8 @@ def logica_auditoria_latencia(log, destino):
             log(f"[{hora}] -> [!] TIEMPO DE ESPERA AGOTADO (Microcorte detectado)")
         time.sleep(1)
     log("[+] Auditoría finalizada.")
+
+    notificar_voz("La Prueba De Latencia ha terminado.")
 
 def logica_escaner_puertos_python(log, ip):
     import socket
@@ -385,6 +432,8 @@ def logica_auditar_cache_dns(log):
     run_cmd(log, "ipconfig /displaydns")
     log("[*] Si ves páginas sospechosas que tú no has visitado, ejecuta la 'Reparación Total de Red' para purgar esto.")
 
+    notificar_voz("La Auditoría De Cache DNS ha terminado.")
+
 # --- CATEGORÍA 2: MANTENIMIENTO ---
 def logica_mantenimiento_profundo(log):
     log("\n[*] Iniciando Limpieza de Temporales (Motor Python)...")
@@ -399,6 +448,8 @@ def logica_mantenimiento_profundo(log):
     log("[+] Limpieza nativa concluida.")
     run_cmd(log, "DISM /Online /Cleanup-Image /RestoreHealth")
     run_cmd(log, "sfc /scannow")
+
+    notificar_voz("El Mantenimiento Profundo ha terminado.")
 
 def logica_titus(log):
     log("\n[*] Lanzando utilidad de optimización de Chris Titus Tech...")
@@ -419,6 +470,8 @@ def logica_winsxs(log):
     log("\n[*] Limpieza Extrema del Component Store (WinSxS)...")
     run_cmd(log, "DISM /Online /Cleanup-Image /StartComponentCleanup /ResetBase")
 
+    notificar_voz("La Limpieza Extrema ha terminado.")
+
 def logica_reparar_update(log):
     log("\n[*] Deteniendo servicios criptográficos de Windows Update...")
     run_cmd(log, "net stop wuauserv & net stop cryptSvc & net stop bits & net stop msiserver")
@@ -431,6 +484,8 @@ def logica_reparar_update(log):
 def logica_shadowcopies(log):
     log("\n[*] Purgando Puntos de Restauración (VSS)...")
     run_cmd(log, "vssadmin delete shadows /all /quiet")
+
+    notificar_voz("El Purgado De Puntos De Restauración ha terminado.")
 
 def logica_wmi(log):
     log("\n[*] Reparando Repositorio WMI...")
@@ -501,6 +556,8 @@ def logica_radiografia_hardware_completa(log):
 def logica_salud_discos(log):
     log("\n[*] Interrogando Firmware S.M.A.R.T. de los discos físicos...")
     run_ps_script(log, 'Get-PhysicalDisk | Select-Object FriendlyName, MediaType, HealthStatus, @{Name="Tamaño(GB)";Expression={[math]::Round($_.Size/1GB,2)}} | Format-List')
+
+    notificar_voz("El Diagnóstico De Salud De Discos ha terminado.")
 
 def logica_perfmon(log, tipo):
     log(f"\n[*] Abriendo Monitor ({tipo})...")
@@ -712,9 +769,9 @@ def logica_lazagne(log):
     else:
         log("[*] Motor LaZagne conservado en el equipo.")
 
-def logica_ytdlp(log, url, calidad, formato):
+def logica_ytdlp(log, lista_urls, calidad, formato):
     import zipfile
-    log(f"\n[*] Iniciando Descargador Multimedia Avanzado (Objetivo: {url})")
+    log(f"\n[*] Iniciando Descargador Multimedia Avanzado (Lote de {len(lista_urls)} enlaces)")
     temp_dir = r"C:\Tremend_Media"
     if not os.path.exists(temp_dir): os.makedirs(temp_dir)
     
@@ -728,51 +785,61 @@ def logica_ytdlp(log, url, calidad, formato):
         try: urllib.request.urlretrieve("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", exe_path)
         except Exception as e: log(f"[-] Error de red en yt-dlp: {e}"); return
         
-    # 2. CORRECCIÓN MAESTRA: Descarga y Extracción Quirúrgica NAtiva de FFmpeg para Multiplexado
+    # 2. Descarga y Extracción de FFmpeg
     if (calidad in ['1', '2']) and (not os.path.exists(ffmpeg_path) or not os.path.exists(ffprobe_path)):
         log("[*] Descargando códecs de multiplexado (FFmpeg Essentials)...")
         try:
             zip_path = os.path.join(temp_dir, "ffmpeg.zip")
             urllib.request.urlretrieve("https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip", zip_path)
-            log("[*] Extrayendo componentes de fusión multimedia de forma limpia...")
-            
+            log("[*] Extrayendo componentes de fusión multimedia...")
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 for member in zip_ref.namelist():
                     filename = os.path.basename(member)
                     if filename in ["ffmpeg.exe", "ffprobe.exe"]:
-                        with open(os.path.join(temp_dir, filename), "wb") as f_out:
-                            f_out.write(zip_ref.read(member))
+                        with open(os.path.join(temp_dir, filename), "wb") as f_out: f_out.write(zip_ref.read(member))
             os.remove(zip_path)
-            log("[+] Motores de fusión ensamblados correctamente.")
-        except Exception as e:
-            log(f"[-] Advertencia al procesar códecs: {e}. Los archivos podrían quedar separados.")
+        except Exception as e: log(f"[-] Advertencia al procesar códecs: {e}")
 
     dl_path = os.path.join(os.environ.get("USERPROFILE"), "Downloads")
     
-    # Asignación exacta de comandos según la calidad y formato seleccionados
+    # Convertimos la lista de URLs en un formato que la consola entienda (separado por espacios y entre comillas)
+    urls_param = ' '.join([f'"{u}"' for u in lista_urls])
+    
+    # 1. PARÁMETROS BASE (Nombres seguros, recorte a 80 caracteres y metadatos)
+    params_base = '--windows-filenames -o "%(title).80s [%(id)s].%(ext)s" --embed-metadata --embed-thumbnail'
+    
+    # 2. LÓGICA DINÁMICA DE FORMATOS (Fuerza exactamente el formato seleccionado)
     if calidad == '3':
         log("[*] Modo seleccionado: Extracción de Audio Puro (MP3)")
-        cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" -x --audio-format mp3 -P "{dl_path}" "{url}"'
+        cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" {params_base} -x --audio-format mp3 -P "{dl_path}" {urls_param}'
     elif calidad == '1':
         log(f"[*] Modo seleccionado: Máxima Calidad Disponible (Fusionando a {formato.upper()})")
-        cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" -f "bestvideo+bestaudio/best" --merge-output-format {formato} -P "{dl_path}" "{url}"'
+        # El --remux-video ahora usa la variable {formato} (mp4, mkv, mov) elegida en el menú
+        cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" {params_base} -S "vcodec:vp9" --remux-video {formato} -f "bestvideo+bestaudio/best" --merge-output-format {formato} -P "{dl_path}" {urls_param}'
     elif calidad == '2':
         log(f"[*] Modo seleccionado: Full HD 1080p Estable (Fusionando a {formato.upper()})")
-        cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" -f "bestvideo[height<=1080]+bestaudio/best" --merge-output-format {formato} -P "{dl_path}" "{url}"'
-    else:
-        log("[-] Error en la selección de parámetros lógicos."); return
+        cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" {params_base} -S "vcodec:vp9" --remux-video {formato} -f "bestvideo[height<=1080]+bestaudio/best" --merge-output-format {formato} -P "{dl_path}" {urls_param}'
+    else: return
 
     log("[*] Procesando flujos y uniendo contenedores. Por favor, espera...")
+    
+    # ¡ESTA ES LA LÍNEA MÁGICA QUE FALTABA!
     run_cmd(log, cmd)
-    log("[+] Extracción e integración completadas. Archivo unificado en Descargas.")
+    
+    log("[+] Extracción e integración completadas. Archivos unificados en Descargas.")
+
+    # AVISO DE VOZ AL TERMINAR
+    try:
+        notificar_voz("La descarga del contenido ha finalizado.")
+    except: pass
 
     # Pregunta de limpieza portátil
     from tkinter import messagebox
-    if messagebox.askyesno("Limpieza de Herramienta", "El proceso multimedia ha finalizado con éxito.\n\n¿Deseas ELIMINAR por completo los motores descargados (yt-dlp y FFmpeg) de esta computadora para no dejar rastro?"):
+    if messagebox.askyesno("Limpieza de Herramienta", "El proceso multimedia ha finalizado.\n\n¿Deseas ELIMINAR por completo los motores descargados de esta computadora para no dejar rastro?"):
         shutil.rmtree(temp_dir, ignore_errors=True)
-        log("[+] Limpieza táctica: Espacio liberado y rastro borrado.")
+        log("[+] Limpieza táctica: Espacio liberado.")
     else:
-        log("[*] Motores conservados para optimizar futuras descargas directas.")
+        log("[*] Motores conservados.")
 
 def logica_bloquear_usb(log, bloquear):
     valor = 4 if bloquear else 3
@@ -792,6 +859,8 @@ def logica_diskpart_usb(log, disco):
         log("[+] Atributos de solo lectura eliminados. La unidad ya se puede formatear.")
     except Exception as e: log(f"[-] Error: {e}")
 
+    notificar_voz("El Proceso De Desbloqueo USB ha terminado.")
+
 def logica_sandbox(log):
     log("\n[*] Activando contenedor virtual Windows Sandbox...")
     run_ps_script(log, 'Enable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -All -Online -NoRestart')
@@ -805,6 +874,8 @@ def logica_sysprep(log):
 def logica_borrado_seguro(log):
     log("\n[!] ADVERTENCIA: Esta operación sobrescribe el disco C: con cifrado para evitar recuperaciones forenses.")
     run_cmd(log, "cipher /w:C:\\")
+
+    notificar_voz("El Borrado Seguro ha terminado.")
 
 def logica_pass_fuerte(log):
     clave = ''.join(secrets.choice(string.ascii_letters + string.digits + "!@#$%^&*") for i in range(16))
@@ -1057,13 +1128,16 @@ def construir_vista_dinamica(titulo_categoria, placeholder, lista_herramientas):
     barra.pack(side="right", padx=10)
 
     # ====================================================================
-    # --- CEREBRO DE PAGINACIÓN DINÁMICA Y RESPONSIVA ---
-    espacio_libre_vertical = alto_app - 260 
+    # --- CEREBRO DE PAGINACIÓN DINÁMICA Y RESPONSIVA (LIQUID UI) ---
+    # Detecta de forma nativa si el PC está en 100%, 125%, 150%, etc.
+    escala_monitor = app._get_window_scaling() 
     
-    if "Enciclopedia" in titulo_categoria or "Portables" in titulo_categoria:
-        altura_estimada_tarjeta = 175 
-    else:
-        altura_estimada_tarjeta = 135
+    # Calculamos el espacio vertical disponible deduciendo los bordes
+    espacio_libre_vertical = alto_app - (260 * escala_monitor) 
+    
+    # Altura adaptable: Si el monitor tiene zoom, la tarjeta crece proporcionalmente
+    altura_base = 185 if ("Enciclopedia" in titulo_categoria or "Portables" in titulo_categoria) else 155
+    altura_estimada_tarjeta = int(altura_base * escala_monitor)
         
     ITEMS_POR_PAGINA = max(1, int(espacio_libre_vertical / altura_estimada_tarjeta))
     # ====================================================================
@@ -1096,8 +1170,14 @@ def construir_vista_dinamica(titulo_categoria, placeholder, lista_herramientas):
         inicio = estado["pagina"] * ITEMS_POR_PAGINA
         lote = estado["filtradas"][inicio:inicio+ITEMS_POR_PAGINA]
         
-        # Cálculo matemático seguro para que el texto salte de línea antes de chocar con el botón
-        espacio_texto = ancho_app - 700 
+        # --- FIX MAESTRO: CÁLCULO PORCENTUAL FLUIDO ---
+        # 1. Al ancho total, le restamos el panel lateral (240) y el HUD (280)
+        ancho_panel_central = (ancho_app / escala_monitor) - 520
+        
+        # 2. El texto ocupará EXACTAMENTE el 65% de ese panel central libre.
+        # Al ser un porcentaje, se auto-acopla y jamás chocará con el botón,
+        # sin importar la resolución o el zoom del equipo.
+        espacio_texto = int(ancho_panel_central * 0.65) 
         
         for item in lote:
             color_borde = item.get("color_borde", "#38BDF8")
@@ -1306,41 +1386,89 @@ def cargar_categoria_soporte():
             pwd = simpledialog.askstring("Clave", "Nueva clave (deja vacío para eliminarla):", parent=app)
             if pwd is not None: abrir_consola_y_ejecutar("GESTOR CLAVES", lambda log: logica_cambiar_clave(log, usr, pwd))
     def btn_ytdlp():
+        urls_a_descargar = [] # Aquí guardaremos todos los enlaces
+        
         dialog_url = ctk.CTkToplevel(app)
-        dialog_url.title("YouTube-DL - Paso 1")
-        dialog_url.geometry("550x200")
+        dialog_url.title("YouTube-DL - Paso 1: Cola de Descargas")
+        dialog_url.geometry("550x260")
         dialog_url.attributes("-topmost", True)
         dialog_url.transient(app)
-        ctk.CTkLabel(dialog_url, text="Ingresa el enlace (URL) del video o canción:", font=("Arial", 14)).pack(pady=(20, 5))
-        entrada = ctk.CTkEntry(dialog_url, width=450); entrada.pack(pady=10)
-        btn_frame_int = ctk.CTkFrame(dialog_url, fg_color="transparent"); btn_frame_int.pack(pady=10)
-        def pegar_texto():
-            try: entrada.delete(0, 'end'); entrada.insert(0, dialog_url.clipboard_get())
-            except: pass
-        def procesar_url():
-            url = entrada.get()
-            if not url: return
-            dialog_url.destroy(); abrir_ventana_calidad(url)
-        ctk.CTkButton(btn_frame_int, text="📋 Pegar Enlace", width=120, fg_color="#444444", hover_color="#666666", command=pegar_texto).pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame_int, text="Siguiente", width=120, command=procesar_url).pack(side="left", padx=5)
-        ctk.CTkButton(btn_frame_int, text="Cancelar", width=120, fg_color="#880000", hover_color="#AA0000", command=dialog_url.destroy).pack(side="left", padx=5)
+        
+        ctk.CTkLabel(dialog_url, text="Ingresa el enlace (URL) y dale a 'Pegar y Agregar':", font=("Arial", 14)).pack(pady=(20, 5))
+        entrada = ctk.CTkEntry(dialog_url, width=450)
+        entrada.pack(pady=5)
+        
+        lbl_contador = ctk.CTkLabel(dialog_url, text="📥 Enlaces en cola: 0", font=("Arial", 13, "bold"), text_color="#38BDF8")
+        lbl_contador.pack(pady=5)
+        
+        btn_frame_int = ctk.CTkFrame(dialog_url, fg_color="transparent")
+        btn_frame_int.pack(pady=10)
+        
+        def agregar_enlace():
+            url_cruda = entrada.get().strip()
+            if not url_cruda: return
 
-        def abrir_ventana_calidad(url):
+            import urllib.parse
+            if "youtube.com" in url_cruda or "youtu.be" in url_cruda:
+                url_limpia = url_cruda.split("&")[0]
+            else:
+                parsed = urllib.parse.urlparse(url_cruda)
+                url_limpia = urllib.parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', parsed.fragment))
+
+            if url_limpia and url_limpia not in urls_a_descargar:
+                urls_a_descargar.append(url_limpia)
+                lbl_contador.configure(text=f"📥 Enlaces en cola: {len(urls_a_descargar)}")
+                entrada.delete(0, 'end')
+                btn_siguiente.configure(state="normal", fg_color="#10B981") 
+                
+        def pegar_y_agregar():
+            try:
+                texto = dialog_url.clipboard_get().strip()
+                if texto:
+                    entrada.delete(0, 'end')
+                    entrada.insert(0, texto)
+                    agregar_enlace()
+            except: pass
+            
+        def procesar_url():
+            url_cruda = entrada.get().strip()
+            if url_cruda:
+                import urllib.parse
+                if "youtube.com" in url_cruda or "youtu.be" in url_cruda: url_limpia = url_cruda.split("&")[0]
+                else:
+                    parsed = urllib.parse.urlparse(url_cruda)
+                    url_limpia = urllib.parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', parsed.fragment))
+                
+                if url_limpia not in urls_a_descargar: urls_a_descargar.append(url_limpia)
+                
+            if not urls_a_descargar: return
+            
+            dialog_url.destroy()
+            abrir_ventana_calidad(urls_a_descargar)
+            
+        # ====== ¡AQUÍ ESTABAN LOS BOTONES PERDIDOS! ======
+        ctk.CTkButton(btn_frame_int, text="➕ Pegar y Agregar", width=120, fg_color="#3B82F6", hover_color="#2563EB", command=pegar_y_agregar).pack(side="left", padx=5)
+        btn_siguiente = ctk.CTkButton(btn_frame_int, text="Siguiente ➡️", width=120, fg_color="#334155", state="disabled", command=procesar_url)
+        btn_siguiente.pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame_int, text="Cancelar", width=120, fg_color="#880000", hover_color="#AA0000", command=dialog_url.destroy).pack(side="left", padx=5)
+        # =================================================
+
+        def abrir_ventana_calidad(lista_urls):
             dialog_cal = ctk.CTkToplevel(app)
             dialog_cal.title("YouTube-DL - Paso 2")
             dialog_cal.geometry("450x250")
             dialog_cal.attributes("-topmost", True)
             dialog_cal.transient(app)
-            ctk.CTkLabel(dialog_cal, text="Elige la calidad de descarga:", font=("Arial", 14, "bold")).pack(pady=(20, 15))
+            ctk.CTkLabel(dialog_cal, text=f"Elige la calidad para los {len(lista_urls)} enlaces:", font=("Arial", 14, "bold")).pack(pady=(20, 15))
             def sel_calidad(cal):
                 dialog_cal.destroy()
-                if cal == '3': abrir_consola_y_ejecutar("DESCARGADOR MEDIOS", lambda log: logica_ytdlp(log, url, '3', 'mp3'))
-                else: abrir_ventana_formato(url, cal)
+                if cal == '3': abrir_consola_y_ejecutar("DESCARGADOR MEDIOS", lambda log: logica_ytdlp(log, lista_urls, '3', 'mp3'))
+                else: abrir_ventana_formato(lista_urls, cal)
             ctk.CTkButton(dialog_cal, text="🌟 1. Máxima Calidad Posible (2K/4K/8K)", command=lambda: sel_calidad('1')).pack(fill="x", padx=40, pady=5)
             ctk.CTkButton(dialog_cal, text="📺 2. Calidad Full HD (1080p)", command=lambda: sel_calidad('2')).pack(fill="x", padx=40, pady=5)
             ctk.CTkButton(dialog_cal, text="🎵 3. Solo Audio (MP3)", fg_color="#107C41", hover_color="#0F5C30", command=lambda: sel_calidad('3')).pack(fill="x", padx=40, pady=15)
 
-        def abrir_ventana_formato(url, calidad):
+        def abrir_ventana_formato(lista_urls, calidad):
             dialog_fmt = ctk.CTkToplevel(app)
             dialog_fmt.title("YouTube-DL - Paso 3")
             dialog_fmt.geometry("450x250")
@@ -1348,7 +1476,7 @@ def cargar_categoria_soporte():
             dialog_fmt.transient(app)
             ctk.CTkLabel(dialog_fmt, text="Elige el formato de video:", font=("Arial", 14, "bold")).pack(pady=(20, 15))
             def sel_formato(fmt):
-                dialog_fmt.destroy(); abrir_consola_y_ejecutar("DESCARGADOR MEDIOS", lambda log: logica_ytdlp(log, url, calidad, fmt))
+                dialog_fmt.destroy(); abrir_consola_y_ejecutar("DESCARGADOR LOTE", lambda log: logica_ytdlp(log, lista_urls, calidad, fmt))
             ctk.CTkButton(dialog_fmt, text="🎬 MP4 (Universal / Estándar)", command=lambda: sel_formato('mp4')).pack(fill="x", padx=40, pady=5)
             ctk.CTkButton(dialog_fmt, text="🎞️ MKV (Alta Calidad / PC)", command=lambda: sel_formato('mkv')).pack(fill="x", padx=40, pady=5)
             ctk.CTkButton(dialog_fmt, text="🍏 MOV (Apple / Mac)", fg_color="#444444", hover_color="#222222", command=lambda: sel_formato('mov')).pack(fill="x", padx=40, pady=15)
@@ -1692,51 +1820,239 @@ def cargar_categoria_webs():
         
     construir_vista_dinamica("🌐 Enciclopedia de Páginas Web", "🔍 Buscar (Ej: extensiones, inteligencia, roms)...", h_webs)
 
+def cargar_categoria_mac():
+    import urllib.request, json, time, webbrowser
+    global app
+    
+    url_mac = f"https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/mac.json?t={time.time()}"
+    try:
+        req = urllib.request.Request(url_mac, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
+        respuesta = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
+        datos_mac = json.loads(respuesta)
+    except Exception as e:
+        limpiar_panel()
+        ctk.CTkLabel(tools_frame, text=f"Error al conectar con la Nube de Mac:\n{e}", text_color="#FF4444").pack(pady=20)
+        return
+
+    if not datos_mac:
+        limpiar_panel()
+        ctk.CTkLabel(tools_frame, text="El catálogo de Mac está vacío.", text_color="#AAAAAA").pack(pady=20)
+        return
+
+    h_mac = []
+    for index, item in enumerate(datos_mac):
+        def make_cmd(url):
+            return lambda: webbrowser.open(url)
+            
+        badge_text = "🔓 Código Abierto" if item.get('es_open_source', False) else "🔒 Código Cerrado"
+        
+        h_mac.append({
+            "id": str(index + 1),
+            "nombre": f"{item.get('nombre', 'App Mac')}",
+            "exp": f"Autor: {item.get('autor', 'Desconocido')} | {badge_text}",
+            "nov": f"{item.get('descripcion', '')}\n\nCaracterísticas: {item.get('ventajas', '')}",
+            "cmd": make_cmd(item.get("enlace", "")),
+            "txt_btn": "🍏 Ver App Oficial",
+            "color_borde": "#A855F7" # Color Púrpura especial para diferenciar Mac
+        })
+        
+    # Usamos tu fábrica de vistas para que tenga buscador y páginas automáticas
+    construir_vista_dinamica("🍏 Aplicaciones y Herramientas para Mac", "🔍 Buscar (Ej: firewall, snitch)...", h_mac)
+
+def cargar_categoria_linux():
+    limpiar_panel()
+    
+    # Título Principal
+    ctk.CTkLabel(tools_frame, text="🐧 Comandos de Diagnóstico Linux", font=("Arial", 24, "bold")).pack(pady=(0, 10))
+    
+    # 1. CONSOLA DE SALIDA (Para ver el resultado de los comandos)
+    consola_salida = ctk.CTkTextbox(tools_frame, height=200, font=("Consolas", 13), fg_color="#0F172A", text_color="#3DDC84", corner_radius=10)
+    consola_salida.pack(side="bottom", fill="x", padx=20, pady=20)
+    consola_salida.insert("0.0", "Terminal de TREMEND lista. Ejecuta un comando...\n")
+    consola_salida.configure(state="disabled")
+
+    def mostrar_salida(texto):
+        consola_salida.configure(state="normal")
+        consola_salida.delete("0.0", "end") # Limpia la salida anterior
+        consola_salida.insert("end", f"> Resultado:\n{texto}\n")
+        consola_salida.configure(state="disabled")
+
+    # 2. CONTENEDOR DE TARJETAS (Scrollable para que quepan todos los comandos)
+    lista_comandos = ctk.CTkScrollableFrame(tools_frame, fg_color="transparent")
+    lista_comandos.pack(side="top", fill="both", expand=True, padx=20)
+
+    # 3. DICCIONARIO DE COMANDOS (Fácil de escalar)
+    comandos_linux = [
+        {"nombre": "ls -lah (Listar Avanzado)", "desc": "Muestra contenido con permisos de lectura/escritura y peso legible.", "cmd": lambda: mostrar_salida(LinuxToolkit.listar_avanzado())},
+        {"nombre": "df -h (Espacio en Disco)", "desc": "Muestra el uso de todos los discos montados en Megas y Gigas.", "cmd": lambda: mostrar_salida(LinuxToolkit.analizar_espacio_disco())},
+        {"nombre": "ip a (Interfaces de Red)", "desc": "Muestra tus direcciones IP locales filtradas.", "cmd": lambda: mostrar_salida(LinuxToolkit.ver_interfaces_red())},
+        {"nombre": "ping -c 4 (Probar Conexión)", "desc": "Envía 4 paquetes al servidor para diagnosticar la red sin congelarse.", "cmd": lambda: mostrar_salida(LinuxToolkit.probar_conectividad())},
+        {"nombre": "htop (Monitor de Recursos)", "desc": "Abre el monitor visual de CPU y RAM en una ventana independiente.", "cmd": lambda: mostrar_salida(LinuxToolkit.abrir_monitor_htop())}
+    ]
+
+    # 4. RENDERIZADO DE LOS BOTONES
+    for item in comandos_linux:
+        tarjeta = ctk.CTkFrame(lista_comandos, fg_color="#1E293B", corner_radius=10, border_width=1, border_color="#334155")
+        tarjeta.pack(fill="x", pady=6)
+        
+        info_frame = ctk.CTkFrame(tarjeta, fg_color="transparent")
+        info_frame.pack(side="left", fill="x", expand=True, padx=15, pady=10)
+        
+        ctk.CTkLabel(info_frame, text=item["nombre"], font=("Arial", 16, "bold"), text_color="#3DDC84").pack(anchor="w")
+        ctk.CTkLabel(info_frame, text=item["desc"], font=("Arial", 13), text_color="#94A3B8").pack(anchor="w")
+        
+        ctk.CTkButton(tarjeta, text="▶ Ejecutar", font=("Arial", 13, "bold"), width=110, height=35, fg_color="#3DDC84", text_color="#000000", hover_color="#2EB86A", command=item["cmd"]).pack(side="right", padx=15, pady=10)
+
 def cargar_categoria_android():
     import urllib.request, json, time, webbrowser
     global app
     limpiar_panel()
     
-    # Título temático
-    ctk.CTkLabel(tools_frame, text="🤖 Aplicaciones y APKs para Android", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
+    # --- 1. ENCABEZADO CON BUSCADOR Y FILTROS ---
+    header_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    header_frame.pack(fill="x", pady=(0, 20))
 
-    # Descarga e inyección del catálogo JSON
+    ctk.CTkLabel(header_frame, text="🤖 Aplicaciones y APKs para Android", font=("Arial", 24, "bold")).pack(side="left")
+
+    # Variables reactivas para el buscador
+    search_var = ctk.StringVar()
+    var_filtro = ctk.StringVar(value="Todas las Apps")
+    estado = {"pagina": 0, "filtradas": [], "datos": []}
+
+    # Buscador y Filtro Desplegable (UI a la derecha)
+    combo_filtro = ctk.CTkOptionMenu(header_frame, values=["Todas las Apps", "🔓 Open Source", "🔒 Código Cerrado"], variable=var_filtro, fg_color="#1E293B", button_color="#3DDC84", button_hover_color="#2EB86A", text_color="#000000", font=("Arial", 13, "bold"))
+    combo_filtro.pack(side="right", padx=10)
+    
+    barra_busqueda = ctk.CTkEntry(header_frame, textvariable=search_var, placeholder_text="🔍 Buscar app, autor o función...", width=250, font=("Arial", 14), corner_radius=15, border_color="#3DDC84")
+    barra_busqueda.pack(side="right", padx=10)
+
+    # --- 2. CONTENEDORES DE INTERFAZ ---
+    lista_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    lista_frame.pack(side="top", fill="both", expand=True)
+
+    nav_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    nav_frame.pack(side="bottom", fill="x", pady=10)
+
+    btn_prev = ctk.CTkButton(nav_frame, text="⬅️ Anterior", width=120, fg_color="#334155", hover_color="#475569")
+    btn_prev.pack(side="left", padx=30)
+    lbl_contador = ctk.CTkLabel(nav_frame, text="", font=("Arial", 14, "bold"), text_color="#3DDC84")
+    lbl_contador.pack(side="left", expand=True)
+    btn_next = ctk.CTkButton(nav_frame, text="Siguiente ➡️", width=120, fg_color="#334155", hover_color="#475569")
+    btn_next.pack(side="right", padx=30)
+
+    # --- 3. EXTRACCIÓN DE DATOS DESDE LA NUBE ---
     url_android = f"https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/android.json?t={time.time()}"
     try:
         req = urllib.request.Request(url_android, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
         respuesta = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
-        datos_android = json.loads(respuesta)
+        estado["datos"] = json.loads(respuesta)
+        estado["filtradas"] = estado["datos"].copy()
     except Exception as e:
-        ctk.CTkLabel(tools_frame, text=f"Error al conectar con la Nube:\n{e}", text_color="#FF4444").pack(pady=20)
+        ctk.CTkLabel(lista_frame, text=f"Error al conectar con la Nube:\n{e}", text_color="#FF4444", font=("Arial", 14)).pack(pady=20)
         return
 
-    if not datos_android:
-        ctk.CTkLabel(tools_frame, text="El catálogo de Android está vacío.", text_color="#AAAAAA").pack(pady=20)
+    if not estado["datos"]:
+        ctk.CTkLabel(lista_frame, text="El catálogo de Android está vacío.", text_color="#AAAAAA").pack(pady=20)
         return
 
-    # --- RENDERIZADO DE TARJETAS DESLIZABLES ---
-    for item in datos_android:
-        tarjeta = ctk.CTkFrame(tools_frame, fg_color="#1E293B", corner_radius=10, border_width=1, border_color="#3DDC84")
-        tarjeta.pack(fill="x", pady=10, padx=10)
+    # --- 4. MOTOR LIQUID UI (Adaptabilidad Matemática) ---
+    escala_monitor = app._get_window_scaling()
+    espacio_libre_vertical = alto_app - (260 * escala_monitor)
+    altura_tarjeta = int(220 * escala_monitor) # Las tarjetas Android son más altas
+    ITEMS_POR_PAGINA = max(1, int(espacio_libre_vertical / altura_tarjeta))
 
-        header_frame = ctk.CTkFrame(tarjeta, fg_color="transparent")
-        header_frame.pack(fill="x", padx=20, pady=(15, 5))
-        
-        ctk.CTkLabel(header_frame, text=item.get('nombre', ''), font=("Arial", 18, "bold"), text_color="#3DDC84").pack(side="left")
-        
-        badge_text = "🔓 Código Abierto (Open Source)" if item.get('es_open_source', False) else "🔒 Código Cerrado"
-        badge_color = "#10B981" if item.get('es_open_source', False) else "#EF4444"
-        ctk.CTkLabel(header_frame, text=f"  |  Autor: {item.get('autor', '')}  |  {badge_text}", font=("Arial", 12, "italic"), text_color=badge_color).pack(side="left", padx=10)
+    def renderizar():
+        for w in lista_frame.winfo_children(): w.destroy()
 
-        ctk.CTkLabel(tarjeta, text=item.get('descripcion', ''), font=("Arial", 14), justify="left", wraplength=700).pack(padx=20, pady=5, anchor="w")
-        
-        ctk.CTkLabel(tarjeta, text="Características y Funciones:", font=("Arial", 12, "bold"), text_color="#94A3B8").pack(padx=20, pady=(10, 0), anchor="w")
-        ctk.CTkLabel(tarjeta, text=item.get('ventajas', ''), font=("Arial", 13), justify="left", wraplength=700).pack(padx=20, pady=(5, 15), anchor="w")
+        total = len(estado["filtradas"])
+        if total == 0:
+            ctk.CTkLabel(lista_frame, text="No se encontraron aplicaciones con ese filtro.", text_color="#AAAAAA", font=("Arial", 16)).pack(pady=50)
+            lbl_contador.configure(text="0 Resultados")
+            return
 
-        def abrir_repo(url=item.get('enlace', '')):
-            webbrowser.open(url)
-        
-        ctk.CTkButton(tarjeta, text="🌐 Ver Repositorio y Release Oficial", font=("Arial", 14, "bold"), height=40, fg_color="#3DDC84", hover_color="#2EB86A", text_color="#000000", command=abrir_repo).pack(padx=20, pady=(0, 15), anchor="e")
+        tot_pag = (total - 1) // ITEMS_POR_PAGINA + 1
+        if estado["pagina"] >= tot_pag: estado["pagina"] = tot_pag - 1
+
+        inicio = estado["pagina"] * ITEMS_POR_PAGINA
+        lote = estado["filtradas"][inicio:inicio+ITEMS_POR_PAGINA]
+
+        # El ancho interno se calcula restando márgenes y menús.
+        ancho_panel_central = (ancho_app / escala_monitor) - 520
+        espacio_texto = int(ancho_panel_central * 0.90) # Aprovechamos casi todo el ancho para lectura
+
+        # --- 5. DIBUJADO DE LAS TARJETAS PERSONALIZADAS ---
+        for item in lote:
+            es_open = item.get('es_open_source', False)
+            badge_text = "🔓 Código Abierto (Open Source)" if es_open else "🔒 Código Cerrado"
+            badge_color = "#10B981" if es_open else "#EF4444"
+            borde_color = "#3DDC84" if es_open else "#334155" # Destaca más las apps de código abierto
+
+            tarjeta = ctk.CTkFrame(lista_frame, fg_color="#1E293B", corner_radius=10, border_width=1, border_color=borde_color)
+            tarjeta.pack(fill="x", pady=8, padx=10)
+
+            header_f = ctk.CTkFrame(tarjeta, fg_color="transparent")
+            header_f.pack(fill="x", padx=20, pady=(12, 2))
+
+            ctk.CTkLabel(header_f, text=item.get('nombre', ''), font=("Arial", 18, "bold"), text_color="#3DDC84").pack(side="left")
+            ctk.CTkLabel(header_f, text=f"  |  Autor: {item.get('autor', '')}  |  {badge_text}", font=("Arial", 12, "italic"), text_color=badge_color).pack(side="left", padx=10)
+
+            ctk.CTkLabel(tarjeta, text=item.get('descripcion', ''), font=("Arial", 14), justify="left", wraplength=espacio_texto).pack(padx=20, pady=2, anchor="w")
+
+            # Analizador Inteligente de Trucos
+            ventajas_text = item.get('ventajas', '')
+            color_ventajas = "#FCD34D" if "⚠️ TRUCO" in ventajas_text else "#E2E8F0"
+            
+            ctk.CTkLabel(tarjeta, text="Características y Funciones:", font=("Arial", 12, "bold"), text_color="#94A3B8").pack(padx=20, pady=(5, 0), anchor="w")
+            ctk.CTkLabel(tarjeta, text=ventajas_text, font=("Arial", 13), text_color=color_ventajas, justify="left", wraplength=espacio_texto).pack(padx=20, pady=(2, 5), anchor="w")
+
+            def make_cmd(url):
+                return lambda: webbrowser.open(url)
+
+            ctk.CTkButton(tarjeta, text="🌐 Ver Repositorio Oficial", font=("Arial", 13, "bold"), height=35, fg_color="#3DDC84", hover_color="#2EB86A", text_color="#000000", command=make_cmd(item.get('enlace', ''))).pack(padx=20, pady=(0, 12), anchor="e")
+
+        lbl_contador.configure(text=f"Página {estado['pagina'] + 1} de {tot_pag}  |  Total: {total}")
+
+    # --- 6. MOTORES DE FILTRADO Y BÚSQUEDA ---
+    def aplicar_filtros(*args):
+        texto = search_var.get().lower().strip()
+        filtro_tipo = var_filtro.get()
+
+        resultados = []
+        for item in estado["datos"]:
+            # Filtrar por Tipo (Open Source vs Cerrado)
+            pasa_tipo = True
+            es_open = item.get('es_open_source', False)
+            if filtro_tipo == "🔓 Open Source" and not es_open: pasa_tipo = False
+            if filtro_tipo == "🔒 Código Cerrado" and es_open: pasa_tipo = False
+
+            # Filtrar por Texto
+            pasa_texto = True
+            if len(texto) >= 2:
+                if not (texto in item.get('nombre','').lower() or texto in item.get('descripcion','').lower() or texto in item.get('autor','').lower()):
+                    pasa_texto = False
+
+            if pasa_tipo and pasa_texto:
+                resultados.append(item)
+
+        estado["filtradas"] = resultados
+        estado["pagina"] = 0
+        renderizar()
+
+    search_var.trace_add("write", aplicar_filtros)
+    var_filtro.trace_add("write", aplicar_filtros)
+
+    def cambiar(dir):
+        if not estado["filtradas"]: return
+        tot_pag = (len(estado["filtradas"]) - 1) // ITEMS_POR_PAGINA + 1
+        n_pag = estado["pagina"] + dir
+        if n_pag < 0: n_pag = tot_pag - 1
+        elif n_pag >= tot_pag: n_pag = 0
+        estado["pagina"] = n_pag; renderizar()
+
+    btn_prev.configure(command=lambda: cambiar(-1))
+    btn_next.configure(command=lambda: cambiar(1))
+
+    aplicar_filtros() # Carga inicial
         
 # ============================================================================
 # 6. MENÚ LATERAL Y ARRANQUE (REDISEÑO CON SUBCATEGORÍAS)
@@ -1776,8 +2092,8 @@ def cargar_placeholder(os_name):
     ctk.CTkLabel(tools_frame, text=f"Soporte para {os_name}", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
     ctk.CTkLabel(tools_frame, text=f"El ecosistema de herramientas para {os_name} estará disponible en futuras actualizaciones de TREMEND Toolkit.", text_color="#AAAAAA").pack(pady=10)
 
-ctk.CTkButton(sidebar, text="🐧 Linux", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=lambda: cargar_placeholder("Linux")).pack(pady=2, padx=10, fill="x")
-ctk.CTkButton(sidebar, text="🍏 Mac", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=lambda: cargar_placeholder("Mac")).pack(pady=2, padx=10, fill="x")
+ctk.CTkButton(sidebar, text="🐧 Linux", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=cargar_categoria_linux).pack(pady=2, padx=10, fill="x")
+ctk.CTkButton(sidebar, text="🍏 Mac", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=cargar_categoria_mac).pack(pady=2, padx=10, fill="x")
 ctk.CTkButton(sidebar, text="🤖 Android", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=cargar_categoria_android).pack(pady=2, padx=10, fill="x")
 ctk.CTkButton(sidebar, text="📱 iOS", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=lambda: cargar_placeholder("iOS")).pack(pady=2, padx=10, fill="x")
 
