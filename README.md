@@ -47,7 +47,7 @@ Dirígete a la sección de **[Releases](https://github.com/LennesVP/TREMEND/rele
 2. **`Iniciar_TREMEND.bat` (Dropper en la Nube):** Un script ultraligero (< 1 KB). Descarga silenciosamente la última versión en la memoria RAM y la abre. No deja basura en el disco duro del cliente. Ideal para llevar en una USB.
 
 ### 🐧 Para Linux:
-1. **`TREMEND_Linux` (Binario):** El equivalente al .exe. Dale permisos de ejecución (`chmod +x TREMEND_Linux`) y ábrelo directamente.
+1. **`TREMEND_Linux` (Binario):** El equivalente al .exe. Dale permisos de ejecución (`chmod +x TREMEND_Linux`) y ábrelo directamente. (Mi computador actual no soporta tener otro sistema como Ubuntu usando virtual box, entonces apenas pueda usar el sistema Linux les subiré el archivo ejecutable de Linux.)
 2. **`iniciar_tremend.sh` (Dropper Bash):** El equivalente al .bat. Descarga y ejecuta el código en memoria RAM (`/tmp`).
 
 ## 💬 Comunidad y Soporte (Foro Oficial)
