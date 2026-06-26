@@ -56,6 +56,8 @@ Dirígete a la sección de **[Releases](https://github.com/LennesVP/TREMEND/rele
 * ❓ Recibir ayuda inmediata en la sección de **Preguntas y Respuestas (Q&A)** si alguna herramienta falla.
 * 📢 Enterarte de las novedades de desarrollo y los anuncios oficiales del proyecto.
 
+**Correo Directo:** Si tienes sugerencias privadas, propuestas de colaboración o necesitas reportar fallos en el código, puedes escribirme directamente a mi correo de soporte: **tremend67@gmail.com**
+
 ## 🤝 Créditos y Reconocimientos
 Este proyecto rinde tributo al trabajo de desarrolladores de élite:
 * Motores Base: *Microsoft Corp, Linux Coreutils, Python Software Foundation*.
