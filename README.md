@@ -63,14 +63,21 @@ Este proyecto rinde tributo al trabajo de desarrolladores de élite:
 
 ## ☕ Apoya el Proyecto
 
-### 🎁 Apoyo Internacional y Proyecto "Nube Privada"
-Si valoras mi trabajo, ¡puedes apoyarme enviándome un detalle físico! He creado una lista de Amazon con herramientas y componentes de hardware. Estas son las primeras piedras para la construcción de una **Nube Privada** orientada a la máxima seguridad.
+### 🎁 Apoyo Internacional y Proyecto "Nube Privada TrueNAS"
+Si valoras las incontables horas de código detrás de TREMEND Toolkit, ¡puedes apoyarme enviándome un detalle físico! He creado una lista de Amazon que incluye dos tipos de artículos:
 
-🌟 **Beneficio Exclusivo:** Quienes me apoyen adquiriendo estos artículos serán pioneros de mi empresa y obtendrán un **50% de descuento** en los futuros servicios de nuestra nube privada cuando se lance.
+1. **Gustos Personales (Agradecimientos):** Son los artículos de menor valor. Si decides enviarme uno de estos, lo recibiré como un inmenso agradecimiento personal por mi trabajo y como un gran impulso anímico para seguir desarrollando y manteniendo el Toolkit gratuito.
+2. **Hardware Especializado (Proyecto TrueNAS):** Son los componentes de mayor valor. Estas son las primeras piedras fundamentales para la construcción física de nuestra futura **Nube Privada** (basada en arquitecturas TrueNAS y NextCloud), orientada a ofrecer la máxima seguridad y privacidad del mercado.
+
+🌟 **Beneficio Exclusivo VIP (Pioneros de la Nube):**
+Quien decida apoyarme adquiriendo uno de los **componentes de hardware** pesados para el servidor, se convierte automáticamente en un socio pionero del proyecto. Como muestra de total gratitud, una vez que la base física esté 100% operativa, obtendrás **1 Año entero de almacenamiento en nuestra nube (1 TB de capacidad)** por una tarifa simbólica de tan solo **$10,000 COP al mes**.
 
 [![Amazon Wishlist](https://img.shields.io/badge/Amazon-Ver_mi_Lista_de_Deseos-FF9900?style=for-the-badge&logo=amazon&logoColor=black)](https://www.amazon.com/hz/wishlist/ls/3129WX8TBY0J6?ref_=wl_share)
 
 ### 🇨🇴 Apoyo Local (Colombia)
-Si estás en Colombia y prefieres invitarme un café virtualmente:
+Si estás en Colombia y prefieres invitarme un café virtualmente de forma rápida y directa, puedes hacerlo por estos medios:
+
 [![MercadoPago](https://img.shields.io/badge/MercadoPago-Donar_un_Café-00B1EA?style=for-the-badge&logo=mercadopago)](https://link.mercadopago.com.co/tremend)
 * 🟣 **Transferencia Bancaria:** LLave De Nequi/Bre-B: `@LVP671`
+
+<a href="https://info.flagcounter.com/9OEc"><img src="https://s01.flagcounter.com/map/9OEc/size_l/txt_000000/border_CCCCCC/pageviews_1/viewers_0/flags_0/" alt="Flag Counter" border="0"></a>
