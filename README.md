@@ -1,7 +1,7 @@
 # 🚀 TREMEND Toolkit V3.0 [ESTABLE Y BLINDADO]
 **Desarrollado por:** LDVP (Lennes D. Varela Poveda)
 
-![Versión](https://img.shields.io/badge/Versi%C3%B3n-2.9%20Stable-blue)
+![Versión](https://img.shields.io/badge/Versi%C3%B3n-3.0%20Stable-blue)
 ![Plataforma](https://img.shields.io/badge/OS-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20Mac-lightgrey)
 ![Licencia](https://img.shields.io/badge/Licencia-Open%20Source-brightgreen)
 ![Visitas](https://komarev.com/ghpvc/?username=LennesVP&repo=TREMEND&label=Visitas+al+Repositorio&color=8B5CF6&style=flat)
