@@ -60,7 +60,7 @@ def notificar_voz(mensaje):
         print(f"No se pudo reproducir la voz: {e}")
 
 # Define la versión de este archivo físico
-VERSION_ACTUAL = "2.9"
+VERSION_ACTUAL = "3.0"
 
 # ============================================================================
 # 0. ESCUDO DE ADMINISTRADOR AUTOMÁTICO (UAC)
@@ -97,7 +97,7 @@ x_pos = int((ancho_pantalla - ancho_app) / 2)
 y_pos = int((alto_pantalla - alto_app) / 2)
 app.geometry(f"+{x_pos}+{y_pos}")
 
-app.title("TREMEND Toolkit V2.8 [ESTABLE Y BLINDADO]")
+app.title("TREMEND Toolkit V3.0 [ESTABLE Y BLINDADO]")
 
 # ============================================================================
 # 2. MOTOR DE TERMINAL NATIVA Y EJECUCIÓN (SEGURO CONTRA CRASHES)

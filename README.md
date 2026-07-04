@@ -17,16 +17,16 @@ A partir de la versión V3.0, la interfaz consolida un motor de ejecución inter
 
 **1. Ecosistema Windows (Ejecución Nativa)**
 * **🌐 Redes e Internet:** Escáner de puertos (Sockets nativos), resolución DNS, radar de espectro Wi-Fi, extracción forense de claves inalámbricas, manipulación de Firewall y auditoría de latencia.
-* **🧹 Mantenimiento y Optimización:** **[NUEVO] Mantenimiento Extremo Multi-Disco** (Escáner WMI para purgar USBs, borrar rastros de macOS/Windows y limpiar caché)[cite: 5], **Mole CLI** (Optimizador de terminal interactivo)[cite: 5], limpieza de WinSxS, reparación de imagen (DISM/SFC) y debloat del sistema[cite: 5].
+* **🧹 Mantenimiento y Optimización:** **[NUEVO] Mantenimiento Extremo Multi-Disco** (Escáner WMI para purgar USBs, borrar rastros de macOS/Windows y limpiar caché), **Mole CLI** (Optimizador de terminal interactivo), limpieza de WinSxS, reparación de imagen (DISM/SFC) y debloat del sistema.
 * **🖥️ Diagnóstico e Info del Sistema:** Volcado forense de RAM (Ghost), extracción S.M.A.R.T, monitores de confiabilidad y auditoría de BSOD.
 * **📦 Software y Licencias:** Extracción de licencias OEM, inventario a CSV y gestor de paquetes Winget.
-* **⚙️ Soporte Técnico:** **[NUEVO] Rompe-Claves de Archivos** (Ataques de diccionario y fuerza bruta con John The Ripper)[cite: 5], **Gestor de Virtualización Nativa** (Hyper-V y Sandbox con manuales autodestructibles)[cite: 5], Destructor de carpetas rebeldes, borrado forense (Wipe) y Descargador Multimedia Avanzado (yt-dlp)[cite: 5].
+* **⚙️ Soporte Técnico:** **[NUEVO] Rompe-Claves de Archivos** (Ataques de diccionario y fuerza bruta con John The Ripper), **Gestor de Virtualización Nativa** (Hyper-V y Sandbox con manuales autodestructibles), Destructor de carpetas rebeldes, borrado forense (Wipe) y Descargador Multimedia Avanzado (yt-dlp).
 
 **2. Ecosistemas Alternativos y Móviles**
-* **🐧 Linux:** Categoría ejecutiva con layout de servidor (Tiling)[cite: 5]. Cuenta con una TTY persistente y un directorio de comandos inyectables asíncronos para Ciberseguridad (nmap, búsqueda SUID, grep logs), Redes (ss, iptables) y Sistema (htop, df -h)[cite: 5].
-* **🍏 Mac:** **[NUEVO] Inyección Dinámica Nativa.** Herramientas tácticas como **Mole** (Optimizador) y **Sniffnet** (Radar de red) se ejecutan directamente en la terminal del sistema cliente, integrando descargas automatizadas vía Homebrew y limpieza residual[cite: 5].
+* **🐧 Linux:** Categoría ejecutiva con layout de servidor (Tiling). Cuenta con una TTY persistente y un directorio de comandos inyectables asíncronos para Ciberseguridad (nmap, búsqueda SUID, grep logs), Redes (ss, iptables) y Sistema (htop, df -h).
+* **🍏 Mac:** **[NUEVO] Inyección Dinámica Nativa.** Herramientas tácticas como **Mole** (Optimizador) y **Sniffnet** (Radar de red) se ejecutan directamente en la terminal del sistema cliente, integrando descargas automatizadas vía Homebrew y limpieza residual.
 * **🤖 Android:** Catálogo visual deslizable de aplicaciones (.apk) masivamente expandido hacia el hacking y la privacidad extrema (Shizuku, Haven, InstallWithOptions, GameNative, Firefox Focus, SwitchAI, etc.).
-* **📱 iOS:** **[NUEVO]** Plataforma 100% funcional. Despliega un catálogo dinámico alimentado desde la nube con utilidades y apps directas a la App Store[cite: 5].
+* **📱 iOS:** **[NUEVO]** Plataforma 100% funcional. Despliega un catálogo dinámico alimentado desde la nube con utilidades y apps directas a la App Store.
 
 ### ☁️ NUBE Y TIENDA
 
