@@ -1,4 +1,4 @@
-# 🚀 TREMEND Toolkit V2.9 [ESTABLE Y BLINDADO]
+# 🚀 TREMEND Toolkit V3.0 [ESTABLE Y BLINDADO]
 **Desarrollado por:** LDVP (Lennes D. Varela Poveda)
 
 ![Versión](https://img.shields.io/badge/Versi%C3%B3n-2.9%20Stable-blue)
@@ -9,24 +9,24 @@
 
 TREMEND Toolkit es una suite avanzada, portátil y sigilosa de diagnóstico y soporte técnico. Diseñada para administradores de sistemas y técnicos de hardware, centraliza comandos nativos y herramientas de élite en una interfaz gráfica interactiva, eliminando la necesidad de memorizar extensas líneas de código en PowerShell, CMD o Terminales Bash.
 
-## 🏗️ Arquitectura del Proyecto (Novedades V2.9)
+## 🏗️ Arquitectura del Proyecto (Novedades V3.0)
 
-A partir de la versión V2.9, la interfaz consolida un motor de ejecución interactiva con una mini-terminal nativa y expande enormemente el catálogo FOSS multiplataforma:
+A partir de la versión V3.0, la interfaz consolida un motor de ejecución interactiva con una mini-terminal nativa y expande enormemente el catálogo FOSS multiplataforma:
 
 ### 🪟 SISTEMAS OPERATIVOS
 
 **1. Ecosistema Windows (Ejecución Nativa)**
 * **🌐 Redes e Internet:** Escáner de puertos (Sockets nativos), resolución DNS, radar de espectro Wi-Fi, extracción forense de claves inalámbricas, manipulación de Firewall y auditoría de latencia.
-* **🧹 Mantenimiento y Optimización:** Limpieza de WinSxS, reparación de imagen (DISM/SFC), purga de VSS y debloat del sistema.
+* **🧹 Mantenimiento y Optimización:** **[NUEVO] Mantenimiento Extremo Multi-Disco** (Escáner WMI para purgar USBs, borrar rastros de macOS/Windows y limpiar caché)[cite: 5], **Mole CLI** (Optimizador de terminal interactivo)[cite: 5], limpieza de WinSxS, reparación de imagen (DISM/SFC) y debloat del sistema[cite: 5].
 * **🖥️ Diagnóstico e Info del Sistema:** Volcado forense de RAM (Ghost), extracción S.M.A.R.T, monitores de confiabilidad y auditoría de BSOD.
 * **📦 Software y Licencias:** Extracción de licencias OEM, inventario a CSV y gestor de paquetes Winget.
-* **⚙️ Soporte Técnico:** Borrado forense (Wipe), bypass de contraseñas SAM, Sandbox virtual y **Descargador Multimedia Avanzado** (Integración de yt-dlp con soporte de colas de descarga, extracción de audio MP3 y remuxado a MP4/MKV/MOV).
+* **⚙️ Soporte Técnico:** **[NUEVO] Rompe-Claves de Archivos** (Ataques de diccionario y fuerza bruta con John The Ripper)[cite: 5], **Gestor de Virtualización Nativa** (Hyper-V y Sandbox con manuales autodestructibles)[cite: 5], Destructor de carpetas rebeldes, borrado forense (Wipe) y Descargador Multimedia Avanzado (yt-dlp)[cite: 5].
 
 **2. Ecosistemas Alternativos y Móviles**
-* **🐧 Linux:** ¡NUEVO! Categoría ejecutiva activada. Cuenta con una mini-terminal Matrix integrada para lanzar y leer comandos vitales de diagnóstico (`ls -lah`, `df -h`, `ip a`, conectividad) y apertura interactiva del monitor de recursos `htop`.
-* **🍏 Mac:** Integración activada de herramientas en la nube orientadas a la manzana (ej. Little Snitch).
+* **🐧 Linux:** Categoría ejecutiva con layout de servidor (Tiling)[cite: 5]. Cuenta con una TTY persistente y un directorio de comandos inyectables asíncronos para Ciberseguridad (nmap, búsqueda SUID, grep logs), Redes (ss, iptables) y Sistema (htop, df -h)[cite: 5].
+* **🍏 Mac:** **[NUEVO] Inyección Dinámica Nativa.** Herramientas tácticas como **Mole** (Optimizador) y **Sniffnet** (Radar de red) se ejecutan directamente en la terminal del sistema cliente, integrando descargas automatizadas vía Homebrew y limpieza residual[cite: 5].
 * **🤖 Android:** Catálogo visual deslizable de aplicaciones (.apk) masivamente expandido hacia el hacking y la privacidad extrema (Shizuku, Haven, InstallWithOptions, GameNative, Firefox Focus, SwitchAI, etc.).
-* **📱 iOS:** Plataforma en fase de despliegue para futuras actualizaciones.
+* **📱 iOS:** **[NUEVO]** Plataforma 100% funcional. Despliega un catálogo dinámico alimentado desde la nube con utilidades y apps directas a la App Store[cite: 5].
 
 ### ☁️ NUBE Y TIENDA
 
@@ -38,12 +38,12 @@ TREMEND Toolkit no almacena binarios pesados en su código fuente. Utiliza catá
 
 ---
 
-## 📥 Opciones de Descarga (Release v2.9)
+## 📥 Opciones de Descarga (Release v3.0)
 
 Dirígete a la sección de **[Releases](https://github.com/LennesVP/TREMEND/releases/latest)** para obtener la suite. 
 
 ### 🖥️ Para Windows:
-1. **`TREMEND_v2.9.exe`:** El programa completo y horneado. Descárgalo y dale doble clic para acceder al instante. Ideal para tener en tu propia estación de trabajo.
+1. **`TREMEND.exe`:** El programa completo y horneado. Descárgalo y dale doble clic para acceder al instante. Ideal para tener en tu propia estación de trabajo.
 2. **`Iniciar_TREMEND.bat` (Dropper en la Nube):** Un script ultraligero (< 1 KB). Descarga silenciosamente la última versión en la memoria RAM y la abre. No deja basura en el disco duro del cliente. Ideal para llevar en una USB.
 
 ### 🐧 Para Linux:

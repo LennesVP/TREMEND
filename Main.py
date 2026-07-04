@@ -200,11 +200,50 @@ def logica_info_red(log):
     run_cmd(log, "ipconfig /all")
 
 def logica_reparacion_red(log):
-    run_cmd(log, "ipconfig /release")
-    run_cmd(log, "ipconfig /flushdns")
-    run_cmd(log, "netsh winsock reset")
-    run_cmd(log, "netsh int ip reset")
-    run_cmd(log, "ipconfig /renew")
+    import subprocess
+    log("[*] Iniciando Diagnóstico y Reparación Profunda de Red...")
+    
+    # 1. Nivel Básico (Liberar y Renovar IP)
+    log("[*] Liberando direcciones IP actuales (ipconfig /release)...")
+    subprocess.run("ipconfig /release", shell=True, capture_output=True)
+    
+    log("[*] Vaciando caché de resolución DNS (ipconfig /flushdns)...")
+    subprocess.run("ipconfig /flushdns", shell=True, capture_output=True)
+    
+    log("[*] Solicitando nueva asignación IP al router (ipconfig /renew)...")
+    log("[!] Esto puede tardar unos segundos, la red parpadeará...")
+    subprocess.run("ipconfig /renew", shell=True, capture_output=True)
+    
+    # 2. Restauración Profunda
+    log("[*] Restableciendo el catálogo Winsock (netsh winsock reset)...")
+    subprocess.run("netsh winsock reset", shell=True, capture_output=True)
+    
+    log("[*] Restableciendo la pila TCP/IP a valores de fábrica (netsh int ip reset)...")
+    subprocess.run("netsh int ip reset", shell=True, capture_output=True)
+    
+    # 3. Forzado Autónomo de DHCP (Detección automática)
+    log("[*] Escaneando adaptadores de red activos para forzar modo Automático (DHCP)...")
+    try:
+        ps_script = "Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | Select-Object -ExpandProperty Name"
+        resultado = subprocess.run(["powershell", "-NoProfile", "-Command", ps_script], capture_output=True, text=True)
+        interfaces = resultado.stdout.strip().split('\n')
+        
+        if not interfaces or interfaces == ['']:
+            log("[-] No se detectaron adaptadores de red activos.")
+        else:
+            for iface in interfaces:
+                nombre_red = iface.strip()
+                if nombre_red:
+                    log(f"    -> Configurando IPv4 y DNS por DHCP en: '{nombre_red}'")
+                    subprocess.run(f'netsh interface ip set address name="{nombre_red}" source=dhcp', shell=True, capture_output=True)
+                    subprocess.run(f'netsh interface ip set dns name="{nombre_red}" source=dhcp', shell=True, capture_output=True)
+    except Exception as e:
+        log(f"[-] Error al configurar el DHCP automático: {e}")
+
+    log("\n=======================================================")
+    log(" ✅ REPARACIÓN DE RED COMPLETADA CON ÉXITO ")
+    log("=======================================================")
+    log("[!] NOTA: Para que los cambios en Winsock surtan efecto total, debes reiniciar la computadora.")
 
 def logica_geolocalizar_ip(log):
     log("[*] Triangulando coordenadas mediante API REST (Motor ip-api)...")
@@ -435,21 +474,339 @@ def logica_auditar_cache_dns(log):
     notificar_voz("La Auditoría De Cache DNS ha terminado.")
 
 # --- CATEGORÍA 2: MANTENIMIENTO ---
-def logica_mantenimiento_profundo(log):
-    log("\n[*] Iniciando Limpieza de Temporales (Motor Python)...")
-    for ruta in [os.environ.get('TEMP'), r"C:\Windows\Temp", r"C:\Windows\Prefetch"]:
-        if ruta and os.path.exists(ruta):
-            for item in os.listdir(ruta):
-                try:
-                    p = os.path.join(ruta, item)
-                    if os.path.isfile(p): os.unlink(p)
-                    elif os.path.isdir(p): shutil.rmtree(p)
-                except: pass
-    log("[+] Limpieza nativa concluida.")
-    run_cmd(log, "DISM /Online /Cleanup-Image /RestoreHealth")
-    run_cmd(log, "sfc /scannow")
+def logica_mantenimiento_profundo(log, discos_seleccionados):
+    import os, shutil, subprocess
 
-    notificar_voz("El Mantenimiento Profundo ha terminado.")
+    log(f"\n[*] Iniciando Mantenimiento Extremo en los discos: {', '.join(discos_seleccionados)}")
+
+    for disco in discos_seleccionados:
+        log(f"\n=======================================================")
+        log(f"[*] PURGANDO DISPOSITIVO: {disco}")
+        log(f"=======================================================")
+
+        # 1. Vaciar Papeleras Ocultas ($RECYCLE.BIN / RECYCLER)
+        log(f"[*] Vaciando Papelera de Reciclaje oculta en {disco}...")
+        for papelera in [f"{disco}\\$RECYCLE.BIN", f"{disco}\\RECYCLER"]:
+            if os.path.exists(papelera):
+                run_cmd(log, f'cmd /c rmdir /s /q "{papelera}" 2>nul')
+                log(f"    -> {papelera} aniquilada.")
+
+        # 2. Limpieza de infecciones y basura de macOS (Muy común en USBs)
+        log(f"[*] Barriendo rastros residuales (.Trashes, Spotlight, fseventsd)...")
+        carpetas_mac = [".Trashes", ".fseventsd", ".Spotlight-V100", "FOUND.000"]
+        for carpeta in carpetas_mac:
+            ruta_completa = f"{disco}\\{carpeta}"
+            if os.path.exists(ruta_completa):
+                run_cmd(log, f'cmd /c rmdir /s /q "{ruta_completa}" 2>nul')
+
+        # 3. Limpieza de archivos de caché en todo el disco
+        log(f"[*] Escaneando y destruyendo cachés visuales (.DS_Store, Thumbs.db)...")
+        run_cmd(log, f'cmd /c del /s /q /f /a:h "{disco}\\.DS_Store" 2>nul')
+        run_cmd(log, f'cmd /c del /s /q /f /a:h "{disco}\\Thumbs.db" 2>nul')
+        
+        log(f"[+] Purga superficial de {disco} completada.")
+
+    # 4. Operaciones Core del Sistema (Exclusivo para la raíz C:)
+    if "C:" in discos_seleccionados:
+        log(f"\n=======================================================")
+        log(f"[*] APLICANDO OPTIMIZACIÓN DE NÚCLEO AL SISTEMA (C:)")
+        log(f"=======================================================")
+        log("[*] Destruyendo directorios temporales de Windows...")
+        rutas_temp = [os.environ.get('TEMP'), r"C:\Windows\Temp", r"C:\Windows\Prefetch"]
+        for ruta in rutas_temp:
+            if ruta and os.path.exists(ruta):
+                log(f"    -> Vaciando: {ruta}")
+                for item in os.listdir(ruta):
+                    try:
+                        p = os.path.join(ruta, item)
+                        if os.path.isfile(p): os.unlink(p)
+                        elif os.path.isdir(p): shutil.rmtree(p, ignore_errors=True)
+                    except: pass
+        
+        log("[+] Archivos temporales destruidos.")
+
+        log("[*] Verificando e inyectando salud a la imagen de Windows (DISM)...")
+        run_cmd(log, "DISM /Online /Cleanup-Image /RestoreHealth")
+
+        log("[*] Escaneando e integrando archivos del sistema corruptos (SFC)...")
+        run_cmd(log, "sfc /scannow")
+
+    log("\n[+] MANTENIMIENTO EXTREMO FINALIZADO CON ÉXITO.")
+    try:
+        notificar_voz("El Mantenimiento Extremo ha terminado.")
+    except: pass
+
+def logica_ghelper(log):
+    import urllib.request, json, os, platform, subprocess, shutil, zipfile, time
+    from tkinter import messagebox
+
+    log("\n[*] Iniciando Optimizador de Hardware (G-Helper)...")
+    
+    sistema = platform.system().lower()
+    if sistema != 'windows':
+        log("[-] Error: G-Helper es exclusivo para Windows."); return
+
+    # Para ocultar el parpadeo de consolas extra
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+    # 1. ESCUDO DE HARDWARE (Verificación de placa base)
+    log("[*] Escaneando firmware de la placa base...")
+    try:
+        comando_ps = "Get-CimInstance Win32_ComputerSystem | Select-Object -ExpandProperty Manufacturer"
+        fabricante = subprocess.check_output(["powershell", "-NoProfile", "-Command", comando_ps], text=True, startupinfo=startupinfo).strip().lower()
+        
+        if "asus" not in fabricante and "asustek" not in fabricante:
+            log(f"[-] ACCESO DENEGADO: Este equipo es fabricado por '{fabricante.upper()}'.")
+            log("[-] G-Helper es un controlador de bajo nivel exclusivo para laptops ASUS.")
+            log("[-] Ejecutarlo en esta máquina es inestable. Operación abortada por seguridad del cliente.")
+            return
+        else:
+            log(f"[+] Hardware '{fabricante.upper()}' detectado. Permiso concedido.")
+    except Exception as e:
+        log("[-] No se pudo verificar el fabricante del equipo de forma segura. Abortando."); return
+
+    # 2. DIRECTORIO TEMP
+    temp_dir = os.path.join(os.environ.get('TEMP'), "Tremend_GHelper")
+    if not os.path.exists(temp_dir): os.makedirs(temp_dir)
+
+    # 3. ESCANEO PREVIO INTELIGENTE (Evita re-descargar)
+    exe_path = None
+    for root, dirs, files in os.walk(temp_dir):
+        for file in files:
+            if file.lower() == 'ghelper.exe':
+                exe_path = os.path.join(root, file)
+                break
+        if exe_path: break
+
+    if exe_path and os.path.exists(exe_path):
+        log("[+] G-Helper ya está descargado en caché. Omitiendo descarga...")
+    else:
+        # 4. DESCARGA
+        log("    -> Contactando API de GitHub para ubicar la última versión...")
+        api_url = "https://api.github.com/repos/seerge/g-helper/releases/latest"
+        url_descarga = None
+        try:
+            req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read().decode())
+            for asset in data.get('assets', []):
+                nombre = asset['name'].lower()
+                if nombre.endswith('.zip'):
+                    url_descarga = asset['browser_download_url']
+                    break
+        except Exception as e:
+            log(f"[-] Error API GitHub: {e}"); return
+
+        if not url_descarga:
+            log("[-] Error Crítico: No se encontró la versión en la nube."); return
+
+        archivo_destino = os.path.join(temp_dir, url_descarga.split('/')[-1])
+        
+        if not os.path.exists(archivo_destino):
+            log(f"[*] Descargando paquete oficial...")
+            try: urllib.request.urlretrieve(url_descarga, archivo_destino)
+            except Exception as e: log(f"[-] Falló la descarga: {e}"); return
+        
+        log("[*] Extrayendo motor portátil...")
+        try:
+            with zipfile.ZipFile(archivo_destino, 'r') as zip_ref: zip_ref.extractall(temp_dir)
+            for root, dirs, files in os.walk(temp_dir):
+                for file in files:
+                    if file.lower() == 'ghelper.exe':
+                        exe_path = os.path.join(root, file)
+                        break
+                if exe_path: break
+        except Exception as e: log(f"[-] Error de extracción: {e}"); return
+
+    if not exe_path: log("[-] No se halló el ejecutable principal."); return
+
+    # 5. EJECUCIÓN (Con privilegios de Administrador)
+    log("[*] Lanzando G-Helper...")
+    try:
+        script_run = f"Start-Process -FilePath '{exe_path}' -Verb RunAs -Wait"
+        subprocess.run(["powershell", "-NoProfile", "-Command", script_run], startupinfo=startupinfo)
+        log("\n[+] Interfaz principal cerrada.")
+    except Exception as e: log(f"[-] Error de ejecución: {e}")
+
+    # 6. LIMPIEZA FORZADA (El Protocolo Asesino)
+    if messagebox.askyesno("Limpieza", "¿Deseas ELIMINAR G-Helper para no dejar rastro en este equipo?"):
+        log("[*] Forzando cierre de procesos ocultos en segundo plano...")
+        # Asesinamos el proceso en el fondo para destrabar los archivos
+        subprocess.run('taskkill /F /IM GHelper* /T', shell=True, capture_output=True, startupinfo=startupinfo)
+        time.sleep(1) # Le damos 1 segundo a Windows para que suelte el archivo
+        
+        try: 
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            log("[+] Limpieza táctica: Rastros eliminados de raíz.")
+        except Exception as e: 
+            log(f"[-] Error al limpiar la carpeta: {e}")
+    else:
+        log("[*] G-Helper conservado en la caché del sistema para futuros usos rápidos.")
+
+# ---------------------------------------------------------------------------------------------------
+
+def logica_lenovo_toolkit(log):
+    import urllib.request, json, os, platform, subprocess, shutil, time
+    from tkinter import messagebox
+
+    log("\n[*] Iniciando Optimizador de Hardware (Lenovo Legion Toolkit)...")
+    
+    sistema = platform.system().lower()
+    if sistema != 'windows':
+        log("[-] Error: Exclusivo para Windows."); return
+
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+    # 1. ESCUDO DE HARDWARE
+    log("[*] Escaneando firmware de la placa base...")
+    try:
+        comando_ps = "Get-CimInstance Win32_ComputerSystem | Select-Object -ExpandProperty Manufacturer"
+        fabricante = subprocess.check_output(["powershell", "-NoProfile", "-Command", comando_ps], text=True, startupinfo=startupinfo).strip().lower()
+        if "lenovo" not in fabricante:
+            log(f"[-] ACCESO DENEGADO: Equipo fabricado por '{fabricante.upper()}'.")
+            return
+        else:
+            log(f"[+] Hardware '{fabricante.upper()}' detectado. Permiso concedido.")
+    except Exception as e:
+        log("[-] Error verificando fabricante. Abortando."); return
+
+    # 2. MOTOR DE BÚSQUEDA PROFUNDA
+    prog_files = os.environ.get('ProgramW6432', os.environ.get('ProgramFiles', 'C:\\Program Files'))
+    prog_files_x86 = os.environ.get('ProgramFiles(x86)', 'C:\\Program Files (x86)')
+    local_appdata = os.environ.get('LOCALAPPDATA', '')
+
+    rutas_estandar = []
+    for b in filter(bool, [prog_files, prog_files_x86, local_appdata, os.path.join(local_appdata, "Programs")]):
+        for f in ["LenovoLegionToolkit", "Lenovo Legion Toolkit"]:
+            for e in ["LenovoLegionToolkit.exe", "Lenovo Legion Toolkit.exe"]:
+                rutas_estandar.append(os.path.join(b, f, e))
+
+    def rastrear_binario():
+        for ruta in rutas_estandar:
+            if os.path.exists(ruta): return ruta
+        for base in filter(bool, [prog_files, prog_files_x86, local_appdata, os.path.join(local_appdata, "Programs")]):
+            if not os.path.exists(base): continue
+            try:
+                for item in os.listdir(base):
+                    if "lenovo" in item.lower() and "toolkit" in item.lower():
+                        dir_path = os.path.join(base, item)
+                        if os.path.isdir(dir_path):
+                            for file in os.listdir(dir_path):
+                                if file.lower().endswith(".exe") and "toolkit" in file.lower() and "unins" not in file.lower():
+                                    return os.path.join(dir_path, file)
+            except: pass
+        return None
+
+    log("[*] Analizando el disco duro buscando instalaciones previas...")
+    exe_path = rastrear_binario()
+    instalado_previamente = bool(exe_path)
+
+    temp_dir = os.path.join(os.environ.get('TEMP'), "Tremend_Lenovo")
+    if not os.path.exists(temp_dir): os.makedirs(temp_dir)
+    archivo_instalador = ""
+
+    # 3. INSTALACIÓN FANTASMA
+    if instalado_previamente:
+        log(f"[+] Programa detectado en: {exe_path}")
+        log("[+] Omitiendo descarga y ejecución de instalador...")
+    else:
+        log("    -> Programa no detectado. Contactando API de GitHub...")
+        api_url = "https://api.github.com/repos/LenovoLegionToolkit-Team/LenovoLegionToolkit/releases/latest"
+        url_descarga = None
+        try:
+            req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read().decode())
+            for asset in data.get('assets', []):
+                nombre = asset['name'].lower()
+                if nombre.endswith('.exe') and 'setup' in nombre:
+                    url_descarga = asset['browser_download_url']
+                    break
+            if not url_descarga:
+                for asset in data.get('assets', []):
+                    nombre = asset['name'].lower()
+                    if nombre.endswith('.exe'):
+                        url_descarga = asset['browser_download_url']
+                        break
+        except Exception as e:
+            log(f"[-] Error API GitHub: {e}"); return
+
+        if not url_descarga:
+            log("[-] Error Crítico: No se encontró el instalador."); return
+
+        nombre_archivo = url_descarga.split('/')[-1]
+        archivo_instalador = os.path.join(temp_dir, nombre_archivo)
+        
+        if not os.path.exists(archivo_instalador):
+            log(f"[*] Descargando instalador oficial...")
+            try: urllib.request.urlretrieve(url_descarga, archivo_instalador)
+            except Exception as e: log(f"[-] Falló la descarga: {e}"); return
+        
+        log("[*] ⚠️ INYECTANDO INSTALADOR AL NÚCLEO...")
+        log("    -> Forzando bloqueo de subprocesos (Wait). La consola pausará unos segundos...")
+        
+        script_install = f"Start-Process -FilePath '{archivo_instalador}' -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-' -Wait -NoNewWindow"
+        subprocess.run(["powershell", "-NoProfile", "-Command", script_install], startupinfo=startupinfo)
+        
+        log("    -> Instalación completada. Rastreo profundo de binarios...")
+        
+        for _ in range(15):
+            exe_path = rastrear_binario()
+            if exe_path: break
+            time.sleep(1)
+        
+        if not exe_path:
+            log("[-] Error: El sistema no detectó los binarios. Revisa tu antivirus."); return
+
+    # 4. EJECUCIÓN
+    log("[*] Lanzando Lenovo Legion Toolkit...")
+    log("[!] Cierra la herramienta cuando termines para poder limpiar el rastro.")
+    try:
+        script_run = f"Start-Process -FilePath '{exe_path}' -Verb RunAs -Wait"
+        subprocess.run(["powershell", "-NoProfile", "-Command", script_run], startupinfo=startupinfo)
+        log("\n[+] Interfaz principal cerrada.")
+    except Exception as e: log(f"[-] Error de ejecución: {e}")
+
+    # 5. LIMPIEZA TOTAL (Desinstalador Silencioso y Borrado Forzado)
+    if messagebox.askyesno("Limpieza", "¿Deseas DESINSTALAR Lenovo Toolkit y borrar todos los rastros?"):
+        log("[*] Protocolo Asesino: Cerrando procesos ocultos...")
+        subprocess.run('taskkill /F /IM LenovoLegionToolkit* /T', shell=True, capture_output=True, startupinfo=startupinfo)
+        time.sleep(1)
+        
+        # EL FIX ESTÁ AQUÍ: Eliminamos el candado "not instalado_previamente"
+        if exe_path:
+            log("[*] ⚠️ EJECUTANDO DESINSTALADOR SILENCIOSO...")
+            dir_instalacion = os.path.dirname(exe_path)
+            
+            # Buscador dinámico del desinstalador (puede llamarse unins000.exe o unins001.exe)
+            uninstaller = None
+            try:
+                for file in os.listdir(dir_instalacion):
+                    if file.lower().startswith("unins") and file.lower().endswith(".exe"):
+                        uninstaller = os.path.join(dir_instalacion, file)
+                        break
+            except: pass
+            
+            if uninstaller and os.path.exists(uninstaller):
+                script_un = f"Start-Process -FilePath '{uninstaller}' -ArgumentList '/VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -NoNewWindow"
+                subprocess.run(["powershell", "-NoProfile", "-Command", script_un], startupinfo=startupinfo)
+                time.sleep(1)
+                log("[+] Programa desinstalado del disco duro exitosamente.")
+            else:
+                log("[-] No se encontró el desinstalador automático. Forzando borrado manual de la carpeta...")
+                try:
+                    shutil.rmtree(dir_instalacion, ignore_errors=True)
+                    log("[+] Carpeta de instalación destruida manualmente.")
+                except: pass
+        
+        try: 
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            log("[+] Archivos temporales eliminados.")
+        except: pass
+    else:
+        log("[*] Lenovo Toolkit conservado en el sistema.")
 
 def logica_titus(log):
     log("\n[*] Lanzando utilidad de optimización de Chris Titus Tech...")
@@ -516,6 +873,138 @@ def logica_chkdsk(log, letra):
     l = letra.replace(":", "").replace("\\", "").strip() + ":"
     log(f"\n[*] Programando CHKDSK en unidad {l}...")
     run_cmd(log, f"chkdsk {l} /f /r /x")
+
+def logica_mole(log):
+    import subprocess, os, platform, shutil, time
+    from tkinter import messagebox
+
+    log("\n[*] Iniciando Optimizador de Terminal CLI (Mole)...")
+    sistema = platform.system().lower()
+
+    # ==========================================
+    # LÓGICA PARA WINDOWS
+    # ==========================================
+    if sistema == 'windows':
+        if not messagebox.askyesno("Advertencia de Seguridad", "El desarrollador de Mole indica que la versión de Windows es EXPERIMENTAL y podría ser inestable en equipos críticos.\n\n¿Estás seguro de que deseas ejecutar esta herramienta en este PC?"):
+            log("[-] Operación cancelada por seguridad del cliente.")
+            return
+
+        local_appdata = os.environ.get('LOCALAPPDATA', '')
+        ruta_mole = os.path.join(local_appdata, "Mole")
+
+        # --- FIX 1: ANIQUILACIÓN TOTAL Y ENGAÑO A GIT ---
+        if os.path.exists(ruta_mole):
+            log("[*] Forzando eliminación de instalación corrupta anterior...")
+            # 1. Intento nativo de Windows (Fuerza bruta)
+            subprocess.run(f'cmd /c rmdir /s /q "{ruta_mole}"', shell=True, capture_output=True)
+            time.sleep(1)
+            
+            # 2. El Engaño: Si sigue existiendo por archivos en RAM, la renombramos
+            if os.path.exists(ruta_mole):
+                import random
+                try: 
+                    os.rename(ruta_mole, f"{ruta_mole}_basura_{random.randint(100,999)}")
+                    log("    > Carpeta rebelde renombrada con éxito.")
+                except: pass
+
+        log("[*] Contactando a GitHub e instalando la herramienta...")
+        log("[!] Descargando código fuente mediante Git...")
+        
+        cmd_install = 'powershell -NoProfile -ExecutionPolicy Bypass -Command "irm -useb https://raw.githubusercontent.com/tw93/Mole/windows/quick-install.ps1 | iex"'
+        proceso_inst = subprocess.run(cmd_install, shell=True, capture_output=True, text=True, encoding='cp850', errors='ignore')
+        
+        for linea in proceso_inst.stdout.splitlines():
+            if linea.strip(): log(f"    > {linea.strip()}")
+        for linea in proceso_inst.stderr.splitlines():
+            if linea.strip(): log(f"    > ERROR: {linea.strip()}")
+
+        log("[+] Secuencia de instalación finalizada.")
+        
+        if not os.path.exists(ruta_mole):
+            log("[-] Error Crítico: No se pudo encontrar la carpeta de Mole en AppData.")
+            log("[-] Causa probable: Git no está instalado o tu internet cortó la conexión.")
+            return
+
+        log(f"[+] Repositorio clonado localizado en: {ruta_mole}")
+        log("[*] Lanzando la interfaz interactiva de Mole...")
+        log("[!] Se abrirá una consola externa al frente. Usa las FLECHAS de tu teclado para navegar.")
+        
+        # --- FIX 2: BYPASS DEL PERFIL DE POWERSHELL ---
+        script_enfocado = f"""
+        $Host.UI.RawUI.WindowTitle = 'Mole_Optimizador'
+        $wshell = New-Object -ComObject wscript.shell
+        $wshell.AppActivate('Mole_Optimizador') | Out-Null
+        Clear-Host
+        Write-Host 'Iniciando Mole (Usa las flechas para navegar y Q para salir)...' -ForegroundColor Cyan
+        
+        # Recargamos el perfil donde el instalador escondió el comando
+        if (Test-Path $PROFILE) {{ . $PROFILE }}
+        
+        try {{ 
+            mo 
+        }} catch {{ 
+            Write-Host 'Fallo al invocar el motor interno de Mole.' -ForegroundColor Red 
+            Write-Host 'Asegurate de que Git descargo los archivos correctamente.' -ForegroundColor Yellow
+            Start-Sleep -s 8
+        }}
+        """
+        
+        ruta_script_temp = os.path.join(os.environ.get('TEMP'), "ejecutar_mole.ps1")
+        with open(ruta_script_temp, "w", encoding="utf-8") as f:
+            f.write(script_enfocado)
+        
+        subprocess.run(f'start "Mole" /wait powershell -ExecutionPolicy Bypass -File "{ruta_script_temp}"', shell=True)
+        
+        try: os.remove(ruta_script_temp)
+        except: pass
+        
+        log("\n[+] Interfaz interactiva de Mole cerrada.")
+        
+        # Limpieza Táctica Windows (Fuerza bruta)
+        if messagebox.askyesno("Limpieza", "¿Deseas intentar ELIMINAR Mole del sistema para borrar el rastro?"):
+            log("[*] Purgando directorios de instalación de Mole...")
+            limpio = False
+            if os.path.exists(ruta_mole):
+                try: 
+                    subprocess.run(f'cmd /c rmdir /s /q "{ruta_mole}"', shell=True, capture_output=True)
+                    limpio = not os.path.exists(ruta_mole)
+                except: pass
+                    
+            if limpio: log("[+] Archivos base eliminados con éxito. Cero rastros.")
+            else: log("[-] La limpieza falló o los archivos están en uso por el sistema.")
+        else:
+            log("[*] Mole conservado en el sistema Windows.")
+
+    # ==========================================
+    # LÓGICA PARA MAC (Darwin)
+    # ==========================================
+    elif sistema == 'darwin':
+        log("[*] Entorno macOS detectado. Verificando motor nativo...")
+        check_mole = subprocess.run(['which', 'mole'], capture_output=True, text=True)
+        
+        if not check_mole.stdout.strip():
+            log("    -> Mole no detectado en este Mac. Solicitando instalación vía Homebrew...")
+            if messagebox.askyesno("Instalar Mole", "Mole no está instalado en este equipo.\n¿Deseas instalarlo ahora vía Homebrew (brew install mole)?"):
+                proceso = subprocess.Popen(['brew', 'install', 'mole'], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
+                for linea in proceso.stdout: log(linea.strip())
+                proceso.wait()
+                if proceso.returncode != 0:
+                    log("[-] Error al instalar Mole. Asegúrate de tener 'brew' instalado."); return
+            else:
+                log("[-] Operación cancelada."); return
+        
+        log("[*] Lanzando Mole en Terminal nativa de Mac...")
+        applescript = 'tell app "Terminal" to do script "mole"'
+        subprocess.run(['osascript', '-e', applescript])
+        log("\n[+] Interfaz lanzada en una ventana de Terminal separada.")
+        log("[!] Cierra esa terminal cuando termines el mantenimiento.")
+        
+        if messagebox.askyesno("Limpieza", "¿Deseas DESINSTALAR Mole para no dejar rastro en el Mac de tu cliente?"):
+            log("[*] Desinstalando Mole vía Homebrew...")
+            subprocess.run(['brew', 'uninstall', 'mole'], capture_output=True)
+            log("[+] Mole purgado del ecosistema Mac con éxito.")
+    else:
+        log("[-] Error: Sistema no soportado. Mole funciona en Windows y Mac.")
 
 def logica_iconos(log):
     log("\n[*] Purgando base de datos de caché de iconos...")
@@ -654,6 +1143,164 @@ def logica_memoria_ghost(log):
     else:
         log("[*] Motor Ghost conservado en el equipo.")
 
+def logica_sniffnet(log):
+    import urllib.request, json, os, platform, subprocess, shutil, zipfile, tarfile
+    from tkinter import messagebox
+
+    log("\n[*] Iniciando Radar de Tráfico de Red (Motor Sniffnet)...")
+    temp_dir = os.path.join(os.environ.get('TEMP') if os.name == 'nt' else '/tmp', "Tremend_Sniffnet")
+    if not os.path.exists(temp_dir): os.makedirs(temp_dir)
+
+    sistema = platform.system().lower()
+    arquitectura = platform.machine().lower()
+    
+    log(f"[*] Plataforma detectada: {sistema.upper()} ({arquitectura})")
+
+    startupinfo = None
+    if sistema == 'windows':
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+    # 1. Dependencia Npcap (Solo Windows)
+    if sistema == 'windows':
+        ruta_npcap = r"C:\Windows\System32\Npcap"
+        if not os.path.exists(ruta_npcap):
+            log("[-] Driver 'Npcap' no detectado. Es obligatorio para interceptar tráfico en Windows.")
+            
+            if messagebox.askyesno("Requisito Faltante", "Sniffnet requiere el driver 'Npcap' para capturar la red.\n\n¿Deseas descargar el instalador oficial y ejecutarlo ahora mismo?"):
+                log("[*] Descargando instalador de Npcap...")
+                npcap_exe = os.path.join(temp_dir, "npcap_installer.exe")
+                try:
+                    urllib.request.urlretrieve("https://npcap.com/dist/npcap-1.79.exe", npcap_exe)
+                    log("[!] Lanzando instalador. Acepta los permisos de Administrador en pantalla...")
+                    
+                    script_ps = f"Start-Process -FilePath '{npcap_exe}' -Verb RunAs -Wait"
+                    subprocess.run(["powershell", "-NoProfile", "-Command", script_ps], startupinfo=startupinfo)
+                    
+                    if not os.path.exists(ruta_npcap):
+                        log("[-] Instalación cancelada o fallida. Sniffnet fallará al buscar la red."); return
+                    else:
+                        log("[+] Npcap instalado exitosamente.")
+                except Exception as e:
+                    log(f"[-] Error al descargar Npcap: {e}"); return
+            else:
+                log("[-] Operación cancelada."); return
+
+    # 2. Comprobar si ya está instalado (Modo Inteligente)
+    sniffnet_preexistente = False
+    exe_path = None
+    if sistema == 'windows':
+        rutas_comunes = [
+            r"C:\Program Files\Sniffnet\Sniffnet.exe",
+            r"C:\Program Files\Sniffnet\sniffnet.exe",
+            r"C:\Program Files (x86)\Sniffnet\Sniffnet.exe",
+            r"C:\Program Files (x86)\Sniffnet\sniffnet.exe"
+        ]
+        for r in rutas_comunes:
+            if os.path.exists(r):
+                exe_path = r
+                sniffnet_preexistente = True
+                log("[+] Motor Sniffnet preexistente detectado en el sistema.")
+                break
+
+    archivo_destino = ""
+    
+    # 3. Descarga y Despliegue (Solo si no está preinstalado)
+    if not sniffnet_preexistente:
+        log("    -> Contactando API de GitHub para ubicar la última versión...")
+        api_url = "https://api.github.com/repos/GyulyVGC/sniffnet/releases/latest"
+        url_descarga = None
+        try:
+            req = urllib.request.Request(api_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                data = json.loads(response.read().decode())
+            
+            busqueda_os = 'windows' if sistema == 'windows' else ('darwin' if sistema == 'darwin' else 'linux')
+            for asset in data.get('assets', []):
+                nombre = asset['name'].lower()
+                if busqueda_os == 'windows' and 'windows' in nombre:
+                    if nombre.endswith('.msi') or nombre.endswith('.zip'):
+                        url_descarga = asset['browser_download_url']
+                        if '.zip' in nombre: break
+                elif busqueda_os == 'linux' and 'linux' in nombre and nombre.endswith('.tar.gz') and 'musl' not in nombre:
+                    url_descarga = asset['browser_download_url']; break
+                elif busqueda_os == 'darwin' and 'mac' in nombre and nombre.endswith('.dmg'):
+                    url_descarga = asset['browser_download_url']; break
+        except Exception as e:
+            log(f"[-] Error API GitHub: {e}")
+
+        if not url_descarga:
+            log("[-] Error Crítico: No se encontró versión compatible para tu OS."); return
+
+        nombre_archivo = url_descarga.split('/')[-1]
+        archivo_destino = os.path.join(temp_dir, nombre_archivo)
+        
+        if not os.path.exists(archivo_destino):
+            log(f"[*] Descargando paquete oficial ({nombre_archivo})...")
+            try: urllib.request.urlretrieve(url_descarga, archivo_destino)
+            except Exception as e: log(f"[-] Falló la descarga: {e}"); return
+            
+        log("[*] Desplegando motor...")
+        try:
+            if archivo_destino.endswith('.zip'):
+                with zipfile.ZipFile(archivo_destino, 'r') as zip_ref: zip_ref.extractall(temp_dir)
+            elif archivo_destino.endswith('.tar.gz'):
+                with tarfile.open(archivo_destino, 'r:gz') as tar_ref: tar_ref.extractall(temp_dir)
+            
+            # --- FIX MAESTRO: INSTALACIÓN GHOST (SILENCIOSA) ---
+            elif archivo_destino.endswith('.msi'):
+                log("    -> Ejecutando Instalación Silenciosa Temporal (Modo Ghost)...")
+                subprocess.run(f'msiexec.exe /i "{archivo_destino}" /qn /norestart', shell=True)
+                for r in rutas_comunes:
+                    if os.path.exists(r): 
+                        exe_path = r
+                        break
+                        
+            # Búsqueda general si fue ZIP o tar.gz
+            if not exe_path:
+                for root, dirs, files in os.walk(temp_dir):
+                    for file in files:
+                        if file.lower() == 'sniffnet.exe' or (file.lower() == 'sniffnet' and os.access(os.path.join(root, file), os.X_OK)):
+                            exe_path = os.path.join(root, file)
+                            break
+                    if exe_path: break
+        except Exception as e: log(f"[-] Error de despliegue: {e}"); return
+
+    if not exe_path: log("[-] No se halló el ejecutable principal tras el despliegue."); return
+
+    # 4. Ejecución
+    log("[*] Lanzando Sniffnet...")
+    log("[!] Cierra la ventana externa de Sniffnet cuando termines el diagnóstico.")
+    try:
+        if sistema == 'windows':
+            script_sniffnet = f"Start-Process -FilePath '{exe_path}' -Verb RunAs -Wait"
+            subprocess.run(["powershell", "-NoProfile", "-Command", script_sniffnet], startupinfo=startupinfo)
+        else:
+            log("[!] En Linux/Mac podrías requerir privilegios Root para escanear la red.")
+            subprocess.Popen([exe_path]).wait()
+        log("\n[+] Análisis finalizado.")
+    except Exception as e: log(f"[-] Error de ejecución: {e}")
+
+    # 5. Limpieza Táctica Extrema
+    # Si nosotros hicimos la instalación silenciosa, ejecutamos la desinstalación silenciosa
+    if sistema == 'windows' and archivo_destino.endswith('.msi') and not sniffnet_preexistente:
+        log("[*] Borrando huellas: Desinstalando motor silenciosamente...")
+        subprocess.run(f'msiexec.exe /x "{archivo_destino}" /qn /norestart', shell=True)
+
+    if messagebox.askyesno("Limpieza de Base", "¿Deseas ELIMINAR el instalador base de Sniffnet para no dejar rastro en el equipo?"):
+        try: shutil.rmtree(temp_dir, ignore_errors=True); log("[+] Archivos base eliminados.")
+        except: pass
+
+    if sistema == 'windows' and os.path.exists(r"C:\Windows\System32\Npcap"):
+        if messagebox.askyesno("Limpieza de Driver", "Sniffnet ya cerró.\n\n¿Deseas DESINSTALAR el driver 'Npcap' para borrar absolutamente todo rastro de tu intervención en el sistema?"):
+            uninstaller = r"C:\Program Files\Npcap\uninstall.exe"
+            if os.path.exists(uninstaller):
+                log("[*] Lanzando desinstalador de Npcap...")
+                script_un = f"Start-Process -FilePath '{uninstaller}' -Verb RunAs -Wait"
+                subprocess.run(["powershell", "-NoProfile", "-Command", script_un], startupinfo=startupinfo)
+                log("[+] Driver Npcap purgado del sistema.")
+            else: log("[-] Desinstalador de Npcap no encontrado.")
+
 # --- CATEGORÍA 4: SOFTWARE Y LICENCIAS ---
 def logica_gestor_winget(log):
     log("\n[*] Iniciando gestor de paquetes Winget (Por Microsoft)...")
@@ -769,6 +1416,174 @@ def logica_lazagne(log):
     else:
         log("[*] Motor LaZagne conservado en el equipo.")
 
+def logica_romper_archivos(log, archivo_bloqueado, tipo_ataque, diccionario_custom):
+    import os, urllib.request, zipfile, shutil, subprocess
+    
+    log(f"\n[*] Analizando archivo objetivo: {os.path.basename(archivo_bloqueado)}")
+    
+    temp_dir = os.path.join(os.environ.get('TEMP'), "Tremend_JtR")
+    if not os.path.exists(temp_dir): os.makedirs(temp_dir)
+
+    jtr_folder = os.path.join(temp_dir, "john")
+    run_dir = os.path.join(jtr_folder, "run")
+    john_exe = os.path.join(run_dir, "john.exe")
+
+    # 1. Motor de Descarga (John The Ripper)
+    if not os.path.exists(john_exe):
+        log("[*] Descargando motor de fuerza bruta (John The Ripper)...")
+        zip_path = os.path.join(temp_dir, "jtr.zip")
+        espejos_jtr = [
+            "https://distro.ibiblio.org/openwall/projects/john/1.9.0/john-1.9.0-jumbo-1-win64.zip", 
+            "https://www.openwall.com/john/k/john-1.9.0-jumbo-1-win64.zip"
+        ]
+        
+        descargado = False
+        for url in espejos_jtr:
+            try:
+                log(f"    -> Interrogando servidor espejo...")
+                cmd_curl = f'curl.exe -s -L --max-time 60 -o "{zip_path}" "{url}"'
+                resultado = subprocess.run(cmd_curl, shell=True)
+                if resultado.returncode == 0 and os.path.exists(zip_path) and os.path.getsize(zip_path) > 5000000:
+                    descargado = True; break 
+            except: continue
+                
+        if not descargado: log("[-] Error Crítico: Los servidores oficiales están bloqueando la conexión."); return
+            
+        try:
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref: zip_ref.extractall(jtr_folder)
+            extracted_folder = os.path.join(jtr_folder, os.listdir(jtr_folder)[0])
+            run_dir = os.path.join(extracted_folder, "run")
+            john_exe = os.path.join(run_dir, "john.exe")
+            os.remove(zip_path)
+        except Exception as e: log(f"[-] Error de extracción: {e}"); return
+
+    # 2. Extracción del Hash (EL VERDADERO PARCHE MAESTRO DEFINITIVO)
+    extension = archivo_bloqueado.lower().split('.')[-1]
+    hash_file = os.path.join(temp_dir, "hash_objetivo.txt")
+    safe_target = os.path.join(temp_dir, f"objetivo_seguro.{extension}")
+    
+    # Clonamos para evitar que símbolos raros rompan la consola
+    try:
+        shutil.copy2(archivo_bloqueado, safe_target)
+    except Exception as e:
+        log(f"[-] Error al clonar archivo: {e}"); return
+    
+    if extension == "zip": extractor = os.path.join(run_dir, "zip2john.exe")
+    elif extension == "rar": extractor = os.path.join(run_dir, "rar2john.exe")
+    elif extension == "pdf": extractor = "perl " + os.path.join(run_dir, "pdf2john.pl")
+    else: log("[-] Formato no soportado."); return
+
+    log(f"[*] Aislamiento Forense: Extrayendo Hash criptográfico del archivo...")
+    try:
+        comando_extract = f'"{extractor}" "{safe_target}"'
+        resultado_hash = subprocess.run(comando_extract, shell=True, cwd=run_dir, capture_output=True, text=True, errors='ignore').stdout
+        
+        # Limpieza Quirúrgica del Hash (Corte Bilateral)
+        hash_limpio = ""
+        for linea in resultado_hash.splitlines():
+            # Solo guardamos las líneas que contienen el hash real cifrado
+            if ":$" in linea:
+                # 1. Quitamos la ruta de la izquierda
+                bloque = "$" + linea.split(":$", 1)[1].strip()
+                # 2. FIX MAESTRO: Quitamos la basura de la derecha cortando en el primer separador (:)
+                hash_puro = bloque.split(":")[0].strip()
+                
+                if len(hash_puro) > 10:  # Validamos que no sea un fragmento vacío
+                    hash_limpio += hash_puro + "\n"
+                
+        if not hash_limpio.strip():
+            log("[-] Error Crítico: No se extrajo ningún Hash cifrado válido. Es posible que el archivo no tenga clave o el formato no esté soportado.")
+            os.remove(safe_target); return
+            
+        with open(hash_file, 'w', encoding='utf-8') as f: 
+            f.write(hash_limpio)
+            
+        os.remove(safe_target)
+    except Exception as e: log(f"[-] Fallo al extraer el hash: {e}"); return
+
+    # FIX DE MEMORIA: Borrar el historial de John (john.pot)
+    # Si John se equivocó antes, guardó la basura en su memoria. Hay que formatearlo.
+    try: os.remove(os.path.join(run_dir, "john.pot"))
+    except: pass
+
+    # 3. CONFIGURACIÓN DEL VECTOR DE ATAQUE
+    log("[*] Preparando inyección de ataque...")
+    
+    if tipo_ataque == '1':
+        log("[*] Vector: Diccionario Básico de JtR...")
+        comando_crack = f'"{john_exe}" "{hash_file}"'
+        
+    elif tipo_ataque == '2':
+        log("[*] Vector: Fuerza Bruta Numérica Continua...")
+        comando_crack = f'"{john_exe}" --incremental=Digits "{hash_file}"'
+        
+    elif tipo_ataque == '3':
+        log("[*] Vector: Mega-Biblioteca 'SecLists' (Top 100K NCSC Oficial)...")
+        dict_temp = os.path.join(run_dir, "top_100k_ncsc.txt")
+        
+        if os.path.exists(dict_temp) and os.path.getsize(dict_temp) < 500000:
+            os.remove(dict_temp)
+            
+        if not os.path.exists(dict_temp):
+            log("    -> Descargando diccionario oficial (Motor Nativo PowerShell)...")
+            espejos_dict = [
+                "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/100k-most-used-passwords-NCSC.txt",
+                "https://cdn.jsdelivr.net/gh/danielmiessler/SecLists@master/Passwords/Common-Credentials/100k-most-used-passwords-NCSC.txt"
+            ]
+            descargado = False
+            for url in espejos_dict:
+                try:
+                    script_ps = f"[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '{url}' -OutFile '{dict_temp}' -UseBasicParsing -TimeoutSec 120; Write-Output 'OK'"
+                    resultado = subprocess.run(["powershell", "-NoProfile", "-Command", script_ps], capture_output=True, text=True)
+                    if "OK" in resultado.stdout and os.path.exists(dict_temp) and os.path.getsize(dict_temp) > 500000:
+                        descargado = True; break
+                except: continue
+            
+            if not descargado:
+                log("[-] ERROR CRÍTICO: La descarga falló. Revisa tu internet."); return
+        
+        comando_crack = f'"{john_exe}" --wordlist="{dict_temp}" "{hash_file}"'
+        
+    elif tipo_ataque == '4':
+        log("[*] Vector: Ataque a Medida (Compilando diccionario con tus pistas)...")
+        dict_temp = os.path.join(run_dir, "pistas.txt")
+        with open(dict_temp, 'w', encoding='utf-8') as f:
+            for palabra in diccionario_custom.split(','): f.write(palabra.strip() + '\n')
+        comando_crack = f'"{john_exe}" --wordlist="{dict_temp}" "{hash_file}"'
+
+    log("\n[!] ADVERTENCIA DE TIEMPO ESTIMADO:")
+    log("    - Los diccionarios (Opción 1, 3 y 4) toman desde unos segundos hasta 5 minutos.")
+    log("    - La Fuerza Bruta pura (Opción 2) puede tomar horas dependiendo de tu Procesador.")
+    log("\n[!] ATAQUE EN PROGRESO... La terminal no mostrará texto hasta que termine el cálculo.\n")
+    
+    # 4. Ejecución del Ataque
+    try:
+        subprocess.run(comando_crack, shell=True, cwd=run_dir, capture_output=True)
+        resultado = subprocess.run(f'"{john_exe}" --show "{hash_file}"', shell=True, cwd=run_dir, capture_output=True, text=True).stdout
+        
+        encontrada = False
+        for linea in resultado.splitlines():
+            # Como aislamos el hash puro y borramos la memoria, la salida ahora es limpia
+            if ":" in linea and "password hashes cracked" not in linea and "0 password" not in linea:
+                clave = linea.split(":", 1)[1].strip()
+                if clave:
+                    log(f"\n=======================================================")
+                    log(f" 🔓 ¡ÉXITO! CONTRASEÑA VULNERADA: {clave} ")
+                    log(f"=======================================================")
+                    encontrada = True
+                    break
+                
+        if not encontrada:
+            log("\n[-] El ataque finalizó pero la contraseña no fue encontrada en este diccionario.")
+            
+    except Exception as e: log(f"[-] Error durante el ataque: {e}")
+
+    # 5. Limpieza
+    from tkinter import messagebox
+    if messagebox.askyesno("Limpieza", "¿Deseas ELIMINAR el motor y diccionarios descargados para no dejar rastros?"):
+        try: shutil.rmtree(temp_dir, ignore_errors=True); log("[+] Limpieza táctica: Rastros eliminados.")
+        except: pass
+
 def logica_ytdlp(log, lista_urls, calidad, formato):
     import zipfile
     log(f"\n[*] Iniciando Descargador Multimedia Avanzado (Lote de {len(lista_urls)} enlaces)")
@@ -860,11 +1675,6 @@ def logica_diskpart_usb(log, disco):
     except Exception as e: log(f"[-] Error: {e}")
 
     notificar_voz("El Proceso De Desbloqueo USB ha terminado.")
-
-def logica_sandbox(log):
-    log("\n[*] Activando contenedor virtual Windows Sandbox...")
-    run_ps_script(log, 'Enable-WindowsOptionalFeature -FeatureName "Containers-DisposableClientVM" -All -Online -NoRestart')
-    log("[+] Sandbox habilitado en el kernel. Requiere REINICIAR el sistema para surtir efecto.")
 
 def logica_sysprep(log):
     log("\n[*] Preparando equipo para clonación/venta (Iniciando Sysprep)...")
@@ -1283,7 +2093,7 @@ def cargar_categoria_redes():
 
     h_redes = [
         {"id": "1", "nombre": "1. Info Básica de Red e IP", "cmd": lambda: abrir_consola_y_ejecutar("INFO DE RED", logica_info_red), "nov": "Muestra IP local y pública al instante. Útil para configuraciones y diagnósticos rápidos.", "exp": "[Sockets nativos / API REST] Resuelve hostname e invoca a api.ipify.org para evadir NAT y exponer IP WAN."},
-        {"id": "2", "nombre": "2. Reparación Total de Red", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR RED", logica_reparacion_red), "nov": "Soluciona problemas de conexión a internet limpiando configuraciones atascadas y solicitando una nueva dirección IP al router.", "exp": "[Microsoft OS] Secuencia progresiva: ipconfig /flushdns, reset de la pila TCP/IP (Winsock) y renovación DHCP."},
+        {"id": "2", "nombre": "2. Reparador de Red Autónomo (Auto-Fix)", "cmd": lambda: abrir_consola_y_ejecutar("REPARADOR DE RED", logica_reparacion_red), "nov": "Soluciona el error 'Conectado sin internet'. Limpia el DNS, renueva la IP y fuerza el protocolo automático.", "exp": "[Autónomo] Ejecuta un reseteo de Winsock e inyecta parámetros netsh dinámicamente escaneando los adaptadores activos vía PowerShell para forzar el DHCP."},
         {"id": "3", "nombre": "3. Prueba de Conectividad (Ping / TCP)", "cmd": btn_ping, "nov": "Verifica si una web está en línea y responde correctamente, con la opción adicional de escanear puertos específicos.", "exp": "[Microsoft OS] Llama a Test-NetConnection para trazar latencia ICMP o auditar el estado de puertos TCP."},
         {"id": "4", "nombre": "4. Monitor Conexiones TCP", "cmd": lambda: abrir_consola_y_ejecutar("MONITOR TCP", logica_conexiones_tcp), "nov": "Escanea y muestra en tiempo real qué programas de tu computadora están conectados a internet consumiendo ancho de banda.", "exp": "[Microsoft OS] Filtra la tabla de enrutamiento (Get-NetTCPConnection) y cruza el PID para revelar el ejecutable."},
         {"id": "5", "nombre": "5. Identificar Proceso por Puerto", "cmd": btn_puerto_proceso, "nov": "Si un programa falla porque 'el puerto está en uso', descubre exactamente qué aplicación lo está bloqueando en la sombra.", "exp": "[Microsoft OS] Interroga puertos locales activos y extrae el OwningProcess mapeando la ruta física del binario."},
@@ -1303,7 +2113,8 @@ def cargar_categoria_redes():
         {"id": "19", "nombre": "19. Auditoría de Latencia (Microcortes)", "cmd": btn_latencia, "nov": "Envía paquetes de forma continua para detectar pequeñas caídas ocultas de internet que causan lag en tus juegos o llamadas.", "exp": "[Python/ICMP] Combina un loop de Pings discretos con el módulo datetime logueando ms para cazar timeouts."},
         {"id": "20", "nombre": "20. Motor Avanzado de Escaneo (Puertos)", "cmd": btn_escaner, "nov": "Analiza tu propia computadora o una IP externa para encontrar vulnerabilidades y puertas traseras abiertas por virus.", "exp": "[Python Sockets] Algoritmo asíncrono para testear puertos TCP estándar. Identifica servicios con timeouts ultracortos."},
         {"id": "21", "nombre": "21. Crear Servidor NAS Compartido", "cmd": btn_nas, "nov": "Transforma cualquier carpeta de tu PC en un servidor rápido para que celulares o TVs de tu casa puedan acceder a su contenido.", "exp": "[Microsoft OS] Automatiza New-SmbShare concediendo permisos a Everyone y adaptando dinámicamente el Firewall."},
-        {"id": "22", "nombre": "22. Auditar Caché DNS (DisplayDNS)", "cmd": lambda: abrir_consola_y_ejecutar("AUDITAR DNS", logica_auditar_cache_dns), "nov": "Revela una lista oculta de las páginas web a las que esta PC se ha conectado, incluso si borraron el historial del navegador.", "exp": "[Microsoft OS] Volcado directo del búfer interno del resolver DNS de Windows, exponiendo registros A/CNAME."}
+        {"id": "22", "nombre": "22. Auditar Caché DNS (DisplayDNS)", "cmd": lambda: abrir_consola_y_ejecutar("AUDITAR DNS", logica_auditar_cache_dns), "nov": "Revela una lista oculta de las páginas web a las que esta PC se ha conectado, incluso si borraron el historial del navegador.", "exp": "[Microsoft OS] Volcado directo del búfer interno del resolver DNS de Windows, exponiendo registros A/CNAME."},
+        {"id": "23","nombre": "23. Radar de Tráfico de Red (Sniffnet)","cmd": lambda: abrir_consola_y_ejecutar("SNIFFNET", logica_sniffnet),"nov": "Abre una interfaz gráfica moderna para ver en tiempo real qué programas están consumiendo tu internet.","exp": "[Multiplataforma] Instala dependencias Pcap al vuelo, ejecuta binario nativo interceptando sockets y aplica purga forense."}
     ]
     construir_vista_dinamica("🌐 Redes e Internet", "🔍 Buscar (Ej: dns, 16, wifi)...", h_redes)
 
@@ -1315,9 +2126,67 @@ def cargar_categoria_mantenimiento():
     def btn_chkdsk():
         letra = simpledialog.askstring("CHKDSK", "Letra de unidad a reparar (ej. C):", parent=app)
         if letra: abrir_consola_y_ejecutar("CHKDSK", lambda log: logica_chkdsk(log, letra))
+    def btn_mantenimiento_extremo():
+        import subprocess
+        # 1. Obtener los discos conectados en tiempo real mediante WMI
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        
+        script_discos = 'Get-WmiObject Win32_LogicalDisk | ForEach-Object { $_.DeviceID + " - " + $_.VolumeName + " (" + $_.Description + ")" }'
+        resultado = subprocess.run(["powershell", "-NoProfile", "-Command", script_discos], capture_output=True, text=True, startupinfo=startupinfo)
+        
+        discos_detectados = [line.strip() for line in resultado.stdout.splitlines() if line.strip()]
+
+        if not discos_detectados: return
+
+        # 2. Construir la ventana emergente de selección
+        dialog_discos = ctk.CTkToplevel(app)
+        dialog_discos.title("Mantenimiento Extremo - Selección")
+        dialog_discos.geometry("450x450")
+        dialog_discos.attributes("-topmost", True)
+        dialog_discos.transient(app)
+
+        ctk.CTkLabel(dialog_discos, text="¿Qué discos deseas limpiar?", font=("Arial", 18, "bold"), text_color="#10B981").pack(pady=(20, 5))
+        ctk.CTkLabel(dialog_discos, text="Selecciona los USB, discos duros o SSD a purgar.", font=("Arial", 13), text_color="#94A3B8").pack(pady=(0, 15))
+
+        frame_checks = ctk.CTkScrollableFrame(dialog_discos, height=200, fg_color="#1E293B", corner_radius=10)
+        frame_checks.pack(fill="x", padx=30, pady=10)
+
+        checkboxes = []
+        for disco in discos_detectados:
+            letra = disco.split(" ")[0] # Extrae la pura letra "C:", "D:", etc.
+            # Por seguridad, el C: inicia marcado. Los USB inician desmarcados
+            var = ctk.BooleanVar(value=True if letra == "C:" else False)
+            chk = ctk.CTkCheckBox(frame_checks, text=disco, variable=var, font=("Arial", 14), text_color="#FFFFFF", fg_color="#10B981", hover_color="#059669")
+            chk.pack(anchor="w", pady=8, padx=10)
+            checkboxes.append((letra, var))
+
+        # El botón de "Seleccionar / Desmarcar Todos" que solicitaste
+        def toggle_todos():
+            estado_actual = checkboxes[0][1].get()
+            nuevo_estado = not estado_actual
+            for _, var in checkboxes:
+                var.set(nuevo_estado)
+            btn_todos.configure(text="Desmarcar Todos" if nuevo_estado else "Seleccionar Todos")
+
+        btn_todos = ctk.CTkButton(dialog_discos, text="Seleccionar Todos", width=150, fg_color="#475569", hover_color="#334155", command=toggle_todos)
+        btn_todos.pack(pady=10)
+
+        # 3. Lanzar a la terminal con la lista procesada
+        def iniciar():
+            seleccionados = [letra for letra, var in checkboxes if var.get()]
+            dialog_discos.destroy()
+            if seleccionados:
+                abrir_consola_y_ejecutar("MANTENIMIENTO EXTREMO", lambda log: logica_mantenimiento_profundo(log, seleccionados))
+
+        btn_frame = ctk.CTkFrame(dialog_discos, fg_color="transparent")
+        btn_frame.pack(pady=15)
+
+        ctk.CTkButton(btn_frame, text="⚡ Iniciar Limpieza", font=("Arial", 14, "bold"), height=40, fg_color="#10B981", hover_color="#059669", command=iniciar).pack(side="left", padx=10)
+        ctk.CTkButton(btn_frame, text="Cancelar", font=("Arial", 14, "bold"), height=40, fg_color="#EF4444", hover_color="#DC2626", command=dialog_discos.destroy).pack(side="left", padx=10)
 
     h_mant = [
-        {"id": "1", "nombre": "1. Mantenimiento Profundo y SFC/DISM", "cmd": lambda: abrir_consola_y_ejecutar("MANTENIMIENTO", logica_mantenimiento_profundo), "nov": "Realiza una limpieza automática profunda. Elimina gigas de basura oculta y repara archivos vitales dañados de Windows.", "exp": "[Python/OS] shutil.rmtree en TEMP/Prefetch. Luego invoca motores DISM /RestoreHealth y SFC /scannow para validar imagen."},
+        {"id": "1","nombre": "1. Mantenimiento Extremo (Discos y USBs)","cmd": btn_mantenimiento_extremo,"nov": "Detecta todos tus discos y memorias USB conectadas. Vacía papeleras ocultas, borra cachés basura, rastros y repara el sistema.","exp": "[Interfaz CTk + WMI] Escanea Win32_LogicalDisk. Ejecuta rmdir recursivo en metadatos, limpia TEMP y lanza DISM/SFC sobre la raíz del sistema."},
         {"id": "2", "nombre": "2. Optimización Avanzada (Chris Titus)", "cmd": lambda: abrir_consola_y_ejecutar("OPTIMIZACIÓN TITUS", logica_titus), "nov": "La mejor herramienta para acelerar PCs lentas. Desactiva funciones inútiles, instala programas base y mejora el rendimiento.", "exp": "[Chris Titus Tech] irm christitus.com/win | iex. Despliega panel WPF para aplicar tweaks de registro y purga de servicios."},
         {"id": "3", "nombre": "3. Debloat del Sistema (Apps Nativas)", "cmd": btn_debloat, "nov": "Elimina de raíz programas basura preinstalados (como Xbox o Bing) que no se pueden desinstalar desde el panel de control.", "exp": "[Microsoft OS] Get-AppxPackage canalizado hacia Remove-AppxPackage -AllUsers. Purga paquetes provisionados UWP."},
         {"id": "4", "nombre": "4. Restablecer Cola Impresión", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR IMPRESIÓN", logica_spooler), "nov": "Soluciona de inmediato los atascos cuando envías un documento y la impresora se queda trabada sin hacer nada.", "exp": "[Microsoft OS] Detiene Spooler. Purga recursivamente caché .SHD y .SPL del directorio System32, liberando el buffer."},
@@ -1329,7 +2198,10 @@ def cargar_categoria_mantenimiento():
         {"id": "10", "nombre": "10. Reparar Hora (NTP)", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR HORA", logica_hora), "nov": "Soluciona el error 'La conexión no es privada' obligando a tu PC a sincronizar la hora exacta con servidores mundiales.", "exp": "[Microsoft OS] Reinicia Time Broker. Modifica peerlist forzando sincronización SNTP contra time.windows.com con resync."},
         {"id": "11", "nombre": "11. Limpiar Navegadores (Caché)", "cmd": lambda: abrir_consola_y_ejecutar("PURGAR NAVEGADORES", logica_limpiar_navegadores), "nov": "Acelera navegadores borrando archivos temporales pesados. (No borra tus contraseñas, ni historial, ni marcadores).", "exp": "[Python shutil] Destruye de forma recursiva los directorios 'Cache_Data' de motores Chromium en el LOCALAPPDATA."},
         {"id": "12", "nombre": "12. Reparación Disco (CHKDSK)", "cmd": btn_chkdsk, "nov": "Repara sectores dañados físicamente en tu disco duro si la computadora está extremadamente lenta o lanza errores al copiar.", "exp": "[Microsoft OS] Programa chkdsk /f /r /x para desmontaje de inodos y traslado de data recuperable a sectores sanos."},
-        {"id": "13", "nombre": "13. Reconstruir Caché de Iconos", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR ICONOS", logica_iconos), "nov": "Soluciona el fallo visual donde los iconos de tus programas aparecen como hojas en blanco o se ven borrosos en el escritorio.", "exp": "[Microsoft OS] Destruye el explorer.exe, purga el archivo IconCache.db en AppData y relanza el Shell forzando un render."}
+        {"id": "13", "nombre": "13. Reconstruir Caché de Iconos", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR ICONOS", logica_iconos), "nov": "Soluciona el fallo visual donde los iconos de tus programas aparecen como hojas en blanco o se ven borrosos en el escritorio.", "exp": "[Microsoft OS] Destruye el explorer.exe, purga el archivo IconCache.db en AppData y relanza el Shell forzando un render."},
+        {"id": "14","nombre": "14. G-Helper (Optimizador ASUS)","cmd": lambda: abrir_consola_y_ejecutar("G-HELPER", logica_ghelper),"nov": "Reemplazo ultraligero de Armoury Crate exclusivo para laptops ASUS. Controla ventiladores, batería y hardware.","exp": "[Hardware Lock] Escanea el firmware WMI. Si detecta placa ASUS, descarga el binario y lo ejecuta en RAM; si no, bloquea la ejecución para evitar crasheos."},
+        {"id": "15","nombre": "15. Lenovo Legion Toolkit (Optimizador)","cmd": lambda: abrir_consola_y_ejecutar("LENOVO TOOLKIT", logica_lenovo_toolkit),"nov": "Reemplazo ultraligero de Lenovo Vantage. Controla perfiles de energía, ventiladores, RGB y batería sin consumir recursos en segundo plano.","exp": "[Hardware Lock] Escanea el firmware WMI detectando placas Lenovo. Descarga el ejecutable nativo desde GitHub y lo lanza con elevación UAC."},
+        {"id": "16","nombre": "16. Mole (Optimizador Terminal)","cmd": lambda: abrir_consola_y_ejecutar("MOLE", logica_mole),"nov": "Potente optimizador estilo CCleaner directo en terminal. Limpia cachés, temporales y libera gigabytes de espacio.","exp": "[Experimental] Llama al script nativo quick-install.ps1 vía irm. Abre una sesión externa interactiva (conhost) para navegación por teclado."}
     ]
     construir_vista_dinamica("🧹 Mantenimiento y Optimización", "🔍 Buscar (Ej: chkdsk, debloat)...", h_mant)
 
@@ -1380,6 +2252,137 @@ def cargar_categoria_soporte():
     def btn_destructor():
         ruta = simpledialog.askstring("Destructor", "Ruta EXACTA de la carpeta a destruir:", parent=app)
         if ruta: abrir_consola_y_ejecutar("DESTRUCTOR", lambda log: logica_destructor(log, ruta))
+    def btn_gestor_virtualizacion():
+        import subprocess
+        import threading
+        import tempfile
+        import os
+        from tkinter import messagebox
+        
+        # --- 1. Lógica de Escaneo Forense del OS ---
+        try:
+            # Extraemos el nombre exacto de la versión de Windows (Ej: "Microsoft Windows 11 Pro")
+            os_info = subprocess.check_output('wmic os get Caption', shell=True, text=True).strip().split('\n')[-1].strip()
+        except:
+            os_info = "Windows (Versión Desconocida)"
+            
+        # Validamos si es una edición con soporte nativo de virtualización
+        es_compatible = any(edicion in os_info for edicion in ["Pro", "Enterprise", "Education", "Server"])
+        
+        # --- 2. Interfaz del Gestor ---
+        dialog_virt = ctk.CTkToplevel(app) 
+        dialog_virt.title("Gestor de Virtualización Nativa")
+        dialog_virt.geometry("550x380")
+        dialog_virt.attributes("-topmost", True)
+        dialog_virt.transient(app)
+        
+        ctk.CTkLabel(dialog_virt, text="Escáner del Sistema:", font=("Arial", 14, "bold"), text_color="#A3E635").pack(pady=(15, 0))
+        color_os = "#34D399" if es_compatible else "#EF4444"
+        estado_os = "✅ COMPATIBLE" if es_compatible else "❌ NO COMPATIBLE (Requiere versión Pro/Enterprise)"
+        ctk.CTkLabel(dialog_virt, text=f"{os_info}\n{estado_os}", font=("Arial", 14), text_color=color_os).pack(pady=5)
+        
+        # --- 3. Lógica de Activación a Nivel de Núcleo ---
+        def activar_caracteristica(feature_name, nombre_amigable):
+            dialog_virt.destroy()
+            def logica(log):
+                log(f"[*] Verificando compatibilidad de {nombre_amigable} en {os_info}...")
+                if not es_compatible:
+                    log(f"[-] ADVERTENCIA CRÍTICA: Tu sistema operativo es una edición 'Home' o limitada.")
+                    log(f"[-] Microsoft bloquea {nombre_amigable} en esta versión. La inyección podría ser rechazada.")
+                
+                log(f"[*] Analizando el núcleo de Windows...")
+                check = subprocess.run(f'dism.exe /Online /Get-FeatureInfo /FeatureName:{feature_name}', shell=True, capture_output=True, text=True)
+                if "Estado : Habilitado" in check.stdout or "State : Enabled" in check.stdout:
+                    log(f"[+] {nombre_amigable} YA está habilitado y operando en este equipo.")
+                    return
+                
+                log(f"[*] Inyectando orden de activación para {nombre_amigable}...")
+                log("[!] Esto tomará un par de minutos, por favor no cierres la herramienta.")
+                act = subprocess.run(f'dism.exe /Online /Enable-Feature /FeatureName:{feature_name} /All /NoRestart', shell=True, capture_output=True, text=True)
+                
+                # El código 0 es éxito, el código 3010 es éxito pero requiere reinicio
+                if act.returncode in [0, 3010]:
+                    log(f"[+] ¡ÉXITO! {nombre_amigable} se ha integrado en el sistema.")
+                    if act.returncode == 3010:
+                        log("[!] SE REQUIERE UN REINICIO DEL SISTEMA PARA COMPLETAR LA INSTALACIÓN.")
+                        if messagebox.askyesno("Reinicio Requerido", f"{nombre_amigable} se activó a nivel de sistema.\n\nPara que los cambios surtan efecto debes reiniciar el PC.\n\n¿Deseas reiniciar AHORA MISMO?"):
+                            subprocess.run("shutdown /r /t 5", shell=True)
+                else:
+                    log(f"[-] Error {act.returncode} al intentar activar la característica.")
+                    log("[!] Posible causa principal: Tu BIOS no tiene la 'Virtualización de Hardware' (VT-x/AMD-V) habilitada.")
+                    
+            abrir_consola_y_ejecutar(f"ACTIVADOR - {nombre_amigable}", logica)
+
+        # --- 4. Lógica de Manuales Auto-Destructibles (Multihilo) ---
+        def lanzar_manual(tipo):
+            def hilo_manual():
+                if tipo == 'hyperv':
+                    texto = "=================================================\nMANUAL DE USO: HYPER-V (MÁQUINAS VIRTUALES)\n=================================================\n\n¿Qué es Hyper-V?\nEs el hipervisor nativo de Windows. Te permite crear 'computadoras virtuales' (Máquinas Virtuales) dentro de tu PC real para instalar sistemas operativos como Windows 7, Linux, etc.\n\nREQUISITOS PREVIOS:\n1. Windows 10/11 (Ediciones Pro, Enterprise, Education).\n2. Tener la Virtualización activada en la BIOS (Intel VT-x o AMD-V).\n\n¿CÓMO CREAR TU PRIMERA MÁQUINA VIRTUAL?\n1. Presiona la tecla Windows y busca 'Administrador de Hyper-V' o 'Creación rápida de Hyper-V'.\n2. Si deseas instalar un sistema personalizado (Ej. Windows 7 clásico), haz clic en 'Origen de instalación local' y selecciona tu archivo de imagen ISO.\n3. Dale a 'Crear máquina virtual'.\n4. Una vez creada, dale a 'Conectar' y luego a 'Iniciar'. ¡Listo!\n\nPRECAUCIONES:\n- Todo lo que hagas en Hyper-V se GUARDA permanentemente en su disco duro virtual.\n- Consume memoria RAM real mientras la máquina está encendida.\n\n(Al cerrar este bloc de notas, este archivo se autodestruirá de tu PC para no dejar rastro)."
+                else:
+                    texto = "=================================================\nMANUAL DE USO: WINDOWS SANDBOX (ENTORNO AISLADO)\n=================================================\n\n¿Qué es Windows Sandbox?\nEs un entorno de escritorio extremadamente ligero y temporal. Es básicamente una copia desechable de tu Windows actual, diseñada para probar software sospechoso o navegar sin infectar tu PC real.\n\nREQUISITOS PREVIOS:\n1. Windows 10/11 (Ediciones Pro, Enterprise, Education).\n2. Tener la Virtualización activada en la BIOS.\n\n¿CÓMO USARLO?\n1. Presiona la tecla Windows y busca 'Windows Sandbox' o 'Espacio aislado de Windows'.\n2. Ábrelo. Verás un escritorio de Windows limpio, como si acabaras de formatear.\n3. Puedes copiar archivos dudosos de tu PC real y pegarlos dentro del Sandbox para ejecutarlos.\n\n¡ATENCIÓN! REGLA DE ORO (PRECAUCIÓN):\n- Windows Sandbox es TOTALMENTE AMNÉSICO (Desechable).\n- En el instante en que cierras la ventana con la 'X', TODO LO QUE HICISTE SE BORRA PARA SIEMPRE.\n- No es un lugar para probar virus persistentes, porque el virus muere al cerrar la app. Tampoco es un lugar para guardar documentos importantes.\n\n(Al cerrar este bloc de notas, este archivo se autodestruirá de tu PC para no dejar rastro)."
+                
+                # Crear archivo de texto en la carpeta oculta TEMP
+                fd, path = tempfile.mkstemp(suffix=".txt", prefix=f"TREMEND_Manual_{tipo}_")
+                with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                    f.write(texto)
+                
+                # Abrir el bloc de notas y ESPERAR a que el usuario lo cierre
+                subprocess.call(['notepad.exe', path])
+                
+                # Destrucción táctica
+                try: os.remove(path)
+                except: pass
+
+            # Lanzamos el manual en un hilo separado para que tu herramienta no se congele mientras el txt está abierto
+            t = threading.Thread(target=hilo_manual, daemon=True)
+            t.start()
+
+        # --- 5. Diseño de Botones ---
+        ctk.CTkLabel(dialog_virt, text="Hyper-V (Máquinas Virtuales Permanentes)", font=("Arial", 12, "bold")).pack(pady=(10, 2))
+        frame_hv = ctk.CTkFrame(dialog_virt, fg_color="transparent")
+        frame_hv.pack(fill="x", padx=40)
+        ctk.CTkButton(frame_hv, text="🚀 Activar Hyper-V", fg_color="#2563EB", hover_color="#1D4ED8", command=lambda: activar_caracteristica("Microsoft-Hyper-V", "Hyper-V")).pack(side="left", expand=True, padx=5)
+        ctk.CTkButton(frame_hv, text="📖 Leer Manual", fg_color="#4B5563", hover_color="#374151", command=lambda: lanzar_manual('hyperv')).pack(side="right", expand=True, padx=5)
+
+        ctk.CTkLabel(dialog_virt, text="Windows Sandbox (Entorno Aislado Desechable)", font=("Arial", 12, "bold")).pack(pady=(20, 2))
+        frame_sb = ctk.CTkFrame(dialog_virt, fg_color="transparent")
+        frame_sb.pack(fill="x", padx=40)
+        ctk.CTkButton(frame_sb, text="☢️ Activar Sandbox", fg_color="#D97706", hover_color="#B45309", command=lambda: activar_caracteristica("Containers-DisposableClientVM", "Windows Sandbox")).pack(side="left", expand=True, padx=5)
+        ctk.CTkButton(frame_sb, text="📖 Leer Manual", fg_color="#4B5563", hover_color="#374151", command=lambda: lanzar_manual('sandbox')).pack(side="right", expand=True, padx=5)
+    def btn_jtr():
+        import tkinter.filedialog as fd
+        from tkinter import simpledialog
+        
+        archivo_bloqueado = fd.askopenfilename(
+            title="Paso 1: Selecciona el archivo protegido", 
+            filetypes=[("Archivos Soportados", "*.zip *.rar *.pdf *.7z")],
+            parent=app
+        )
+        
+        if not archivo_bloqueado: return
+        
+        # --- NUEVA INTERFAZ DE BOTONES ---
+        dialog_atk = ctk.CTkToplevel(app)
+        dialog_atk.title("John The Ripper - Vector de Ataque")
+        dialog_atk.geometry("500x320")
+        dialog_atk.attributes("-topmost", True)
+        dialog_atk.transient(app)
+        
+        ctk.CTkLabel(dialog_atk, text="Elige la estrategia de Hackeo:", font=("Arial", 16, "bold"), text_color="#38BDF8").pack(pady=(20, 10))
+        
+        def lanzar(tipo):
+            dialog_atk.destroy()
+            if tipo == '4':
+                pistas = simpledialog.askstring("Pistas a Medida", "Escribe posibles contraseñas separadas por comas\n(Ej: ivanime.com, 12345, animehd):", parent=app)
+                if not pistas: return
+                abrir_consola_y_ejecutar("ROMPE-CLAVES AVANZADO", lambda log: logica_romper_archivos(log, archivo_bloqueado, tipo, pistas))
+            else:
+                abrir_consola_y_ejecutar("ROMPE-CLAVES AVANZADO", lambda log: logica_romper_archivos(log, archivo_bloqueado, tipo, ""))
+                
+        ctk.CTkButton(dialog_atk, text="⚡ 1. Diccionario Básico (Prueba rápida)", font=("Arial", 14, "bold"), height=38, command=lambda: lanzar('1')).pack(fill="x", padx=40, pady=5)
+        ctk.CTkButton(dialog_atk, text="🔢 2. Fuerza Bruta Numérica (PINs / Fechas)", font=("Arial", 14, "bold"), height=38, command=lambda: lanzar('2')).pack(fill="x", padx=40, pady=5)
+        ctk.CTkButton(dialog_atk, text="🌍 3. Mega-Diccionario Nube (Top 1 Millón)", font=("Arial", 14, "bold"), height=38, fg_color="#8B5CF6", hover_color="#7C3AED", command=lambda: lanzar('3')).pack(fill="x", padx=40, pady=5)
+        ctk.CTkButton(dialog_atk, text="🎯 4. Pistas a Medida (Escribe tus sospechas)", font=("Arial", 14, "bold"), height=38, fg_color="#F59E0B", hover_color="#D97706", command=lambda: lanzar('4')).pack(fill="x", padx=40, pady=15)
     def btn_cambiar_clave():
         usr = simpledialog.askstring("Usuario", "Nombre del usuario local a modificar:", parent=app)
         if usr:
@@ -1496,10 +2499,11 @@ def cargar_categoria_soporte():
         {"id": "5", "nombre": "5. Bloquear Puertos USB", "cmd": lambda: abrir_consola_y_ejecutar("BLOQUEO USB", lambda log: logica_bloquear_usb(log, True)), "nov": "Impide la lectura de memorias USB para evitar robo de información. Podrás seguir conectando tu teclado o cargando el celular.", "exp": "[Lennes Varela] Modifica HKLM SYSTEM USBSTOR 'Start' a DWORD 4. Deniega el montaje del driver masivo."},
         {"id": "6", "nombre": "6. Desbloquear Puertos USB", "cmd": lambda: abrir_consola_y_ejecutar("DESBLOQUEO USB", lambda log: logica_bloquear_usb(log, False)), "nov": "Habilita nuevamente la lectura de discos externos y memorias USB en la computadora.", "exp": "[Lennes Varela] Reestablece la llave DWORD Start a valor 3 en USBSTOR, rehabilitando el montaje PnP."},
         {"id": "7", "nombre": "7. Quitar Protección contra Escritura (USB)", "cmd": btn_diskpart, "nov": "Desbloquea memorias USB que no te dejan guardar archivos ni formatear porque dicen estar 'Protegidas contra escritura'.", "exp": "[Microsoft OS] Inyecta script temporal 'attributes disk clear readonly' hacia el motor lógico diskpart /s."},
-        {"id": "8", "nombre": "8. Activar Windows Sandbox", "cmd": lambda: abrir_consola_y_ejecutar("SANDBOX", logica_sandbox), "nov": "Crea una PC desechable aislada dentro de tu máquina. Ideal para abrir archivos sospechosos de virus sin poner en riesgo tu sistema real.", "exp": "[Microsoft OS] Enable-WindowsOptionalFeature Containers-DisposableClientVM. Inicializa entorno aislado vía hipervisor."},
+        {"id": "8", "nombre": "8. Gestor de Virtualización NATIVA (Hyper-V & Sandbox)","cmd": btn_gestor_virtualizacion,"nov": "Escanea el sistema y activa entornos virtuales. Incluye manuales de uso auto-destructibles.","exp": "Utiliza llamadas WMI/DISM para validar la arquitectura del OS y habilitar los flags de Microsoft-Hyper-V y Containers-DisposableClientVM."},
         {"id": "9", "nombre": "9. Preparar PC para Venta (Sysprep)", "cmd": btn_sysprep, "nov": "Ideal para vendedores. Borra los identificadores únicos y drivers de tu placa. Al prender, la PC pedirá la configuración inicial de idioma.", "exp": "[Microsoft OS] Sysprep /generalize purga el SID del host y logs; /oobe fuerza la experiencia out-of-box."},
         {"id": "10", "nombre": "10. Borrado Forense Militar (Wipe)", "cmd": lambda: abrir_consola_y_ejecutar("BORRADO WIPE", logica_borrado_seguro), "nov": "Sobrescribe con ceros todo el espacio vacío del disco para garantizar que ninguna foto o documento que borraste pueda ser recuperado por hackers.", "exp": "[Microsoft OS] cipher /w:C:\\ barre los clusters libres de la MFT sobrescribiéndolos con múltiples pasadas."},
-        {"id": "11", "nombre": "11. Reiniciar directo a la BIOS (UEFI)", "cmd": lambda: abrir_consola_y_ejecutar("REINICIO BIOS", logica_reinicio_bios), "nov": "Un salvavidas: Reinicia la PC y te lleva directamente a la pantalla de la BIOS/UEFI sin que tengas que machacar F2 o SUPR repetidas veces.", "exp": "[Microsoft OS] Llamada ACPI ejecutando shutdown.exe /r /fw delegando la interrupción POST al firmware UEFI."}
+        {"id": "11", "nombre": "11. Reiniciar directo a la BIOS (UEFI)", "cmd": lambda: abrir_consola_y_ejecutar("REINICIO BIOS", logica_reinicio_bios), "nov": "Un salvavidas: Reinicia la PC y te lleva directamente a la pantalla de la BIOS/UEFI sin que tengas que machacar F2 o SUPR repetidas veces.", "exp": "[Microsoft OS] Llamada ACPI ejecutando shutdown.exe /r /fw delegando la interrupción POST al firmware UEFI."},
+        {"id": "12", "nombre": "12. Rompe-Claves de Archivos (John The Ripper)","cmd": btn_jtr,"nov": "Descifra y recupera contraseñas olvidadas de archivos .ZIP, .RAR y .PDF bloqueados mediante fuerza bruta.","exp": "[Openwall] Descarga motor JtR Jumbo a %TEMP%. Inyecta *2john tools para aislar el hash cifrado y ejecuta un wordlist attack mediante algoritmos MD5/SHA en la CPU."},
     ]
     construir_vista_dinamica("🛠️ Soporte Técnico y Utilidades", "🔍 Buscar (Ej: lazagne, usb, wipe)...", h_sop)
 
@@ -1841,67 +2845,153 @@ def cargar_categoria_mac():
 
     h_mac = []
     for index, item in enumerate(datos_mac):
-        def make_cmd(url):
-            return lambda: webbrowser.open(url)
+        nombre_api = item.get('nombre', 'App Mac')
+        
+        # --- FIX: Inyección de Funciones Nativas (No más duplicados manuales) ---
+        if "sniffnet" in nombre_api.lower():
+            comando_ejecucion = lambda: abrir_consola_y_ejecutar("SNIFFNET", logica_sniffnet)
+            txt_boton = "⚡ Ejecutar Herramienta"
+        elif "mole" in nombre_api.lower():
+            comando_ejecucion = lambda: abrir_consola_y_ejecutar("MOLE", logica_mole)
+            txt_boton = "⚡ Ejecutar Herramienta"
+        else:
+            # Si es una aplicación normal, le pone el enlace web a GitHub
+            def make_cmd(url): return lambda: webbrowser.open(url)
+            comando_ejecucion = make_cmd(item.get("enlace", ""))
+            txt_boton = "🍏 Ver App Oficial"
             
         badge_text = "🔓 Código Abierto" if item.get('es_open_source', False) else "🔒 Código Cerrado"
         
         h_mac.append({
             "id": str(index + 1),
-            "nombre": f"{item.get('nombre', 'App Mac')}",
+            "nombre": f"{index + 1}. {nombre_api}",
             "exp": f"Autor: {item.get('autor', 'Desconocido')} | {badge_text}",
             "nov": f"{item.get('descripcion', '')}\n\nCaracterísticas: {item.get('ventajas', '')}",
-            "cmd": make_cmd(item.get("enlace", "")),
-            "txt_btn": "🍏 Ver App Oficial",
+            "cmd": comando_ejecucion,
+            "txt_btn": txt_boton,
             "color_borde": "#A855F7" # Color Púrpura especial para diferenciar Mac
         })
         
-    # Usamos tu fábrica de vistas para que tenga buscador y páginas automáticas
     construir_vista_dinamica("🍏 Aplicaciones y Herramientas para Mac", "🔍 Buscar (Ej: firewall, snitch)...", h_mac)
 
 def cargar_categoria_linux():
     limpiar_panel()
     
-    # Título Principal
-    ctk.CTkLabel(tools_frame, text="🐧 Comandos de Diagnóstico Linux", font=("Arial", 24, "bold")).pack(pady=(0, 10))
+    # --- LAYOUT ESTILO TILING (Workspace de Servidor) ---
+    # Panel Izquierdo: Directorio de comandos (35% del espacio)
+    # Panel Derecho: Terminal TTY Persistente (65% del espacio)
     
-    # 1. CONSOLA DE SALIDA (Para ver el resultado de los comandos)
-    consola_salida = ctk.CTkTextbox(tools_frame, height=200, font=("Consolas", 13), fg_color="#0F172A", text_color="#3DDC84", corner_radius=10)
-    consola_salida.pack(side="bottom", fill="x", padx=20, pady=20)
-    consola_salida.insert("0.0", "Terminal de TREMEND lista. Ejecuta un comando...\n")
-    consola_salida.configure(state="disabled")
+    panel_izq = ctk.CTkFrame(tools_frame, width=320, fg_color="transparent")
+    panel_izq.pack(side="left", fill="y", padx=(0, 15))
+    panel_izq.pack_propagate(False) # Congela el ancho para no deformarse
+    
+    panel_der = ctk.CTkFrame(tools_frame, fg_color="#050505", corner_radius=10, border_width=1, border_color="#22C55E")
+    panel_der.pack(side="right", fill="both", expand=True)
+    
+    # --- TERMINAL NATIVA (DERECHA) ---
+    top_term = ctk.CTkFrame(panel_der, fg_color="#166534", corner_radius=0, height=35)
+    top_term.pack(fill="x")
+    top_term.pack_propagate(False)
+    
+    ctk.CTkLabel(top_term, text="root@tremend-server:~#", font=("Consolas", 14, "bold"), text_color="#FFFFFF").pack(side="left", padx=15)
+    
+    txt_consola = ctk.CTkTextbox(panel_der, fg_color="transparent", text_color="#4ADE80", font=("Consolas", 14), wrap="word")
+    txt_consola.pack(fill="both", expand=True, padx=10, pady=10)
+    txt_consola.insert("end", "TREMEND OS (Linux Subsystem)\nSistema de inyección asíncrona de comandos listo.\nSelecciona un módulo a la izquierda...\n\n")
+    txt_consola.configure(state="disabled")
+    
+    def log_tty(texto):
+        def update():
+            txt_consola.configure(state="normal")
+            txt_consola.insert("end", str(texto) + "\n")
+            txt_consola.see("end")
+            txt_consola.configure(state="disabled")
+        app.after(0, update)
+        
+    def limpiar_tty():
+        txt_consola.configure(state="normal")
+        txt_consola.delete("1.0", "end")
+        txt_consola.insert("end", "root@tremend-server:~# clear\n\n")
+        txt_consola.configure(state="disabled")
+        
+    ctk.CTkButton(top_term, text="[ Ctrl+L ] Clear", width=80, height=24, fg_color="#064E3B", hover_color="#14532D", text_color="#A7F3D0", font=("Consolas", 12), command=limpiar_tty).pack(side="right", padx=10)
 
-    def mostrar_salida(texto):
-        consola_salida.configure(state="normal")
-        consola_salida.delete("0.0", "end") # Limpia la salida anterior
-        consola_salida.insert("end", f"> Resultado:\n{texto}\n")
-        consola_salida.configure(state="disabled")
+    # --- MOTOR ASÍNCRONO BASH (Reemplaza al viejo LinuxToolkit) ---
+    def ejecutar_bash(comando_str, interactivo=False):
+        log_tty(f"root@tremend-server:~# {comando_str}")
+        
+        if interactivo:
+            # Para apps como htop que necesitan su propia ventana interactiva pura
+            try: subprocess.Popen(["gnome-terminal", "--", "bash", "-c", f"{comando_str}; exec bash"])
+            except: log_tty("[-] gnome-terminal no encontrado. Usa un entorno compatible.\n")
+            return
 
-    # 2. CONTENEDOR DE TARJETAS (Scrollable para que quepan todos los comandos)
-    lista_comandos = ctk.CTkScrollableFrame(tools_frame, fg_color="transparent")
-    lista_comandos.pack(side="top", fill="both", expand=True, padx=20)
+        def run():
+            try:
+                # bufsize=1 permite leer línea por línea sin esperar a que el proceso termine entero
+                proceso = subprocess.Popen(comando_str, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, bufsize=1)
+                for linea in iter(proceso.stdout.readline, ''):
+                    if linea: log_tty(linea.strip())
+                proceso.wait()
+                log_tty(f"[*] Salida (Exit Code): {proceso.returncode}\n")
+            except Exception as e:
+                log_tty(f"[-] bash: {comando_str}: error interno ({e})\n")
+                
+        import threading
+        threading.Thread(target=run, daemon=True).start()
 
-    # 3. DICCIONARIO DE COMANDOS (Fácil de escalar)
+    # --- FUNCIONES INTERACTIVAS CON VENTANA ---
+    def btn_ping():
+        dest = simpledialog.askstring("Ping", "Ingresa IP o Dominio:", parent=app)
+        if dest: ejecutar_bash(f"ping -c 4 {dest}")
+        
+    def btn_nmap():
+        dest = simpledialog.askstring("Nmap", "Ingresa IP o Dominio a escanear (vacío para localhost):", parent=app)
+        target = dest if dest else "localhost"
+        ejecutar_bash(f"nmap -sV -sC {target}")
+
+    # --- PALETA DE COMANDOS (IZQUIERDA) ---
+    ctk.CTkLabel(panel_izq, text="🐧 Directorio Linux", font=("Arial", 22, "bold")).pack(anchor="w", pady=(0, 15))
+    
+    lista_comandos = ctk.CTkScrollableFrame(panel_izq, fg_color="transparent")
+    lista_comandos.pack(fill="both", expand=True)
+
+    # DICCIONARIO CATEGORIZADO (Diseño Hacker/Sysadmin)
     comandos_linux = [
-        {"nombre": "ls -lah (Listar Avanzado)", "desc": "Muestra contenido con permisos de lectura/escritura y peso legible.", "cmd": lambda: mostrar_salida(LinuxToolkit.listar_avanzado())},
-        {"nombre": "df -h (Espacio en Disco)", "desc": "Muestra el uso de todos los discos montados en Megas y Gigas.", "cmd": lambda: mostrar_salida(LinuxToolkit.analizar_espacio_disco())},
-        {"nombre": "ip a (Interfaces de Red)", "desc": "Muestra tus direcciones IP locales filtradas.", "cmd": lambda: mostrar_salida(LinuxToolkit.ver_interfaces_red())},
-        {"nombre": "ping -c 4 (Probar Conexión)", "desc": "Envía 4 paquetes al servidor para diagnosticar la red sin congelarse.", "cmd": lambda: mostrar_salida(LinuxToolkit.probar_conectividad())},
-        {"nombre": "htop (Monitor de Recursos)", "desc": "Abre el monitor visual de CPU y RAM en una ventana independiente.", "cmd": lambda: mostrar_salida(LinuxToolkit.abrir_monitor_htop())}
+        {"cat": "INTERFACES GRÁFICAS"},
+        {"nombre": "Radar Sniffnet", "desc": "Monitor de tráfico", "cmd": lambda: abrir_consola_y_ejecutar("SNIFFNET", logica_sniffnet), "color": "#A855F7"},
+        {"nombre": "htop", "desc": "Gestor de tareas", "cmd": lambda: ejecutar_bash("htop", interactivo=True), "color": "#A855F7"},
+        
+        {"cat": "CIBERSEGURIDAD / AUDITORÍA"},
+        {"nombre": "nmap -sV -sC", "desc": "Escáner de vulnerabilidades", "cmd": btn_nmap, "color": "#EF4444"},
+        {"nombre": "find SUID", "desc": "Escalada de privilegios", "cmd": lambda: ejecutar_bash("find / -perm -4000 -type f 2>/dev/null | head -n 20"), "color": "#EF4444"},
+        {"nombre": "grep Logs", "desc": "Cazar intrusos en auth.log", "cmd": lambda: ejecutar_bash('grep -iE "error|failed|unauthorized" /var/log/auth.log 2>/dev/null | tail -n 20'), "color": "#EF4444"},
+        
+        {"cat": "REDES Y FIREWALL"},
+        {"nombre": "ss -tulnp", "desc": "Puertos y sockets activos", "cmd": lambda: ejecutar_bash("ss -tulnp"), "color": "#3B82F6"},
+        {"nombre": "iptables -L -n -v", "desc": "Ver reglas del firewall", "cmd": lambda: ejecutar_bash("sudo iptables -L -n -v"), "color": "#3B82F6"},
+        {"nombre": "ping -c 4", "desc": "Probar conectividad", "cmd": btn_ping, "color": "#3B82F6"},
+        {"nombre": "ip a", "desc": "Interfaces IP locales", "cmd": lambda: ejecutar_bash("ip a | grep inet"), "color": "#3B82F6"},
+        
+        {"cat": "SISTEMA BASE"},
+        {"nombre": "cat /etc/passwd", "desc": "Tabla de usuarios", "cmd": lambda: ejecutar_bash("cat /etc/passwd"), "color": "#10B981"},
+        {"nombre": "df -h", "desc": "Uso de discos duros", "cmd": lambda: ejecutar_bash("df -h"), "color": "#10B981"},
+        {"nombre": "ls -lah", "desc": "Directorio actual", "cmd": lambda: ejecutar_bash("ls -lah"), "color": "#10B981"}
     ]
 
-    # 4. RENDERIZADO DE LOS BOTONES
     for item in comandos_linux:
-        tarjeta = ctk.CTkFrame(lista_comandos, fg_color="#1E293B", corner_radius=10, border_width=1, border_color="#334155")
-        tarjeta.pack(fill="x", pady=6)
-        
-        info_frame = ctk.CTkFrame(tarjeta, fg_color="transparent")
-        info_frame.pack(side="left", fill="x", expand=True, padx=15, pady=10)
-        
-        ctk.CTkLabel(info_frame, text=item["nombre"], font=("Arial", 16, "bold"), text_color="#3DDC84").pack(anchor="w")
-        ctk.CTkLabel(info_frame, text=item["desc"], font=("Arial", 13), text_color="#94A3B8").pack(anchor="w")
-        
-        ctk.CTkButton(tarjeta, text="▶ Ejecutar", font=("Arial", 13, "bold"), width=110, height=35, fg_color="#3DDC84", text_color="#000000", hover_color="#2EB86A", command=item["cmd"]).pack(side="right", padx=15, pady=10)
+        if "cat" in item:
+            ctk.CTkLabel(lista_comandos, text=item["cat"], font=("Arial", 11, "bold"), text_color="#64748B").pack(anchor="w", pady=(15, 2))
+        else:
+            tarjeta = ctk.CTkFrame(lista_comandos, fg_color="#1E293B", corner_radius=8, border_width=1, border_color=item["color"])
+            tarjeta.pack(fill="x", pady=4)
+            
+            # Botón con título del comando
+            btn = ctk.CTkButton(tarjeta, text=item["nombre"], font=("Consolas", 14, "bold"), fg_color="transparent", hover_color="#334155", anchor="w", text_color=item["color"], command=item["cmd"])
+            btn.pack(fill="x", padx=10, pady=(8, 0))
+            
+            # Pequeña descripción táctica
+            ctk.CTkLabel(tarjeta, text=item["desc"], font=("Arial", 11), text_color="#94A3B8", anchor="w").pack(fill="x", padx=15, pady=(0, 8))
 
 def cargar_categoria_android():
     import urllib.request, json, time, webbrowser
@@ -2053,6 +3143,43 @@ def cargar_categoria_android():
     btn_next.configure(command=lambda: cambiar(1))
 
     aplicar_filtros() # Carga inicial
+
+def cargar_categoria_ios():
+    import urllib.request, json, time, webbrowser
+    global app
+    
+    url_ios = f"https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/ios.json?t={time.time()}"
+    try:
+        req = urllib.request.Request(url_ios, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
+        respuesta = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
+        datos_ios = json.loads(respuesta)
+    except Exception as e:
+        limpiar_panel()
+        ctk.CTkLabel(tools_frame, text=f"Error al conectar con la Nube de iOS:\n{e}", text_color="#FF4444").pack(pady=20)
+        return
+
+    if not datos_ios:
+        limpiar_panel()
+        ctk.CTkLabel(tools_frame, text="El catálogo de iOS está vacío.", text_color="#AAAAAA").pack(pady=20)
+        return
+
+    h_ios = []
+    for index, item in enumerate(datos_ios):
+        def make_cmd(url):
+            return lambda: webbrowser.open(url)
+            
+        h_ios.append({
+            "id": str(index + 1),
+            "nombre": f"{item.get('nombre', 'App iOS')}",
+            "exp": f"Categoría: {item.get('categoria', 'Utilidades')}",
+            "nov": item.get('descripcion', ''),
+            "cmd": make_cmd(item.get("enlace", "")),
+            "txt_btn": "🍏 Ver en App Store",
+            "color_borde": "#F59E0B" # Borde color Naranja/Dorado para distinguir iOS
+        })
+        
+    # Usamos la fábrica de tarjetas responsivas
+    construir_vista_dinamica("📱 Aplicaciones y Utilidades para iOS", "🔍 Buscar (Ej: xiaomi, wifi)...", h_ios)
         
 # ============================================================================
 # 6. MENÚ LATERAL Y ARRANQUE (REDISEÑO CON SUBCATEGORÍAS)
@@ -2095,7 +3222,7 @@ def cargar_placeholder(os_name):
 ctk.CTkButton(sidebar, text="🐧 Linux", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=cargar_categoria_linux).pack(pady=2, padx=10, fill="x")
 ctk.CTkButton(sidebar, text="🍏 Mac", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=cargar_categoria_mac).pack(pady=2, padx=10, fill="x")
 ctk.CTkButton(sidebar, text="🤖 Android", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=cargar_categoria_android).pack(pady=2, padx=10, fill="x")
-ctk.CTkButton(sidebar, text="📱 iOS", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=lambda: cargar_placeholder("iOS")).pack(pady=2, padx=10, fill="x")
+ctk.CTkButton(sidebar, text="📱 iOS", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=cargar_categoria_ios).pack(pady=2, padx=10, fill="x")
 
 # --- SERVICIOS EN LA NUBE Y TIENDA ---
 ctk.CTkLabel(sidebar, text="NUBE Y TIENDA", font=("Arial", 11, "bold"), text_color="#888888").pack(pady=(15, 5))
