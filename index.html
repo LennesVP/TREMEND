@@ -55,16 +55,19 @@
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
                 </button>
 
+                <!-- Menú Desplegable Oculto -->
                 <div id="dropdown-menu" class="hidden absolute top-full mt-2 right-0 w-64 bg-gray-900 border border-emerald-500/50 rounded-xl shadow-2xl overflow-hidden z-50 text-left">
                     
-                    <a href="https://github.com/LennesVP/TREMEND/raw/main/TREMEND.exe" class="block px-4 py-4 text-white hover:bg-emerald-500 hover:text-gray-900 font-bold transition border-b border-gray-700">
-                        📦 Versión Instalador (.EXE)
-                        <span class="block text-xs font-normal opacity-80 mt-1">Se instala en tu PC. ¡Siempre a la última versión!</span>
+                    <!-- Enlace Dinámico al EXE (Último Release) -->
+                    <a href="https://github.com/LennesVP/TREMEND/releases/latest/download/TREMEND.exe" class="block px-4 py-4 text-white hover:bg-emerald-500 hover:text-gray-900 font-bold transition border-b border-gray-700">
+                        📦 Versión .EXE (Completa)
+                        <span class="block text-xs font-normal opacity-80 mt-1">Descarga siempre la versión estable más reciente.</span>
                     </a>
                     
-                    <a href="https://github.com/LennesVP/TREMEND/raw/main/Iniciar_TREMEND.bat" class="block px-4 py-4 text-white hover:bg-emerald-500 hover:text-gray-900 font-bold transition">
+                    <!-- Enlace Dinámico al Portable BAT (Último Release) -->
+                    <a href="https://github.com/LennesVP/TREMEND/releases/latest/download/Iniciar_TREMEND.bat" class="block px-4 py-4 text-white hover:bg-emerald-500 hover:text-gray-900 font-bold transition">
                         🧰 Versión Portable (.BAT)
-                        <span class="block text-xs font-normal opacity-80 mt-1">Descarga el código más reciente de la nube.</span>
+                        <span class="block text-xs font-normal opacity-80 mt-1">Lanzador ligero ideal para memorias USB.</span>
                     </a>
                 </div>
             </div>
