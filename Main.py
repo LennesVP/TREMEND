@@ -60,7 +60,7 @@ def notificar_voz(mensaje):
         print(f"No se pudo reproducir la voz: {e}")
 
 # Define la versión de este archivo físico
-VERSION_ACTUAL = "3.0"
+VERSION_ACTUAL = "3.1"
 
 # ============================================================================
 # 0. ESCUDO DE ADMINISTRADOR AUTOMÁTICO (UAC)
@@ -97,7 +97,7 @@ x_pos = int((ancho_pantalla - ancho_app) / 2)
 y_pos = int((alto_pantalla - alto_app) / 2)
 app.geometry(f"+{x_pos}+{y_pos}")
 
-app.title("TREMEND Toolkit V3.0 [ESTABLE Y BLINDADO]")
+app.title("TREMEND Toolkit V3.1 [ESTABLE Y BLINDADO]")
 
 # ============================================================================
 # 2. MOTOR DE TERMINAL NATIVA Y EJECUCIÓN (SEGURO CONTRA CRASHES)
@@ -135,17 +135,40 @@ def abrir_consola_y_ejecutar(titulo, funcion_python_nativa):
     txt_consola = ctk.CTkTextbox(win_term, width=930, height=560, fg_color="#0A0A0A", text_color="#00FFCC", font=("Consolas", 13), wrap="word", border_width=1, border_color="#334155")
     txt_consola.pack(padx=10, pady=10, fill="both", expand=True)
     
-    txt_consola.insert("end", f"[*] {titulo}\n")
-    txt_consola.insert("end", "="*85 + "\n")
-    txt_consola.configure(state="disabled")
+    # NUEVO: Menú Contextual Elegante (Click Derecho)
+    def menu_click_derecho(event):
+        menu = tk.Menu(win_term, tearoff=0, bg="#0A0A0A", fg="#00FFCC", activebackground="#334155", activeforeground="white")
+        
+        def copiar_seleccion():
+            try:
+                texto_seleccionado = txt_consola.selection_get()
+                win_term.clipboard_clear()
+                win_term.clipboard_append(texto_seleccionado)
+            except: pass
+            
+        def limpiar_pantalla():
+            txt_consola.configure(state="normal")
+            txt_consola.delete("1.0", "end")
+            txt_consola.insert("end", "[*] Consola limpiada por el usuario.\n" + "="*85 + "\n")
+            txt_consola.configure(state="disabled")
 
+        menu.add_command(label="📋 Copiar Selección", command=copiar_seleccion)
+        menu.add_separator()
+        menu.add_command(label="🧹 Limpiar Consola", command=limpiar_pantalla)
+        menu.tk_popup(event.x_root, event.y_root)
+
+    txt_consola.bind("<Button-3>", menu_click_derecho)
+
+    # Inyección asíncrona de la UI
     # Inyección asíncrona de la UI
     def log(texto):
         def update_ui():
-            txt_consola.configure(state="normal")
-            txt_consola.insert("end", str(texto) + "\n")
-            txt_consola.see("end")
-            txt_consola.configure(state="disabled")
+            # ESCUDO: Solo escribe si la ventana de la consola sigue abierta
+            if txt_consola.winfo_exists():
+                txt_consola.configure(state="normal")
+                txt_consola.insert("end", str(texto) + "\n")
+                txt_consola.see("end")
+                txt_consola.configure(state="disabled")
         app.after(0, update_ui)
 
     def correr_proceso():
@@ -155,7 +178,9 @@ def abrir_consola_y_ejecutar(titulo, funcion_python_nativa):
         
         # Actualizar el indicador de estado al terminar
         def finalizar_ui():
-            lbl_estado.configure(text="✅ ESTADO: Finalizado", text_color="#10B981")
+            # ESCUDO: Solo actualiza el estado si la etiqueta sigue existiendo
+            if lbl_estado.winfo_exists():
+                lbl_estado.configure(text="✅ ESTADO: Finalizado", text_color="#10B981")
         app.after(0, finalizar_ui)
 
     import threading
@@ -220,6 +245,19 @@ def logica_reparacion_red(log):
     
     log("[*] Restableciendo la pila TCP/IP a valores de fábrica (netsh int ip reset)...")
     subprocess.run("netsh int ip reset", shell=True, capture_output=True)
+
+    # 2.5 Destrucción de Proxies Maliciosos y Restauración de Hosts (NUEVO)
+    log("[*] Purgando configuraciones de servidores Proxy inyectados por malware...")
+    subprocess.run('reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 0 /f', shell=True, capture_output=True)
+    subprocess.run("netsh winhttp reset proxy", shell=True, capture_output=True)
+    
+    log("[*] Restaurando el archivo 'Hosts' a sus valores de fábrica...")
+    hosts_path = r"C:\Windows\System32\drivers\etc\hosts"
+    try:
+        if os.path.exists(hosts_path): os.remove(hosts_path)
+        with open(hosts_path, "w") as f:
+            f.write("# Archivo HOSTS restaurado por TREMEND Toolkit\n# localhost name resolution is handled within DNS itself.\n#\t127.0.0.1       localhost\n#\t::1             localhost\n")
+    except: log("[-] No se pudo restaurar el archivo Hosts (Posible bloqueo por Antivirus).")
     
     # 3. Forzado Autónomo de DHCP (Detección automática)
     log("[*] Escaneando adaptadores de red activos para forzar modo Automático (DHCP)...")
@@ -244,6 +282,23 @@ def logica_reparacion_red(log):
     log(" ✅ REPARACIÓN DE RED COMPLETADA CON ÉXITO ")
     log("=======================================================")
     log("[!] NOTA: Para que los cambios en Winsock surtan efecto total, debes reiniciar la computadora.")
+
+def logica_visibilidad_lan(log):
+    log("\n[*] Forzando configuración de Visibilidad de Red (Network Discovery)...")
+    log("[*] Iniciando servicios de descubrimiento PnP y UPnP...")
+    
+    servicios = ["fdPHost", "FDResPub", "upnphost", "lmhosts"]
+    for s in servicios:
+        run_cmd(log, f"sc config {s} start= auto")
+        run_cmd(log, f"net start {s}")
+        
+    log("[*] Modificando reglas del Firewall para permitir detección...")
+    run_cmd(log, 'netsh advfirewall firewall set rule group="Detección de redes" new enable=Yes')
+    run_cmd(log, 'netsh advfirewall firewall set rule group="Network Discovery" new enable=Yes')
+    run_cmd(log, 'netsh advfirewall firewall set rule group="Compartir archivos e impresoras" new enable=Yes')
+    run_cmd(log, 'netsh advfirewall firewall set rule group="File and Printer Sharing" new enable=Yes')
+    
+    log("[+] ¡ÉXITO! El equipo ahora debería ser visible para otros computadores en la red local.")
 
 def logica_geolocalizar_ip(log):
     log("[*] Triangulando coordenadas mediante API REST (Motor ip-api)...")
@@ -455,6 +510,125 @@ def logica_escaner_puertos_python(log, ip):
     if abiertos == 0: log("[-] La máquina parece estar blindada o apagada. No hay puertos comunes expuestos.")
     log("\n[+] Escaneo finalizado.")
 
+def logica_nmap(log, objetivo, tipo_escaneo):
+    import urllib.request, os, subprocess, time, shutil
+    from tkinter import messagebox
+    
+    log(f"\n[*] Iniciando Motor de Reconocimiento Nmap hacia: {objetivo}")
+    
+    temp_dir = os.path.join(os.environ.get('TEMP'), "Tremend_Nmap")
+    if not os.path.exists(temp_dir): os.makedirs(temp_dir)
+    
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    
+    # 1. VERIFICACIÓN CRÍTICA: Escudo Npcap (Requisito para instalación silenciosa)
+    ruta_npcap = r"C:\Windows\System32\Npcap"
+    if not os.path.exists(ruta_npcap):
+        log("[-] Driver 'Npcap' no detectado. Es obligatorio para la instalación silenciosa de Nmap.")
+        if messagebox.askyesno("Requisito Faltante", "Nmap requiere el driver 'Npcap' para capturar la red y poder instalarse en silencio.\n\n¿Deseas descargar el instalador oficial y ejecutarlo ahora mismo?"):
+            log("[*] Descargando instalador de Npcap...")
+            npcap_exe = os.path.join(temp_dir, "npcap_installer.exe")
+            try:
+                urllib.request.urlretrieve("https://npcap.com/dist/npcap-1.79.exe", npcap_exe)
+                log("[!] Lanzando instalador. Acepta todas las opciones por defecto (Next -> Install)...")
+                
+                script_ps = f"Start-Process -FilePath '{npcap_exe}' -Verb RunAs -Wait"
+                subprocess.run(["powershell", "-NoProfile", "-Command", script_ps], startupinfo=startupinfo)
+                
+                if not os.path.exists(ruta_npcap):
+                    log("[-] Instalación de Npcap cancelada. Abortando Nmap."); return
+                else:
+                    log("[+] Npcap instalado exitosamente.")
+            except Exception as e:
+                log(f"[-] Error al descargar Npcap: {e}"); return
+        else:
+            log("[-] Operación cancelada."); return
+            
+    # 2. Búsqueda de instalación existente de Nmap
+    rutas_comunes = [
+        r"C:\Program Files (x86)\Nmap\nmap.exe",
+        r"C:\Program Files\Nmap\nmap.exe"
+    ]
+    exe_path = next((ruta for ruta in rutas_comunes if os.path.exists(ruta)), None)
+    
+    setup_path = os.path.join(temp_dir, "nmap_setup.exe")
+    
+    # 3. Descarga e Instalación Silenciosa de Nmap
+    if not exe_path:
+        log("[*] Iniciando descarga del instalador base de Nmap (v7.99)...")
+        url_nmap = "https://nmap.org/dist/nmap-7.99-setup.exe"
+        
+        try:
+            if not os.path.exists(setup_path):
+                req = urllib.request.Request(url_nmap, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=60) as response, open(setup_path, 'wb') as out_file:
+                    out_file.write(response.read())
+                    
+            log("[*] Desplegando Nmap en Modo Ghost (Instalación Desatendida)...")
+            subprocess.run(f'"{setup_path}" /S', shell=True)
+            
+            # Esperamos de forma inteligente hasta que el ejecutable aparezca
+            for _ in range(20):
+                exe_path = next((ruta for ruta in rutas_comunes if os.path.exists(ruta)), None)
+                if exe_path: break
+                time.sleep(1)
+                
+        except Exception as e:
+            log(f"[-] Error crítico al procesar Nmap: {e}"); return
+            
+    if not exe_path:
+        log("[-] Error: El sistema bloqueó la instalación de Nmap."); return
+        
+    # 4. Configuración del Vector de Ataque (CON EVASIÓN DE PING -Pn)
+    log("[*] Configurando vector de escaneo (Evasión Ping Activada)...")
+    if tipo_escaneo == '1':
+        comando = f'"{exe_path}" -Pn -T4 -F "{objetivo}"'
+        log("    -> Vector: Rápido (Top 100 puertos)")
+    elif tipo_escaneo == '2':
+        comando = f'"{exe_path}" -Pn -sV -sC "{objetivo}"'
+        log("    -> Vector: Intermedio (Detección de versiones y scripts)")
+    elif tipo_escaneo == '3':
+        comando = f'"{exe_path}" -Pn -A -T4 "{objetivo}"'
+        log("    -> Vector: Agresivo (Sistema Operativo, Rutas y Vulnerabilidades)")
+        log("    [!] Advertencia: Este modo puede tomar varios minutos.")
+        
+    log("\n[!] ESCANEO EN PROGRESO. La terminal no mostrará texto hasta compilar los resultados...\n")
+    
+    # 5. Ejecución del Escaneo
+    try:
+        resultado = subprocess.run(comando, shell=True, cwd=os.path.dirname(exe_path), capture_output=True, text=True, encoding='cp850', errors='ignore')
+        
+        for linea in resultado.stdout.splitlines():
+            if linea.strip(): log("    " + linea.strip())
+            
+        for linea in resultado.stderr.splitlines():
+            if linea.strip(): log("    [-] " + linea.strip())
+            
+        log("\n[+] Reconocimiento finalizado exitosamente.")
+    except Exception as e:
+        log(f"[-] Error durante el escaneo: {e}")
+        
+    # 6. Limpieza Táctica Extrema (Nmap + Npcap)
+    if messagebox.askyesno("Limpieza Forense", "¿Deseas DESINSTALAR Nmap y el driver Npcap del sistema para no dejar NINGÚN rastro en este equipo?"):
+        log("[*] Ejecutando protocolo asesino (Desinstalador silencioso de Nmap)...")
+        uninst_path = os.path.join(os.path.dirname(exe_path), "Uninstall.exe")
+        if os.path.exists(uninst_path):
+            subprocess.run(f'"{uninst_path}" /S', shell=True)
+            log("[+] Nmap purgado del disco duro exitosamente.")
+            
+        log("[*] Buscando y eliminando driver de red (Npcap)...")
+        npcap_uninst = r"C:\Program Files\Npcap\uninstall.exe"
+        if os.path.exists(npcap_uninst):
+            subprocess.run(f'"{npcap_uninst}" /S', shell=True)
+            log("[+] Npcap destruido de la raíz del sistema.")
+            
+        try: shutil.rmtree(temp_dir, ignore_errors=True)
+        except: pass
+        log("[+] Limpieza 100% completada. Cero rastros detectables.")
+    else:
+        log("[*] Motores conservados en el equipo.")
+
 def logica_crear_nas(log, ruta_carpeta, nombre_recurso):
     log(f"\n[*] Elevando carpeta '{ruta_carpeta}' a Recurso Compartido de Red (NAS)...")
     script = f"""
@@ -474,6 +648,82 @@ def logica_auditar_cache_dns(log):
     notificar_voz("La Auditoría De Cache DNS ha terminado.")
 
 # --- CATEGORÍA 2: MANTENIMIENTO ---
+def logica_fuga_espacio_w11(log):
+    import os, subprocess, platform
+    from tkinter import messagebox
+
+    log("\n[*] Iniciando Escáner de Fuga de Almacenamiento (Bug de Windows 11)...")
+
+    # 1. Verificación de Arquitectura
+    if platform.system() != "Windows" or int(platform.version().split('.')[2]) < 22000:
+        log("[-] Tu sistema no es Windows 11. Este bug masivo es exclusivo de esa versión.")
+        return
+
+    # 2. Escáner de la Carpeta Problemática
+    ruta_cam = r"C:\ProgramData\Microsoft\Windows\CapabilityAccessManager"
+    tamano_mb = 0
+    log("[*] Calculando el peso físico de la base de datos 'CapabilityAccessManager'...")
+    
+    if os.path.exists(ruta_cam):
+        try:
+            for root, dirs, files in os.walk(ruta_cam):
+                for f in files:
+                    tamano_mb += os.path.getsize(os.path.join(root, f))
+            tamano_mb = tamano_mb / (1024 * 1024)
+        except Exception as e:
+            log(f"[-] Error al leer la carpeta: {e}")
+
+    log(f"    -> Tamaño actual detectado: {tamano_mb:.2f} MB")
+
+    if tamano_mb > 500:
+        log("    [!] ALERTA ROJA: Se detectó un consumo anómalo y excesivo de almacenamiento.")
+    else:
+        log("    [+] El tamaño es normal. Tu disco no está sufriendo la fuga de espacio.")
+
+    # 3. Escáner de Parches de Seguridad
+    log("\n[*] Interrogando a Windows Update por el parche de seguridad oficial...")
+    # Buscamos específicamente el parche KB5095093 que soluciona este fallo
+    script_ps = "Get-HotFix -Id KB5095093 -ErrorAction SilentlyContinue"
+    resultado = subprocess.run(["powershell", "-NoProfile", "-Command", script_ps], capture_output=True, text=True)
+
+    if "KB5095093" in resultado.stdout:
+        log("[+] ¡Blindaje Confirmado! El parche oficial KB5095093 ya está instalado en este equipo.")
+    else:
+        log("[-] ADVERTENCIA: El parche KB5095093 NO está instalado. El equipo es vulnerable al fallo.")
+
+    # 4. Reparación Automatizada (Bypass del Modo Seguro)
+    if tamano_mb > 500 or "KB5095093" not in resultado.stdout:
+        if messagebox.askyesno("Reparación Automática", f"Se detectó vulnerabilidad o un consumo alto ({tamano_mb:.2f} MB).\n\n¿Deseas que TREMEND detenga el servicio y purgue la base de datos corrupta automáticamente (Sin usar Modo Seguro)?"):
+            
+            log("\n[*] Iniciando protocolo de purga automatizada...")
+            
+            # Detenemos el servicio camsvc a la fuerza
+            log("    -> Apagando el servicio 'camsvc' (Administrador de funcionalidad de acceso)...")
+            subprocess.run("net stop camsvc", shell=True, capture_output=True)
+            subprocess.run('taskkill /F /FI "SERVICES eq camsvc"', shell=True, capture_output=True)
+            
+            # Reutilizamos la magia de tu Destructor para adueñarnos de la carpeta rebelde
+            log("    -> Rompiendo candados del sistema (Takeown/Icacls)...")
+            subprocess.run(f'takeown.exe /f "{ruta_cam}" /a /r /d y 2>nul', shell=True, capture_output=True)
+            subprocess.run(f'icacls.exe "{ruta_cam}" /grant *S-1-5-32-544:F /t /c /q', shell=True, capture_output=True)
+            
+            log("    -> Destruyendo los archivos basura...")
+            import shutil
+            try:
+                # En lugar de renombrar a .old y dejar la basura ahí, la aniquilamos
+                shutil.rmtree(ruta_cam, ignore_errors=True)
+                log("    [+] Archivos corruptos pulverizados con éxito.")
+            except Exception as e:
+                log(f"    [-] Algunos archivos están muy bloqueados: {e}")
+                
+            log("    -> Reactivando servicios de Windows...")
+            subprocess.run("net start camsvc", shell=True, capture_output=True)
+            
+            log("\n[+] REPARACIÓN EXITOSA. Has recuperado todo el espacio robado.")
+            log("[!] Recomendación: Ve a Windows Update e instala las actualizaciones pendientes para evitar que el fallo regrese.")
+        else:
+            log("\n[*] Operación cancelada por el usuario.")
+
 def logica_mantenimiento_profundo(log, discos_seleccionados):
     import os, shutil, subprocess
 
@@ -1358,6 +1608,32 @@ def logica_escanear_pnp(log):
     run_cmd(log, "pnputil /scan-devices")
     log("[+] Escaneo de hardware finalizado. Si conectaste una pieza nueva, Windows Update buscará el driver.")
 
+def logica_glidex(log):
+    import subprocess, platform
+    from tkinter import messagebox
+
+    log("\n[*] Iniciando despliegue de ASUS GlideX (Multipantalla)...")
+    
+    sistema = platform.system().lower()
+    if sistema != 'windows':
+        log("[-] Error: GlideX es una aplicación UWP exclusiva para Windows."); return
+
+    log("[*] Interrogando a la base de datos de Microsoft Store vía Winget...")
+    log("[!] Descargando e instalando el paquete oficial (ID: 9PLH2SV1DVK5)...")
+    log("[!] Esto puede tardar unos minutos dependiendo de tu conexión a internet. No cierres la ventana.")
+    
+    # Ejecutamos Winget forzando la descarga directa desde la MS Store en modo desatendido
+    cmd_install = 'winget install --id 9PLH2SV1DVK5 --exact --source msstore --accept-package-agreements --accept-source-agreements'
+    run_cmd(log, cmd_install)
+    
+    log("\n[+] Secuencia de inyección Winget finalizada.")
+    
+    # Abrimos la MS Store para que el cliente pueda abrir la App (las UWP están ofuscadas por el SO)
+    if messagebox.askyesno("Lanzamiento", "El comando de instalación ha concluido.\n\n¿Deseas abrir la página de GlideX en la Microsoft Store para verificarla o abrir la app directamente?"):
+        log("[*] Abriendo el portal de Microsoft Store...")
+        subprocess.run('start ms-windows-store://pdp/?ProductId=9PLH2SV1DVK5', shell=True)
+        log("[+] Portal abierto con éxito.")
+
 # --- CATEGORÍA 5: SOPORTE TÉCNICO ---
 def logica_destructor(log, ruta):
     log(f"\n[*] SECUENCIA DE DESTRUCCIÓN INICIADA: {ruta}")
@@ -1417,7 +1693,7 @@ def logica_lazagne(log):
         log("[*] Motor LaZagne conservado en el equipo.")
 
 def logica_romper_archivos(log, archivo_bloqueado, tipo_ataque, diccionario_custom):
-    import os, urllib.request, zipfile, shutil, subprocess
+    import os, urllib.request, zipfile, shutil, subprocess, multiprocessing
     
     log(f"\n[*] Analizando archivo objetivo: {os.path.basename(archivo_bloqueado)}")
     
@@ -1428,142 +1704,139 @@ def logica_romper_archivos(log, archivo_bloqueado, tipo_ataque, diccionario_cust
     run_dir = os.path.join(jtr_folder, "run")
     john_exe = os.path.join(run_dir, "john.exe")
 
-    # 1. Motor de Descarga (John The Ripper)
+    # 1. Motor de Descarga (John The Ripper Jumbo)
     if not os.path.exists(john_exe):
-        log("[*] Descargando motor de fuerza bruta (John The Ripper)...")
+        log("[*] Descargando motor de fuerza bruta (John The Ripper Jumbo)...")
         zip_path = os.path.join(temp_dir, "jtr.zip")
-        espejos_jtr = [
-            "https://distro.ibiblio.org/openwall/projects/john/1.9.0/john-1.9.0-jumbo-1-win64.zip", 
-            "https://www.openwall.com/john/k/john-1.9.0-jumbo-1-win64.zip"
-        ]
+        url_jtr = "https://www.openwall.com/john/k/john-1.9.0-jumbo-1-win64.zip"
         
-        descargado = False
-        for url in espejos_jtr:
-            try:
-                log(f"    -> Interrogando servidor espejo...")
-                cmd_curl = f'curl.exe -s -L --max-time 60 -o "{zip_path}" "{url}"'
-                resultado = subprocess.run(cmd_curl, shell=True)
-                if resultado.returncode == 0 and os.path.exists(zip_path) and os.path.getsize(zip_path) > 5000000:
-                    descargado = True; break 
-            except: continue
-                
-        if not descargado: log("[-] Error Crítico: Los servidores oficiales están bloqueando la conexión."); return
-            
         try:
+            req = urllib.request.Request(url_jtr, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=60) as response, open(zip_path, 'wb') as out_file:
+                out_file.write(response.read())
+                
+            log("[*] Descomprimiendo motor base...")
             with zipfile.ZipFile(zip_path, 'r') as zip_ref: zip_ref.extractall(jtr_folder)
-            extracted_folder = os.path.join(jtr_folder, os.listdir(jtr_folder)[0])
-            run_dir = os.path.join(extracted_folder, "run")
-            john_exe = os.path.join(run_dir, "john.exe")
+            
+            for root, dirs, files in os.walk(jtr_folder):
+                if 'john.exe' in files:
+                    run_dir = root
+                    john_exe = os.path.join(run_dir, "john.exe")
+                    break
             os.remove(zip_path)
-        except Exception as e: log(f"[-] Error de extracción: {e}"); return
+        except Exception as e: log(f"[-] Error crítico de red o extracción: {e}"); return
 
-    # 2. Extracción del Hash (EL VERDADERO PARCHE MAESTRO DEFINITIVO)
+    if not os.path.exists(john_exe): return
+
     extension = archivo_bloqueado.lower().split('.')[-1]
+
+    # 2. EL SECRETO DE ZIPRIPPER: Motor Perl Portable para 7z y PDF
+    perl_exe = ""
+    if extension in ["pdf", "7z"]:
+        perl_dir = os.path.join(temp_dir, "perl")
+        perl_exe = os.path.join(perl_dir, "perl", "bin", "perl.exe")
+        
+        if not os.path.exists(perl_exe):
+            log(f"[*] El formato .{extension.upper()} requiere el lenguaje Perl. Descargando Strawberry Perl Portable...")
+            perl_zip = os.path.join(temp_dir, "perl.zip")
+            try:
+                url_perl = "https://strawberryperl.com/download/5.16.3.1/strawberry-perl-5.16.3.1-64bit-portable.zip"
+                req = urllib.request.Request(url_perl, headers={'User-Agent': 'Mozilla/5.0'})
+                with urllib.request.urlopen(req, timeout=120) as response, open(perl_zip, 'wb') as out_file:
+                    out_file.write(response.read())
+                
+                log("[*] Instalando entorno Perl en memoria temporal...")
+                with zipfile.ZipFile(perl_zip, 'r') as zip_ref: zip_ref.extractall(perl_dir)
+                os.remove(perl_zip)
+            except Exception as e: log(f"[-] Error al descargar entorno Perl: {e}"); return
+
+    # 3. Extracción del Hash Criptográfico
     hash_file = os.path.join(temp_dir, "hash_objetivo.txt")
     safe_target = os.path.join(temp_dir, f"objetivo_seguro.{extension}")
     
-    # Clonamos para evitar que símbolos raros rompan la consola
-    try:
-        shutil.copy2(archivo_bloqueado, safe_target)
-    except Exception as e:
-        log(f"[-] Error al clonar archivo: {e}"); return
+    try: shutil.copy2(archivo_bloqueado, safe_target)
+    except Exception as e: log(f"[-] Error al aislar archivo: {e}"); return
     
-    if extension == "zip": extractor = os.path.join(run_dir, "zip2john.exe")
-    elif extension == "rar": extractor = os.path.join(run_dir, "rar2john.exe")
-    elif extension == "pdf": extractor = "perl " + os.path.join(run_dir, "pdf2john.pl")
-    else: log("[-] Formato no soportado."); return
+    # Asignación dinámica del extractor correcto (Resolviendo el Bug)
+    if extension == "zip": extractor = f'"{os.path.join(run_dir, "zip2john.exe")}" "{safe_target}"'
+    elif extension == "rar": extractor = f'"{os.path.join(run_dir, "rar2john.exe")}" "{safe_target}"'
+    elif extension == "7z": extractor = f'"{perl_exe}" "{os.path.join(run_dir, "7z2john.pl")}" "{safe_target}"'
+    elif extension == "pdf": extractor = f'"{perl_exe}" "{os.path.join(run_dir, "pdf2john.pl")}" "{safe_target}"'
+    else: log("[-] Formato no soportado por el motor."); return
 
-    log(f"[*] Aislamiento Forense: Extrayendo Hash criptográfico del archivo...")
+    log(f"[*] Aislamiento Forense: Extrayendo Hash ({extension.upper()})...")
     try:
-        comando_extract = f'"{extractor}" "{safe_target}"'
-        resultado_hash = subprocess.run(comando_extract, shell=True, cwd=run_dir, capture_output=True, text=True, errors='ignore').stdout
+        resultado_hash = subprocess.run(extractor, shell=True, cwd=run_dir, capture_output=True, text=True, errors='ignore').stdout
         
-        # Limpieza Quirúrgica del Hash (Corte Bilateral)
         hash_limpio = ""
         for linea in resultado_hash.splitlines():
-            # Solo guardamos las líneas que contienen el hash real cifrado
             if ":$" in linea:
-                # 1. Quitamos la ruta de la izquierda
                 bloque = "$" + linea.split(":$", 1)[1].strip()
-                # 2. FIX MAESTRO: Quitamos la basura de la derecha cortando en el primer separador (:)
                 hash_puro = bloque.split(":")[0].strip()
-                
-                if len(hash_puro) > 10:  # Validamos que no sea un fragmento vacío
-                    hash_limpio += hash_puro + "\n"
+                if len(hash_puro) > 10: hash_limpio += hash_puro + "\n"
                 
         if not hash_limpio.strip():
-            log("[-] Error Crítico: No se extrajo ningún Hash cifrado válido. Es posible que el archivo no tenga clave o el formato no esté soportado.")
-            os.remove(safe_target); return
+            log("[-] Error: No se extrajo ningún Hash cifrado válido. ¿Seguro que tiene contraseña?"); os.remove(safe_target); return
             
-        with open(hash_file, 'w', encoding='utf-8') as f: 
-            f.write(hash_limpio)
-            
+        with open(hash_file, 'w', encoding='utf-8') as f: f.write(hash_limpio)
         os.remove(safe_target)
+        log("[+] Hash extraído correctamente.")
     except Exception as e: log(f"[-] Fallo al extraer el hash: {e}"); return
 
-    # FIX DE MEMORIA: Borrar el historial de John (john.pot)
-    # Si John se equivocó antes, guardó la basura en su memoria. Hay que formatearlo.
     try: os.remove(os.path.join(run_dir, "john.pot"))
     except: pass
 
-    # 3. CONFIGURACIÓN DEL VECTOR DE ATAQUE
+    # 4. ACELERACIÓN POR HARDWARE (GPU OpenCL vs CPU Multicore)
+    flags_hardware = ""
+    has_gpu = os.path.exists(r"C:\Windows\System32\OpenCL.dll")
+    formato_opencl = ""
+
+    with open(hash_file, "r") as f:
+        primer_hash = f.readline()
+        if "$zip2$" in primer_hash or "$zip$" in primer_hash or "$pkzip$" in primer_hash: formato_opencl = "ZIP-opencl"
+        elif "$rar5$" in primer_hash: formato_opencl = "rar5-opencl"
+        elif "$rar3$" in primer_hash or "$RAR3$" in primer_hash: formato_opencl = "rar-opencl"
+        elif "$7z$" in primer_hash: formato_opencl = "7z-opencl"
+        elif "$pdf$" in primer_hash: formato_opencl = "pdf-opencl"
+
+    if has_gpu and formato_opencl:
+        flags_hardware = f"--format={formato_opencl}"
+        log("[*] 🚀 ¡MOTOR GRÁFICO DETECTADO! Aceleración por GPU (OpenCL) Activada.")
+    else:
+        hilos = multiprocessing.cpu_count() or 4
+        flags_hardware = f"--fork={hilos}"
+        log(f"[*] 🚀 ¡MULTIHILO DETECTADO! Aceleración por CPU Activada ({hilos} núcleos).")
+
+    # 5. CONFIGURACIÓN DEL VECTOR DE ATAQUE
     log("[*] Preparando inyección de ataque...")
     
     if tipo_ataque == '1':
-        log("[*] Vector: Diccionario Básico de JtR...")
-        comando_crack = f'"{john_exe}" "{hash_file}"'
-        
+        comando_crack = f'"{john_exe}" {flags_hardware} "{hash_file}"'
     elif tipo_ataque == '2':
-        log("[*] Vector: Fuerza Bruta Numérica Continua...")
-        comando_crack = f'"{john_exe}" --incremental=Digits "{hash_file}"'
-        
+        comando_crack = f'"{john_exe}" --incremental=Digits {flags_hardware} "{hash_file}"'
     elif tipo_ataque == '3':
-        log("[*] Vector: Mega-Biblioteca 'SecLists' (Top 100K NCSC Oficial)...")
         dict_temp = os.path.join(run_dir, "top_100k_ncsc.txt")
-        
-        if os.path.exists(dict_temp) and os.path.getsize(dict_temp) < 500000:
-            os.remove(dict_temp)
-            
         if not os.path.exists(dict_temp):
-            log("    -> Descargando diccionario oficial (Motor Nativo PowerShell)...")
-            espejos_dict = [
-                "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/100k-most-used-passwords-NCSC.txt",
-                "https://cdn.jsdelivr.net/gh/danielmiessler/SecLists@master/Passwords/Common-Credentials/100k-most-used-passwords-NCSC.txt"
-            ]
-            descargado = False
-            for url in espejos_dict:
-                try:
-                    script_ps = f"[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12; Invoke-WebRequest -Uri '{url}' -OutFile '{dict_temp}' -UseBasicParsing -TimeoutSec 120; Write-Output 'OK'"
-                    resultado = subprocess.run(["powershell", "-NoProfile", "-Command", script_ps], capture_output=True, text=True)
-                    if "OK" in resultado.stdout and os.path.exists(dict_temp) and os.path.getsize(dict_temp) > 500000:
-                        descargado = True; break
-                except: continue
-            
-            if not descargado:
-                log("[-] ERROR CRÍTICO: La descarga falló. Revisa tu internet."); return
-        
-        comando_crack = f'"{john_exe}" --wordlist="{dict_temp}" "{hash_file}"'
-        
+            log("    -> Descargando diccionario gigante...")
+            url_dict = "https://raw.githubusercontent.com/danielmiessler/SecLists/master/Passwords/Common-Credentials/100k-most-used-passwords-NCSC.txt"
+            try: urllib.request.urlretrieve(url_dict, dict_temp)
+            except: log("[-] Falló la descarga del diccionario."); return
+        comando_crack = f'"{john_exe}" --wordlist="{dict_temp}" {flags_hardware} "{hash_file}"'
     elif tipo_ataque == '4':
-        log("[*] Vector: Ataque a Medida (Compilando diccionario con tus pistas)...")
         dict_temp = os.path.join(run_dir, "pistas.txt")
         with open(dict_temp, 'w', encoding='utf-8') as f:
             for palabra in diccionario_custom.split(','): f.write(palabra.strip() + '\n')
-        comando_crack = f'"{john_exe}" --wordlist="{dict_temp}" "{hash_file}"'
+        comando_crack = f'"{john_exe}" --wordlist="{dict_temp}" {flags_hardware} "{hash_file}"'
 
-    log("\n[!] ADVERTENCIA DE TIEMPO ESTIMADO:")
-    log("    - Los diccionarios (Opción 1, 3 y 4) toman desde unos segundos hasta 5 minutos.")
-    log("    - La Fuerza Bruta pura (Opción 2) puede tomar horas dependiendo de tu Procesador.")
-    log("\n[!] ATAQUE EN PROGRESO... La terminal no mostrará texto hasta que termine el cálculo.\n")
+    log("\n[!] ATAQUE EN PROGRESO... Calculando hashes por segundo...\n")
     
-    # 4. Ejecución del Ataque
+    # 6. Ejecución del Ataque
     try:
         subprocess.run(comando_crack, shell=True, cwd=run_dir, capture_output=True)
         resultado = subprocess.run(f'"{john_exe}" --show "{hash_file}"', shell=True, cwd=run_dir, capture_output=True, text=True).stdout
         
         encontrada = False
         for linea in resultado.splitlines():
-            # Como aislamos el hash puro y borramos la memoria, la salida ahora es limpia
             if ":" in linea and "password hashes cracked" not in linea and "0 password" not in linea:
                 clave = linea.split(":", 1)[1].strip()
                 if clave:
@@ -1574,18 +1847,500 @@ def logica_romper_archivos(log, archivo_bloqueado, tipo_ataque, diccionario_cust
                     break
                 
         if not encontrada:
-            log("\n[-] El ataque finalizó pero la contraseña no fue encontrada en este diccionario.")
+            log("\n[-] El ataque finalizó pero la contraseña no fue encontrada.")
             
     except Exception as e: log(f"[-] Error durante el ataque: {e}")
 
-    # 5. Limpieza
+    # 7. Limpieza
+    try: shutil.rmtree(temp_dir, ignore_errors=True); log("\n[*] Limpieza táctica completada.")
+    except: pass
+
+def logica_linpeas(log):
+    import os, subprocess, re, shutil
     from tkinter import messagebox
-    if messagebox.askyesno("Limpieza", "¿Deseas ELIMINAR el motor y diccionarios descargados para no dejar rastros?"):
-        try: shutil.rmtree(temp_dir, ignore_errors=True); log("[+] Limpieza táctica: Rastros eliminados.")
+
+    log("\n[*] Iniciando Auditoría de Seguridad Profunda en Linux (LinPEAS)...")
+    
+    # Determinamos dónde guardar el reporte (Escritorio del equipo actual)
+    escritorio = os.path.join(os.environ.get("USERPROFILE", os.path.expanduser("~")), "Desktop")
+    if not os.path.exists(escritorio): 
+        escritorio = os.path.join(os.environ.get("USERPROFILE", os.path.expanduser("~")), "Escritorio")
+    
+    report_path = os.path.join(escritorio, "Reporte_Auditoria_LinPEAS.txt")
+    # Para el comando de Bash, necesitamos adaptar la ruta si usamos WSL
+    bash_report_path = report_path.replace("\\", "/")
+    
+    log("[*] Contactando a GitHub para descargar el motor LinPEAS a través de Bash...")
+    log("[!] NOTA TÉCNICA: El escáner tomará varios minutos analizando binarios, SUIDs y permisos. La consola parecerá pausada. ¡No la cierres!")
+    
+    # Construimos un script bash integrado que hace todo en el entorno Linux
+    script_bash = f"""
+    echo "    -> Descargando linpeas.sh desde la nube a /tmp..."
+    curl -sL https://github.com/peass-ng/PEASS-ng/releases/latest/download/linpeas.sh -o /tmp/linpeas.sh
+    chmod +x /tmp/linpeas.sh
+    echo "    -> Ejecutando escaneo táctico (Modo Silencioso)..."
+    # Ejecutamos y guardamos la salida cruda y de errores en el escritorio del usuario
+    bash /tmp/linpeas.sh -a > "{bash_report_path}" 2>&1
+    echo "[+] Escaneo completado. Archivo generado."
+    """
+    
+    try:
+        # Detectamos si TREMEND se ejecuta en Windows (invocará WSL) o nativo en Linux
+        if os.name == 'nt':
+            comando = f'wsl -e bash -c "{script_bash}"'
+            if shutil.which("wsl") is None: # Si no hay WSL, intenta GitBash
+                comando = f'bash -c "{script_bash}"'
+        else:
+            comando = f'bash -c "{script_bash}"'
+            
+        proceso = subprocess.Popen(comando, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding='utf-8', errors='ignore')
+        for linea in proceso.stdout:
+            if linea.strip(): log(linea.strip())
+        proceso.wait()
+        
+    except Exception as e:
+        log(f"[-] Error al intentar ejecutar el entorno Linux: {e}")
+        log("[!] Asegúrate de tener el Subsistema de Linux (WSL) o Bash instalado.")
+        return
+
+    # --- LECTOR INTELIGENTE Y RESUMEN ---
+    if os.path.exists(report_path):
+        log("\n=======================================================")
+        log(" 🚨 RESUMEN DE VULNERABILIDADES CRÍTICAS (ROOT) 🚨")
+        log("=======================================================")
+        try:
+            alertas = []
+            with open(report_path, 'r', encoding='utf-8', errors='ignore') as f:
+                for linea in f:
+                    # En LinPEAS el color rojo con amarillo (escalada segura) y rojo normal tienen la etiqueta '31m'
+                    if '31m' in linea and 'Legend:' not in linea:
+                        texto_limpio = re.sub(r'\x1b\[[0-9;]*m', '', linea).strip()
+                        if len(texto_limpio) > 5 and len(texto_limpio) < 150 and texto_limpio not in alertas:
+                            alertas.append(texto_limpio)
+            
+            if alertas:
+                for alerta in alertas[:15]: # Imprime el Top 15 de vulnerabilidades
+                    log(f" [!] {alerta}")
+                if len(alertas) > 15:
+                    log(f"\n [+] ... y {len(alertas) - 15} hallazgos adicionales. (Revisa el archivo de texto en el Escritorio).")
+            else:
+                log(" [+] No se encontraron alertas críticas rojas. Revisa el reporte completo.")
+                
+        except Exception as e:
+            log(f" [-] Error al generar el resumen en pantalla: {e}")
+            
+        log(f"\n[+] Reporte completo guardado en: {report_path}")
+        
+        # --- PROTOCOLO DE AUTO-BLINDAJE EN LINUX ---
+        if messagebox.askyesno("Blindaje Automático Linux", "El sistema presenta posibles brechas.\n\n¿Deseas que TREMEND aplique un 'Auto-Blindaje' Básico?\n(Asegurará permisos vitales de claves en /etc, desactivará ingresos directos a root por SSH y limpiará el historial del hacker)."):
+            log("\n[*] INICIANDO PROTOCOLO DE AUTO-BLINDAJE EN LINUX...")
+            
+            script_blindaje = """
+            echo "    -> Restaurando permisos seguros en /etc/passwd y /etc/shadow..."
+            sudo chmod 644 /etc/passwd 2>/dev/null
+            sudo chmod 600 /etc/shadow 2>/dev/null
+            
+            echo "    -> Desactivando logins de Root directos por SSH (Hardening de Red)..."
+            sudo sed -i 's/^PermitRootLogin.*/PermitRootLogin no/g' /etc/ssh/sshd_config 2>/dev/null
+            sudo systemctl restart sshd 2>/dev/null || sudo service ssh restart 2>/dev/null
+            
+            echo "    -> Purgando Historial forense de Bash..."
+            cat /dev/null > ~/.bash_history
+            history -c 2>/dev/null
+            
+            echo "[+] PROTOCOLO DE BLINDAJE FINALIZADO."
+            """
+            
+            try:
+                if os.name == 'nt':
+                    cmd_blindaje = f'wsl -e bash -c "{script_blindaje}"' if shutil.which("wsl") else f'bash -c "{script_blindaje}"'
+                else:
+                    cmd_blindaje = f'bash -c "{script_blindaje}"'
+                    
+                proc_blin = subprocess.Popen(cmd_blindaje, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors='ignore')
+                for linea in proc_blin.stdout:
+                    if linea.strip(): log(linea.strip())
+                proc_blin.wait()
+            except Exception as e:
+                log(f"[-] Error al aplicar blindaje: {e}")
+        else:
+            log("[*] El sistema no fue modificado.")
+
+    if messagebox.askyesno("Limpieza Forense", "¿Deseas ELIMINAR el motor LinPEAS de la carpeta /tmp para no dejar rastro?"):
+        cmd_limpieza = 'wsl -e bash -c "rm -f /tmp/linpeas.sh"' if os.name == 'nt' and shutil.which("wsl") else 'bash -c "rm -f /tmp/linpeas.sh"'
+        subprocess.run(cmd_limpieza, shell=True)
+        log("\n[+] Limpieza táctica completada. Archivos destruidos.")
+
+def logica_macpeas(log):
+    import os, subprocess, re, platform
+    from tkinter import messagebox
+
+    log("\n[*] Iniciando Auditoría de Seguridad Profunda en Mac (MacPEAS)...")
+    
+    # Detección Inteligente de Arquitectura
+    sistema = platform.system().lower()
+    if sistema != 'darwin':
+        log("[-] ADVERTENCIA: Esta herramienta está diseñada para ejecutarse en el núcleo de macOS.")
+        log("[!] Como estás operando TREMEND desde Windows, la ejecución local se bloquea por seguridad.")
+        
+        if messagebox.askyesno("Ejecución Remota", "No estás usando un Mac.\n\n¿Quieres generar el comando de inyección remota para ejecutarlo vía SSH o directamente en la terminal del cliente?"):
+            log("\n=======================================================")
+            log(" 🍏 COMANDO DE INYECCIÓN PARA EL MAC DEL CLIENTE 🍏")
+            log("=======================================================")
+            log("Copia y pega este comando en la terminal del Mac:")
+            log("curl -sL https://github.com/peass-ng/PEASS-ng/releases/latest/download/macPEAS.sh | sh")
+            log("\n[+] Cuando termine, revisa los textos en ROJO para detectar vulnerabilidades.")
+        return
+
+    # Si TREMEND se está ejecutando nativamente dentro de un Mac, hace el Auto-Escaneo:
+    escritorio = os.path.join(os.path.expanduser("~"), "Desktop")
+    report_path = os.path.join(escritorio, "Reporte_Auditoria_MacPEAS.txt")
+    
+    log("[*] Descargando motor MacPEAS desde GitHub...")
+    log("[!] NOTA TÉCNICA: El escáner tomará varios minutos analizando Llaveros (Keychains) y permisos. ¡No cierres la consola!")
+    
+    script_mac = f"""
+    echo "    -> Obteniendo macPEAS.sh a /tmp..."
+    curl -sL https://github.com/peass-ng/PEASS-ng/releases/latest/download/macPEAS.sh -o /tmp/macpeas.sh
+    chmod +x /tmp/macpeas.sh
+    echo "    -> Ejecutando auditoría táctica (Modo Silencioso)..."
+    /tmp/macpeas.sh -a > "{report_path}" 2>&1
+    echo "[+] Escaneo completado."
+    """
+    
+    try:
+        proceso = subprocess.Popen(f'bash -c "{script_mac}"', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors='ignore')
+        for linea in proceso.stdout:
+            if linea.strip(): log(linea.strip())
+        proceso.wait()
+    except Exception as e:
+        log(f"[-] Error crítico al invocar la shell de Mac: {e}")
+        return
+        
+    # --- LECTOR INTELIGENTE Y RESUMEN ---
+    if os.path.exists(report_path):
+        log("\n=======================================================")
+        log(" 🚨 RESUMEN DE VULNERABILIDADES CRÍTICAS (MAC) 🚨")
+        log("=======================================================")
+        try:
+            alertas = []
+            with open(report_path, 'r', encoding='utf-8', errors='ignore') as f:
+                for linea in f:
+                    if '31m' in linea and 'Legend:' not in linea:
+                        texto_limpio = re.sub(r'\x1b\[[0-9;]*m', '', linea).strip()
+                        if len(texto_limpio) > 5 and len(texto_limpio) < 150 and texto_limpio not in alertas:
+                            alertas.append(texto_limpio)
+            
+            if alertas:
+                for alerta in alertas[:15]:
+                    log(f" [!] {alerta}")
+                if len(alertas) > 15:
+                    log(f"\n [+] ... y {len(alertas) - 15} hallazgos adicionales.")
+            else:
+                log(" [+] No se detectaron vulnerabilidades críticas. El sistema parece seguro.")
+        except Exception as e:
+            log(f" [-] Error leyendo el reporte: {e}")
+            
+        log(f"\n[+] Reporte completo en: {report_path}")
+        
+        # --- PROTOCOLO DE AUTO-BLINDAJE EN MAC ---
+        if messagebox.askyesno("Blindaje Automático Mac", "El sistema presenta vulnerabilidades.\n\n¿Deseas aplicar un 'Auto-Blindaje' en este Mac?\n(Activará el Firewall de Aplicaciones, desactivará la cuenta de Invitado y purgará historiales de Terminal)."):
+            log("\n[*] INICIANDO PROTOCOLO DE AUTO-BLINDAJE EN MAC...")
+            script_blindaje = """
+            echo "    -> Activando el Firewall de Aplicaciones (ALF)..."
+            sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on 2>/dev/null
+            
+            echo "    -> Desactivando la cuenta de Invitado (Riesgo de acceso físico)..."
+            sudo sysadminctl -guestAccount off 2>/dev/null
+            
+            echo "    -> Purgando historial forense de la Terminal (ZSH y BASH)..."
+            cat /dev/null > ~/.zsh_history 2>/dev/null
+            cat /dev/null > ~/.bash_history 2>/dev/null
+            history -c 2>/dev/null
+            
+            echo "[+] PROTOCOLO DE BLINDAJE FINALIZADO."
+            """
+            try:
+                proc_blin = subprocess.Popen(f'bash -c "{script_blindaje}"', shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, errors='ignore')
+                for linea in proc_blin.stdout:
+                    if linea.strip(): log(linea.strip())
+                proc_blin.wait()
+            except Exception as e:
+                log(f"[-] Error al aplicar blindaje: {e}")
+        else:
+            log("[*] El sistema Mac no fue modificado.")
+
+    if messagebox.askyesno("Limpieza Forense", "¿Deseas ELIMINAR el motor MacPEAS de /tmp para borrar rastros?"):
+        subprocess.run('bash -c "rm -f /tmp/macpeas.sh"', shell=True)
+        log("\n[+] Limpieza táctica completada. Cero rastros.")
+
+def logica_winpeas(log):
+    import os, urllib.request, subprocess, shutil, re
+    from tkinter import messagebox
+
+    log("\n[*] Iniciando Auditoría de Seguridad Profunda (WinPEAS)...")
+    temp_dir = os.path.join(os.environ.get('TEMP'), "Tremend_WinPEAS")
+    if not os.path.exists(temp_dir): os.makedirs(temp_dir)
+    
+    exe_path = os.path.join(temp_dir, "winPEASany.exe")
+    report_path = os.path.join(os.environ.get("USERPROFILE"), "Desktop", "Reporte_Auditoria_WinPEAS.txt")
+    
+    log("[!] NOTA TÉCNICA: El escáner tomará varios minutos. La consola parecerá pausada mientras se procesa el sistema. ¡No la cierres!")
+    
+    script = f"""
+    try {{
+        if (!(Test-Path '{exe_path}')) {{
+            Write-Host "[*] Contactando a GitHub para descargar el motor WinPEAS..."
+            $api = Invoke-RestMethod -Uri "https://api.github.com/repos/peass-ng/PEASS-ng/releases/latest"
+            $url = ($api.assets | Where-Object {{ $_.name -match 'winPEASany.exe' }} | Select-Object -First 1).browser_download_url
+            if ($url) {{
+                Invoke-WebRequest -Uri $url -OutFile '{exe_path}'
+                Write-Host "[+] Descarga del motor completada."
+            }} else {{ Write-Host "[-] No se encontró el binario en el servidor." }}
+        }}
+        
+        if (Test-Path '{exe_path}') {{
+            Write-Host "[*] Ejecutando escaneo táctico (Silencioso)..."
+            # Ejecución blindada: Redirigimos todo al archivo
+            cmd.exe /c "`"{exe_path}`" > `"{report_path}`" 2>&1"
+            Write-Host "[+] Escaneo completado."
+        }}
+    }} catch {{ Write-Host "[-] Error durante la operación: $($_.Exception.Message)" }}
+    """
+    run_ps_script(log, script)
+    
+    # --- LECTOR INTELIGENTE Y RESUMEN ---
+    if os.path.exists(report_path):
+        log("\n=======================================================")
+        log(" 🚨 RESUMEN DE VULNERABILIDADES CRÍTICAS DETECTADAS 🚨")
+        log("=======================================================")
+        try:
+            alertas = []
+            with open(report_path, 'r', encoding='utf-8', errors='ignore') as f:
+                for linea in f:
+                    # Buscamos el código ANSI rojo (31m) típico de PEASS
+                    if '31m' in linea and 'Legend:' not in linea and 'winpeas' not in linea.lower():
+                        # Limpiamos los caracteres especiales (ANSI escape codes)
+                        texto_limpio = re.sub(r'\x1b\[[0-9;]*m', '', linea).strip()
+                        # Filtramos líneas vacías o firmas largas sin sentido
+                        if len(texto_limpio) > 5 and len(texto_limpio) < 150 and texto_limpio not in alertas:
+                            alertas.append(texto_limpio)
+            
+            if alertas:
+                for alerta in alertas[:15]:  # Muestra el Top 15 para no saturar
+                    log(f" [!] {alerta}")
+                if len(alertas) > 15:
+                    log(f"\n [+] ... y {len(alertas) - 15} vulnerabilidades adicionales. (Revisa el archivo de texto en el Escritorio).")
+            else:
+                log(" [+] No se encontraron alertas rojas o falló la extracción visual. Revisa el reporte manual.")
+                
+        except Exception as e:
+            log(f" [-] Error al generar el resumen en pantalla: {e}")
+            
+        log(f"\n[+] Reporte completo guardado en: {report_path}")
+        
+        # --- PROTOCOLO DE AUTO-BLINDAJE ---
+        if messagebox.askyesno("Blindaje Automático", "El sistema presenta vulnerabilidades.\n\n¿Deseas que TREMEND aplique un 'Auto-Blindaje' ahora mismo?\n(Activa UAC, protege la RAM (LSA), restaura Defender y limpia rastros forenses)."):
+            log("\n[*] INICIANDO PROTOCOLO DE AUTO-BLINDAJE DEL SISTEMA...")
+            script_blindaje = """
+            Write-Host "    -> Reactivando Control de Cuentas de Usuario (UAC)..."
+            Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" -Name "EnableLUA" -Value 1 -ErrorAction SilentlyContinue
+            Set-ItemProperty -Path "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System" -Name "ConsentPromptBehaviorAdmin" -Value 5 -ErrorAction SilentlyContinue
+            
+            Write-Host "    -> Activando Protección LSA (Evita robo de contraseñas de la memoria RAM)..."
+            Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\Lsa" -Name "RunAsPPL" -Value 1 -ErrorAction SilentlyContinue
+            
+            Write-Host "    -> Desactivando WDigest (Evita almacenar credenciales en texto plano)..."
+            Set-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\SecurityProviders\\WDigest" -Name "UseLogonCredential" -Value 0 -ErrorAction SilentlyContinue
+            
+            Write-Host "    -> Restaurando seguridad de Windows Defender..."
+            Remove-ItemProperty -Path "HKLM:\\SOFTWARE\\Policies\\Microsoft\\Windows Defender" -Name "DisableAntiSpyware" -ErrorAction SilentlyContinue
+            
+            Write-Host "    -> Purgando Historial forense de PowerShell..."
+            Remove-Item -Path (Get-PSReadLineOption).HistorySavePath -ErrorAction SilentlyContinue
+            
+            Write-Host "[+] PROTOCOLO DE BLINDAJE FINALIZADO. (Los escudos de seguridad tomarán efecto al reiniciar la PC)."
+            """
+            run_ps_script(log, script_blindaje)
+        else:
+            log("[*] El sistema no fue modificado.")
+
+    # Limpieza
+    if messagebox.askyesno("Limpieza Forense", "¿Deseas ELIMINAR el motor WinPEAS de la computadora para no dejar ningún rastro?"):
+        shutil.rmtree(temp_dir, ignore_errors=True)
+        log("\n[+] Limpieza táctica completada. Archivos destruidos.")
+
+def logica_desproteger_excel(log, ruta_archivo):
+    import zipfile, os, re, shutil
+    
+    log(f"\n[*] Iniciando análisis forense del archivo: {os.path.basename(ruta_archivo)}")
+    
+    if not ruta_archivo.lower().endswith('.xlsx'):
+        log("[-] Error: Esta herramienta solo soporta archivos modernos de Excel (.xlsx).")
+        return
+
+    directorio = os.path.dirname(ruta_archivo)
+    nombre_base = os.path.basename(ruta_archivo).replace('.xlsx', '')
+    ruta_salida = os.path.join(directorio, f"{nombre_base}_Desbloqueado.xlsx")
+
+    temp_dir = os.path.join(os.environ.get('TEMP'), "Tremend_ExcelHack")
+    if os.path.exists(temp_dir): shutil.rmtree(temp_dir, ignore_errors=True)
+    os.makedirs(temp_dir)
+
+    try:
+        log("[*] Desempaquetando estructura interna del documento (Formato OOXML)...")
+        # 1. Extraemos todo el contenido del archivo .xlsx como si fuera un ZIP
+        with zipfile.ZipFile(ruta_archivo, 'r') as zip_ref:
+            zip_ref.extractall(temp_dir)
+
+        worksheets_dir = os.path.join(temp_dir, "xl", "worksheets")
+        if not os.path.exists(worksheets_dir):
+            log("[-] Estructura inválida. No se encontró la carpeta de hojas de cálculo.")
+            return
+
+        log("[*] Buscando y destruyendo algoritmos de protección en las hojas...")
+        modificadas = 0
+        
+        # 2. Iteramos sobre todos los archivos XML de las hojas
+        for file in os.listdir(worksheets_dir):
+            if file.endswith(".xml"):
+                filepath = os.path.join(worksheets_dir, file)
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    contenido = f.read()
+
+                # 3. MAGIA: Usamos Regex para encontrar y borrar la etiqueta <sheetProtection ... />
+                nuevo_contenido, reemplazos = re.subn(r'<sheetProtection[^>]+>', '', contenido)
+
+                if reemplazos > 0:
+                    with open(filepath, 'w', encoding='utf-8') as f:
+                        f.write(nuevo_contenido)
+                    log(f"    -> [!] Candado eliminado exitosamente en: {file}")
+                    modificadas += 1
+
+        if modificadas == 0:
+            log("[-] No se detectó ninguna protección de celdas en este documento.")
+        else:
+            log("[*] Reempaquetando código fuente y compilando nuevo archivo Excel...")
+            # 4. Volvemos a comprimir la carpeta temporal en un archivo .xlsx nuevo
+            with zipfile.ZipFile(ruta_salida, 'w', zipfile.ZIP_DEFLATED) as zip_out:
+                for root, dirs, files in os.walk(temp_dir):
+                    for file in files:
+                        file_path = os.path.join(root, file)
+                        arcname = os.path.relpath(file_path, temp_dir)
+                        zip_out.write(file_path, arcname)
+
+            log(f"\n[+] ¡ÉXITO! Archivo guardado de forma segura como: {os.path.basename(ruta_salida)}")
+            
+            # 5. Pausa táctica y pregunta elegante para no robar el foco de la terminal
+            import time
+            time.sleep(1) # Le da 1 segundo al usuario para contemplar el código final
+            
+            from tkinter import messagebox
+            if messagebox.askyesno("Operación Exitosa", "El candado XML ha sido destruido.\n\n¿Deseas abrir la carpeta para ver tu archivo desbloqueado?"):
+                try: os.startfile(directorio)
+                except: pass
+
+    except Exception as e:
+        log(f"[-] Error crítico durante la inyección: {e}")
+    finally:
+        # 5. Limpieza Táctica (Borramos la carpeta temporal)
+        try: shutil.rmtree(temp_dir, ignore_errors=True)
+        except: pass
+
+def logica_optimizador_android(log):
+    import urllib.request, zipfile, os, shutil, subprocess, time
+    from tkinter import messagebox
+    
+    log("\n[*] Iniciando Módulo de Optimización Android (Vía ADB)...")
+    
+    # 1. Preparar Entorno Fantasma
+    temp_dir = os.path.join(os.environ.get('TEMP'), "Tremend_ADB")
+    if not os.path.exists(temp_dir): os.makedirs(temp_dir)
+    
+    adb_exe = os.path.join(temp_dir, "platform-tools", "adb.exe")
+    
+    # 2. Descarga del Puente Oficial de Google (Oculto)
+    if not os.path.exists(adb_exe):
+        log("[*] Descargando puente de comunicación oficial (Google ADB)...")
+        zip_path = os.path.join(temp_dir, "adb.zip")
+        url_adb = "https://dl.google.com/android/repository/platform-tools-latest-windows.zip"
+        try:
+            req = urllib.request.Request(url_adb, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=30) as response, open(zip_path, 'wb') as out_file:
+                out_file.write(response.read())
+                
+            log("[*] Compilando traductor en memoria temporal...")
+            with zipfile.ZipFile(zip_path, 'r') as zip_ref: zip_ref.extractall(temp_dir)
+            os.remove(zip_path)
+        except Exception as e:
+            log(f"[-] Error crítico de conexión con Google: {e}"); return
+            
+    # 3. Iniciando Conexión
+    log("[*] Buscando dispositivo conectado por USB...")
+    log("[!] REQUISITO: El celular debe tener la pantalla desbloqueada y la 'Depuración USB' activada.")
+    
+    subprocess.run(f'"{adb_exe}" start-server', shell=True, capture_output=True)
+    time.sleep(1)
+    
+    salida = subprocess.run(f'"{adb_exe}" devices', shell=True, capture_output=True, text=True).stdout
+    
+    # 4. Manejo de Autorización
+    if "unauthorized" in salida:
+        log("\n[-] DISPOSITIVO BLOQUEADO POR SEGURIDAD:")
+        log("    -> Mira la pantalla de tu celular y presiona 'Permitir depuración USB'.")
+        log("    -> Esperando 10 segundos para reintentar la conexión...")
+        time.sleep(10)
+        salida = subprocess.run(f'"{adb_exe}" devices', shell=True, capture_output=True, text=True).stdout
+        
+    lineas_devices = [line for line in salida.splitlines() if "device" in line and not "List of" in line and "unauthorized" not in line]
+    
+    if not lineas_devices:
+        log("\n[-] FALLO DE CONEXIÓN: No se detectó ningún celular autorizado.")
+        log("    1. Verifica el cable USB (debe ser de transferencia de datos).")
+        log("    2. Revisa que las 'Opciones de Desarrollador' estén encendidas.")
+        subprocess.run(f'"{adb_exe}" kill-server', shell=True, capture_output=True)
+        return
+        
+    log("\n[+] ¡Dispositivo detectado y enlazado con éxito al núcleo TREMEND!")
+    
+    # 5. Extracción de Información
+    modelo = subprocess.run(f'"{adb_exe}" shell getprop ro.product.model', shell=True, capture_output=True, text=True).stdout.strip()
+    log(f"    -> Modelo Objetivo: {modelo}")
+    
+    log("\n[*] Iniciando inyección de limpieza extrema en segundo plano...")
+    
+    # 6. Comandos de Purga Segura (Magia Linux en Android)
+    # Explicación de WhatsApp: 'msgstore-*' borra 'msgstore-2023-01.db.crypt14' pero IGNORA 'msgstore.db.crypt14' (el actual).
+    comandos_purga = [
+        ("Caché Global de Aplicaciones (Sistema)", "rm -rf /sdcard/Android/data/*/cache/*"),
+        ("Caché Oculta de Telegram", "rm -rf /sdcard/Android/data/org.telegram.messenger/cache/*"),
+        ("Copias de Seguridad Viejas de WhatsApp (Android 11+)", "rm -rf /sdcard/Android/media/com.whatsapp/WhatsApp/Databases/msgstore-*"),
+        ("Copias de Seguridad Viejas de WhatsApp (Antiguos)", "rm -rf /sdcard/WhatsApp/Databases/msgstore-*"),
+        ("Miniaturas Fantasma (Thumbnails)", "rm -rf /sdcard/DCIM/.thumbnails/*"),
+        ("Archivos Temporales Ocultos de Descarga", "rm -rf /sdcard/Download/.nomedia")
+    ]
+    
+    for nombre, cmd in comandos_purga:
+        log(f"    -> Purgando: {nombre}")
+        subprocess.run(f'"{adb_exe}" shell "{cmd}"', shell=True, capture_output=True)
+        
+    log("\n=======================================================")
+    log(" [+] LIMPIEZA MILITAR DE ANDROID COMPLETADA ")
+    log("=======================================================")
+    log("[!] Gigabytes de basura eliminados.")
+    log("[!] Tus sesiones, cuentas, fotos, videos y chats están 100% intactos.")
+    
+    try: notificar_voz(f"El dispositivo {modelo} ha sido purgado y optimizado.")
+    except: pass
+    
+    # 7. Desconexión y Limpieza del Puente
+    subprocess.run(f'"{adb_exe}" kill-server', shell=True, capture_output=True)
+    if messagebox.askyesno("Limpieza", "El proceso Android ha concluido.\n\n¿Deseas destruir el motor ADB de la computadora para no dejar rastro de la conexión?"):
+        try: shutil.rmtree(temp_dir, ignore_errors=True); log("\n[*] Limpieza táctica: Rastros eliminados del PC.")
         except: pass
 
 def logica_ytdlp(log, lista_urls, calidad, formato):
-    import zipfile
+    import zipfile, urllib.request, os, shutil, subprocess
     log(f"\n[*] Iniciando Descargador Multimedia Avanzado (Lote de {len(lista_urls)} enlaces)")
     temp_dir = r"C:\Tremend_Media"
     if not os.path.exists(temp_dir): os.makedirs(temp_dir)
@@ -1600,12 +2355,19 @@ def logica_ytdlp(log, lista_urls, calidad, formato):
         try: urllib.request.urlretrieve("https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe", exe_path)
         except Exception as e: log(f"[-] Error de red en yt-dlp: {e}"); return
         
-    # 2. Descarga y Extracción de FFmpeg
+    # 2. Descarga y Extracción de FFmpeg (PARCHE DE VELOCIDAD)
     if (calidad in ['1', '2']) and (not os.path.exists(ffmpeg_path) or not os.path.exists(ffprobe_path)):
-        log("[*] Descargando códecs de multiplexado (FFmpeg Essentials)...")
+        log("[*] Descargando códecs de multiplexado (FFmpeg)...")
+        log("    -> [!] Son unos 100MB. Descargando silenciosamente a máxima velocidad, por favor espera...")
         try:
             zip_path = os.path.join(temp_dir, "ffmpeg.zip")
-            urllib.request.urlretrieve("https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip", zip_path)
+            # Cambiamos gyan.dev por el CDN de GitHub (BtbN Builds) que es muchísimo más rápido
+            url_ffmpeg = "https://github.com/BtbN/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-win64-gpl.zip"
+            
+            req = urllib.request.Request(url_ffmpeg, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=120) as response, open(zip_path, 'wb') as out_file:
+                out_file.write(response.read())
+                
             log("[*] Extrayendo componentes de fusión multimedia...")
             with zipfile.ZipFile(zip_path, 'r') as zip_ref:
                 for member in zip_ref.namelist():
@@ -1613,23 +2375,23 @@ def logica_ytdlp(log, lista_urls, calidad, formato):
                     if filename in ["ffmpeg.exe", "ffprobe.exe"]:
                         with open(os.path.join(temp_dir, filename), "wb") as f_out: f_out.write(zip_ref.read(member))
             os.remove(zip_path)
+            log("[+] Códecs instalados con éxito.")
         except Exception as e: log(f"[-] Advertencia al procesar códecs: {e}")
 
     dl_path = os.path.join(os.environ.get("USERPROFILE"), "Downloads")
     
-    # Convertimos la lista de URLs en un formato que la consola entienda (separado por espacios y entre comillas)
+    # Convertimos la lista de URLs en un formato que la consola entienda
     urls_param = ' '.join([f'"{u}"' for u in lista_urls])
     
-    # 1. PARÁMETROS BASE (Nombres seguros, recorte a 80 caracteres y metadatos)
-    params_base = '--windows-filenames -o "%(title).80s [%(id)s].%(ext)s" --embed-metadata --embed-thumbnail'
+    # 1. PARÁMETROS BASE (Bloqueo de playlists y nombres seguros)
+    params_base = '--no-playlist --windows-filenames -o "%(title).80s [%(id)s].%(ext)s" --embed-metadata --embed-thumbnail'
     
-    # 2. LÓGICA DINÁMICA DE FORMATOS (Fuerza exactamente el formato seleccionado)
+    # 2. LÓGICA DINÁMICA DE FORMATOS
     if calidad == '3':
         log("[*] Modo seleccionado: Extracción de Audio Puro (MP3)")
         cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" {params_base} -x --audio-format mp3 -P "{dl_path}" {urls_param}'
     elif calidad == '1':
         log(f"[*] Modo seleccionado: Máxima Calidad Disponible (Fusionando a {formato.upper()})")
-        # El --remux-video ahora usa la variable {formato} (mp4, mkv, mov) elegida en el menú
         cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" {params_base} -S "vcodec:vp9" --remux-video {formato} -f "bestvideo+bestaudio/best" --merge-output-format {formato} -P "{dl_path}" {urls_param}'
     elif calidad == '2':
         log(f"[*] Modo seleccionado: Full HD 1080p Estable (Fusionando a {formato.upper()})")
@@ -1638,7 +2400,7 @@ def logica_ytdlp(log, lista_urls, calidad, formato):
 
     log("[*] Procesando flujos y uniendo contenedores. Por favor, espera...")
     
-    # ¡ESTA ES LA LÍNEA MÁGICA QUE FALTABA!
+    # Ejecución
     run_cmd(log, cmd)
     
     log("[+] Extracción e integración completadas. Archivos unificados en Descargas.")
@@ -1651,6 +2413,7 @@ def logica_ytdlp(log, lista_urls, calidad, formato):
     # Pregunta de limpieza portátil
     from tkinter import messagebox
     if messagebox.askyesno("Limpieza de Herramienta", "El proceso multimedia ha finalizado.\n\n¿Deseas ELIMINAR por completo los motores descargados de esta computadora para no dejar rastro?"):
+        import shutil
         shutil.rmtree(temp_dir, ignore_errors=True)
         log("[+] Limpieza táctica: Espacio liberado.")
     else:
@@ -2049,46 +2812,81 @@ def construir_vista_dinamica(titulo_categoria, placeholder, lista_herramientas):
 def cargar_categoria_redes():
     global app
     def btn_ping():
-        dest = simpledialog.askstring("Ping", "Ingresa IP o Dominio a escanear:", parent=app)
+        # Reemplazamos simpledialog por el InputDialog de CTk
+        dialogo_ip = ctk.CTkInputDialog(text="Ingresa IP o Dominio a escanear:", title="Ping")
+        dest = dialogo_ip.get_input()
         if dest:
-            puerto = simpledialog.askstring("TCP", "Puerto TCP (Opcional):", parent=app)
+            dialogo_puerto = ctk.CTkInputDialog(text="Puerto TCP (Opcional, deja vacío si no aplica):", title="TCP")
+            puerto = dialogo_puerto.get_input()
             abrir_consola_y_ejecutar("PING Y TCP", lambda log: logica_ping_tcp(log, dest, puerto))
+
+    def btn_nmap_win():
+        dialogo_obj = ctk.CTkInputDialog(text="Ingresa IP o Dominio objetivo\n(Ej. 192.168.1.1 o facebook.com):", title="Nmap Forense")
+        objetivo = dialogo_obj.get_input()
+        if objetivo:
+            menu_texto = "1. Rápido (Puertos comunes)\n2. Intermedio (Versiones)\n3. Agresivo (SO e Info profunda)"
+            dialogo_tipo = ctk.CTkInputDialog(text=f"Elige el nivel de agresividad:\n\n{menu_texto}", title="Vector de Escaneo")
+            tipo = dialogo_tipo.get_input()
+            if tipo in ['1', '2', '3']:
+                abrir_consola_y_ejecutar("ESCÁNER NMAP", lambda log: logica_nmap(log, objetivo, tipo))
     def btn_puerto_proceso():
-        puerto = simpledialog.askstring("Rastreo", "Puerto local a investigar (ej. 8080):", parent=app)
+        dialogo = ctk.CTkInputDialog(text="Puerto local a investigar (ej. 8080):", title="Rastreo")
+        puerto = dialogo.get_input()
         if puerto: abrir_consola_y_ejecutar("PUERTO", lambda log: logica_puerto_proceso(log, puerto))
+        
     def btn_qr_wifi():
-        ssid = simpledialog.askstring("QR", "Nombre de la red Wi-Fi (SSID):", parent=app)
+        dialogo_ssid = ctk.CTkInputDialog(text="Nombre de la red Wi-Fi (SSID):", title="QR")
+        ssid = dialogo_ssid.get_input()
         if ssid:
-            pwd = simpledialog.askstring("Clave", "Contraseña (vacío si es libre):", parent=app)
+            dialogo_pwd = ctk.CTkInputDialog(text="Contraseña (vacío si es libre):", title="Clave")
+            pwd = dialogo_pwd.get_input()
             abrir_consola_y_ejecutar("QR WI-FI", lambda log: logica_qr_wifi(log, ssid, pwd))
+            
     def btn_dns_res():
-        dom = simpledialog.askstring("DNS", "Dominio a resolver (ej. facebook.com):", parent=app)
+        dialogo = ctk.CTkInputDialog(text="Dominio a resolver (ej. facebook.com):", title="DNS")
+        dom = dialogo.get_input()
         if dom: abrir_consola_y_ejecutar("DNS", lambda log: logica_resolucion_dns(log, dom))
+        
     def btn_bloquear_web():
-        dom = simpledialog.askstring("Bloqueo Web", "Dominio a bloquear (ej. tiktok.com):", parent=app)
+        dialogo = ctk.CTkInputDialog(text="Dominio a bloquear (ej. tiktok.com):", title="Bloqueo Web")
+        dom = dialogo.get_input()
         if dom: abrir_consola_y_ejecutar("BLOQUEO", lambda log: logica_bloquear_web(log, dom))
+        
     def btn_abrir_puerto():
-        puerto = simpledialog.askstring("Firewall", "Puerto a ABRIR en Firewall:", parent=app)
+        dialogo_puerto = ctk.CTkInputDialog(text="Puerto a ABRIR en Firewall:", title="Firewall")
+        puerto = dialogo_puerto.get_input()
         if puerto:
-            proto = simpledialog.askstring("Protocolo", "Protocolo (TCP o UDP):", parent=app)
+            dialogo_proto = ctk.CTkInputDialog(text="Protocolo (TCP o UDP):", title="Protocolo")
+            proto = dialogo_proto.get_input()
             if proto: abrir_consola_y_ejecutar("FIREWALL", lambda log: logica_abrir_puerto(log, puerto, proto.upper()))
+            
     def btn_escaner():
-        ip = simpledialog.askstring("Escáner", "Ingresa la IP de la máquina (ej. 192.168.1.1):", parent=app)
+        dialogo = ctk.CTkInputDialog(text="Ingresa la IP de la máquina (ej. 192.168.0.0):", title="Escáner")
+        ip = dialogo.get_input()
         if ip: abrir_consola_y_ejecutar("ESCANER NMAP", lambda log: logica_escaner_puertos_python(log, ip))
+        
     def btn_nas():
-        ruta = simpledialog.askstring("Servidor NAS", "Ruta de la carpeta (ej. C:\\Trabajo):", parent=app)
+        dialogo_ruta = ctk.CTkInputDialog(text="Ruta de la carpeta (ej. C:\\Trabajo):", title="Servidor NAS")
+        ruta = dialogo_ruta.get_input()
         if ruta:
-            nombre = simpledialog.askstring("Servidor NAS", "Nombre para el recurso en red:", parent=app)
+            dialogo_nom = ctk.CTkInputDialog(text="Nombre para el recurso en red:", title="Servidor NAS")
+            nombre = dialogo_nom.get_input()
             if nombre: abrir_consola_y_ejecutar("NAS", lambda log: logica_crear_nas(log, ruta, nombre))
+            
     def btn_latencia():
-        dest = simpledialog.askstring("Latencia", "Ingresa dominio para medir (ej. google.com):", parent=app)
+        dialogo = ctk.CTkInputDialog(text="Ingresa dominio para medir (ej. google.com):", title="Latencia")
+        dest = dialogo.get_input()
         if dest: abrir_consola_y_ejecutar("LATENCIA", lambda log: logica_auditoria_latencia(log, dest))
+        
     def btn_wifi():
-        op = simpledialog.askstring("Forense Wi-Fi", "1. Ver Claves en Pantalla\n2. Exportar Backup\n3. Importar Backup", parent=app)
+        dialogo = ctk.CTkInputDialog(text="1. Ver Claves en Pantalla\n2. Exportar Backup\n3. Importar Backup", title="Forense Wi-Fi")
+        op = dialogo.get_input()
         if op in ['1', '2', '3']: abrir_consola_y_ejecutar("WI-FI FORENSE", lambda log: logica_wifi_forense(log, op))
+        
     def btn_dns_opt():
         menu = "1. Cloudflare\n2. Google\n3. Quad9\n4. AdGuard\n5. OpenDNS\n6. Restaurar Fábrica"
-        op = simpledialog.askstring("Optimizador DNS", f"Elige el proveedor:\n\n{menu}", parent=app)
+        dialogo = ctk.CTkInputDialog(text=f"Elige el proveedor:\n\n{menu}", title="Optimizador DNS")
+        op = dialogo.get_input()
         if op in ['1','2','3','4','5','6']: abrir_consola_y_ejecutar("OPTIMIZAR DNS", lambda log: logica_optimizar_dns(log, op))
 
     h_redes = [
@@ -2114,17 +2912,22 @@ def cargar_categoria_redes():
         {"id": "20", "nombre": "20. Motor Avanzado de Escaneo (Puertos)", "cmd": btn_escaner, "nov": "Analiza tu propia computadora o una IP externa para encontrar vulnerabilidades y puertas traseras abiertas por virus.", "exp": "[Python Sockets] Algoritmo asíncrono para testear puertos TCP estándar. Identifica servicios con timeouts ultracortos."},
         {"id": "21", "nombre": "21. Crear Servidor NAS Compartido", "cmd": btn_nas, "nov": "Transforma cualquier carpeta de tu PC en un servidor rápido para que celulares o TVs de tu casa puedan acceder a su contenido.", "exp": "[Microsoft OS] Automatiza New-SmbShare concediendo permisos a Everyone y adaptando dinámicamente el Firewall."},
         {"id": "22", "nombre": "22. Auditar Caché DNS (DisplayDNS)", "cmd": lambda: abrir_consola_y_ejecutar("AUDITAR DNS", logica_auditar_cache_dns), "nov": "Revela una lista oculta de las páginas web a las que esta PC se ha conectado, incluso si borraron el historial del navegador.", "exp": "[Microsoft OS] Volcado directo del búfer interno del resolver DNS de Windows, exponiendo registros A/CNAME."},
-        {"id": "23","nombre": "23. Radar de Tráfico de Red (Sniffnet)","cmd": lambda: abrir_consola_y_ejecutar("SNIFFNET", logica_sniffnet),"nov": "Abre una interfaz gráfica moderna para ver en tiempo real qué programas están consumiendo tu internet.","exp": "[Multiplataforma] Instala dependencias Pcap al vuelo, ejecuta binario nativo interceptando sockets y aplica purga forense."}
+        {"id": "23","nombre": "23. Radar de Tráfico de Red (Sniffnet)","cmd": lambda: abrir_consola_y_ejecutar("SNIFFNET", logica_sniffnet),"nov": "Abre una interfaz gráfica moderna para ver en tiempo real qué programas están consumiendo tu internet.","exp": "[Multiplataforma] Instala dependencias Pcap al vuelo, ejecuta binario nativo interceptando sockets y aplica purga forense."},
+        {"id": "24", "nombre": "24. Escáner Forense (Nmap)", "cmd": btn_nmap_win, "nov": "Mapea los puertos abiertos, detecta los sistemas operativos y busca vulnerabilidades en cualquier equipo conectado a la red.", "exp": "[Forense Nmap] Descarga la build portátil de Win32, compila el comando según la agresividad y vuelca los resultados de mapeo en tiempo real."},
+        {"id": "25", "nombre": "25. Reparar Visibilidad LAN (Carpetas)", "cmd": lambda: abrir_consola_y_ejecutar("VISIBILIDAD RED", logica_visibilidad_lan), "nov": "Soluciona el problema de no poder ver a otras computadoras en la red para compartir archivos o impresoras.", "exp": "[Microsoft OS] Automatiza el arranque de servicios fdPHost y FDResPub. Habilita reglas Inbound/Outbound del Firewall para Network Discovery."}
     ]
     construir_vista_dinamica("🌐 Redes e Internet", "🔍 Buscar (Ej: dns, 16, wifi)...", h_redes)
 
 def cargar_categoria_mantenimiento():
     global app
     def btn_debloat():
-        app_name = simpledialog.askstring("Debloat", "App a eliminar (ej. xbox, zune):", parent=app)
+        dialogo = ctk.CTkInputDialog(text="App a eliminar (ej. xbox, zune):", title="Debloat")
+        app_name = dialogo.get_input()
         if app_name: abrir_consola_y_ejecutar("DEBLOAT", lambda log: logica_debloat(log, app_name))
+        
     def btn_chkdsk():
-        letra = simpledialog.askstring("CHKDSK", "Letra de unidad a reparar (ej. C):", parent=app)
+        dialogo = ctk.CTkInputDialog(text="Letra de unidad a reparar (ej. C):", title="CHKDSK")
+        letra = dialogo.get_input()
         if letra: abrir_consola_y_ejecutar("CHKDSK", lambda log: logica_chkdsk(log, letra))
     def btn_mantenimiento_extremo():
         import subprocess
@@ -2201,17 +3004,22 @@ def cargar_categoria_mantenimiento():
         {"id": "13", "nombre": "13. Reconstruir Caché de Iconos", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR ICONOS", logica_iconos), "nov": "Soluciona el fallo visual donde los iconos de tus programas aparecen como hojas en blanco o se ven borrosos en el escritorio.", "exp": "[Microsoft OS] Destruye el explorer.exe, purga el archivo IconCache.db en AppData y relanza el Shell forzando un render."},
         {"id": "14","nombre": "14. G-Helper (Optimizador ASUS)","cmd": lambda: abrir_consola_y_ejecutar("G-HELPER", logica_ghelper),"nov": "Reemplazo ultraligero de Armoury Crate exclusivo para laptops ASUS. Controla ventiladores, batería y hardware.","exp": "[Hardware Lock] Escanea el firmware WMI. Si detecta placa ASUS, descarga el binario y lo ejecuta en RAM; si no, bloquea la ejecución para evitar crasheos."},
         {"id": "15","nombre": "15. Lenovo Legion Toolkit (Optimizador)","cmd": lambda: abrir_consola_y_ejecutar("LENOVO TOOLKIT", logica_lenovo_toolkit),"nov": "Reemplazo ultraligero de Lenovo Vantage. Controla perfiles de energía, ventiladores, RGB y batería sin consumir recursos en segundo plano.","exp": "[Hardware Lock] Escanea el firmware WMI detectando placas Lenovo. Descarga el ejecutable nativo desde GitHub y lo lanza con elevación UAC."},
-        {"id": "16","nombre": "16. Mole (Optimizador Terminal)","cmd": lambda: abrir_consola_y_ejecutar("MOLE", logica_mole),"nov": "Potente optimizador estilo CCleaner directo en terminal. Limpia cachés, temporales y libera gigabytes de espacio.","exp": "[Experimental] Llama al script nativo quick-install.ps1 vía irm. Abre una sesión externa interactiva (conhost) para navegación por teclado."}
+        {"id": "16","nombre": "16. Mole (Optimizador Terminal)","cmd": lambda: abrir_consola_y_ejecutar("MOLE", logica_mole),"nov": "Potente optimizador estilo CCleaner directo en terminal. Limpia cachés, temporales y libera gigabytes de espacio.","exp": "[Experimental] Llama al script nativo quick-install.ps1 vía irm. Abre una sesión externa interactiva (conhost) para navegación por teclado."},
+        {"id": "17", "nombre": "17. Reparar Fuga de Espacio (Bug W11)", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR FUGA ESPACIO W11", logica_fuga_espacio_w11), "nov": "Soluciona un error grave de Windows 11 donde un archivo oculto crece descontroladamente robando hasta 500 GB de tu disco duro.", "exp": "[Autónomo] Escanea la base CapabilityAccessManager y el parche KB5095093. Automatiza la detención de camsvc y purga los inodos sin requerir Modo Seguro."}
     ]
     construir_vista_dinamica("🧹 Mantenimiento y Optimización", "🔍 Buscar (Ej: chkdsk, debloat)...", h_mant)
 
 def cargar_categoria_diagnostico():
     global app
+    
     def btn_perfmon():
-        op = simpledialog.askstring("Monitor", "1. Monitor | 2. Reporte", parent=app)
+        dialogo = ctk.CTkInputDialog(text="1. Monitor | 2. Reporte", title="Monitor")
+        op = dialogo.get_input()
         if op in ['1', '2', '01', '02']: abrir_consola_y_ejecutar("PERFMON", lambda log: logica_perfmon(log, op))
+        
     def btn_visor():
-        op = simpledialog.askstring("Visor", "1. Procesos | 2. Servicios | 3. Errores", parent=app)
+        dialogo = ctk.CTkInputDialog(text="1. Procesos | 2. Servicios | 3. Errores", title="Visor")
+        op = dialogo.get_input()
         if op in ['1', '2', '3']: abrir_consola_y_ejecutar("VISOR GRÁFICO", lambda log: logica_visor_grafico(log, op))
 
     h_diag = [
@@ -2243,36 +3051,33 @@ def cargar_categoria_software():
         {"id": "4", "nombre": "4. Respaldar Controladores", "cmd": lambda: abrir_consola_y_ejecutar("CLONAR DRIVERS", logica_respaldo_drivers), "nov": "Ideal antes de formatear un PC viejo. Clona los controladores de red, video y sonido actuales y los guarda en C:\\RespaldoDrivers.", "exp": "[Microsoft OS] Emplea la utilidad de imágenes DISM con comando '/export-driver' para volcar archivos .inf, .sys y catálogos."},
         {"id": "5", "nombre": "5. Auditar MS Office", "cmd": lambda: abrir_consola_y_ejecutar("AUDITAR OFFICE", logica_auditar_office), "nov": "Descubre si el paquete de Word o Excel instalado es original o si fue activado ilegalmente con activadores KMS inseguros.", "exp": "[Microsoft OS] Localiza script OSPP.VBS en Office 16 y lo invoca vía cscript /dstatus para parsear tickets Retail/MAK/KMS instalados."},
         {"id": "6", "nombre": "6. Activador de Windows (MAS)", "cmd": lambda: abrir_consola_y_ejecutar("ACTIVADOR MAS", logica_activador_mas), "nov": "Activa Windows legalmente de por vida vinculando una licencia digital a tu placa madre. Sin descargar troyanos o cracks.", "exp": "[massgravel / MAS] Llama a Microsoft Activation Scripts vía Invoke-RestMethod. Inyecta tickets HWID genuinos sin alterar binarios del SO."},
-        {"id": "7", "nombre": "7. Escanear Hardware (PnP)", "cmd": lambda: abrir_consola_y_ejecutar("ESCANEO PNP", logica_escanear_pnp), "nov": "Si conectaste una impresora o tarjeta gráfica y no la reconoce, fuerza a Windows a escanear todos los puertos buscando hardware.", "exp": "[Microsoft OS] Interacciona con el administrador Plug and Play mediante pnputil. '/scan-devices' fuerza enumeración de bus y petición de drivers."}
+        {"id": "7", "nombre": "7. Escanear Hardware (PnP)", "cmd": lambda: abrir_consola_y_ejecutar("ESCANEO PNP", logica_escanear_pnp), "nov": "Si conectaste una impresora o tarjeta gráfica y no la reconoce, fuerza a Windows a escanear todos los puertos buscando hardware.", "exp": "[Microsoft OS] Interacciona con el administrador Plug and Play mediante pnputil. '/scan-devices' fuerza enumeración de bus y petición de drivers."},
+        {"id": "8", "nombre": "8. Instalar GlideX (Extensión de Pantalla)", "cmd": lambda: abrir_consola_y_ejecutar("GLIDEX MULTIPANTALLA", logica_glidex), "nov": "Instala la app oficial de ASUS para duplicar o extender la pantalla de tu PC a una tablet o celular (Funciona en cualquier PC).", "exp": "[Microsoft Store] Invoca al gestor Winget para descargar e instalar el paquete UWP nativo de forma desatendida mediante su ProductId."}
     ]
     construir_vista_dinamica("📦 Software y Licencias", "🔍 Buscar (Ej: winget, office)...", h_soft)
 
 def cargar_categoria_soporte():
     global app 
+    
     def btn_destructor():
-        ruta = simpledialog.askstring("Destructor", "Ruta EXACTA de la carpeta a destruir:", parent=app)
+        dialogo = ctk.CTkInputDialog(text="Ruta EXACTA de la carpeta a destruir:", title="Destructor")
+        ruta = dialogo.get_input()
         if ruta: abrir_consola_y_ejecutar("DESTRUCTOR", lambda log: logica_destructor(log, ruta))
+        
     def btn_gestor_virtualizacion():
         import subprocess
-        import threading
-        import tempfile
-        import os
         from tkinter import messagebox
         
-        # --- 1. Lógica de Escaneo Forense del OS ---
         try:
-            # Extraemos el nombre exacto de la versión de Windows (Ej: "Microsoft Windows 11 Pro")
             os_info = subprocess.check_output('wmic os get Caption', shell=True, text=True).strip().split('\n')[-1].strip()
         except:
             os_info = "Windows (Versión Desconocida)"
             
-        # Validamos si es una edición con soporte nativo de virtualización
         es_compatible = any(edicion in os_info for edicion in ["Pro", "Enterprise", "Education", "Server"])
         
-        # --- 2. Interfaz del Gestor ---
         dialog_virt = ctk.CTkToplevel(app) 
         dialog_virt.title("Gestor de Virtualización Nativa")
-        dialog_virt.geometry("550x380")
+        dialog_virt.geometry("550x300") # Reducimos la altura, ya no necesitamos los botones de manual
         dialog_virt.attributes("-topmost", True)
         dialog_virt.transient(app)
         
@@ -2281,7 +3086,6 @@ def cargar_categoria_soporte():
         estado_os = "✅ COMPATIBLE" if es_compatible else "❌ NO COMPATIBLE (Requiere versión Pro/Enterprise)"
         ctk.CTkLabel(dialog_virt, text=f"{os_info}\n{estado_os}", font=("Arial", 14), text_color=color_os).pack(pady=5)
         
-        # --- 3. Lógica de Activación a Nivel de Núcleo ---
         def activar_caracteristica(feature_name, nombre_amigable):
             dialog_virt.destroy()
             def logica(log):
@@ -2300,7 +3104,6 @@ def cargar_categoria_soporte():
                 log("[!] Esto tomará un par de minutos, por favor no cierres la herramienta.")
                 act = subprocess.run(f'dism.exe /Online /Enable-Feature /FeatureName:{feature_name} /All /NoRestart', shell=True, capture_output=True, text=True)
                 
-                # El código 0 es éxito, el código 3010 es éxito pero requiere reinicio
                 if act.returncode in [0, 3010]:
                     log(f"[+] ¡ÉXITO! {nombre_amigable} se ha integrado en el sistema.")
                     if act.returncode == 3010:
@@ -2313,45 +3116,17 @@ def cargar_categoria_soporte():
                     
             abrir_consola_y_ejecutar(f"ACTIVADOR - {nombre_amigable}", logica)
 
-        # --- 4. Lógica de Manuales Auto-Destructibles (Multihilo) ---
-        def lanzar_manual(tipo):
-            def hilo_manual():
-                if tipo == 'hyperv':
-                    texto = "=================================================\nMANUAL DE USO: HYPER-V (MÁQUINAS VIRTUALES)\n=================================================\n\n¿Qué es Hyper-V?\nEs el hipervisor nativo de Windows. Te permite crear 'computadoras virtuales' (Máquinas Virtuales) dentro de tu PC real para instalar sistemas operativos como Windows 7, Linux, etc.\n\nREQUISITOS PREVIOS:\n1. Windows 10/11 (Ediciones Pro, Enterprise, Education).\n2. Tener la Virtualización activada en la BIOS (Intel VT-x o AMD-V).\n\n¿CÓMO CREAR TU PRIMERA MÁQUINA VIRTUAL?\n1. Presiona la tecla Windows y busca 'Administrador de Hyper-V' o 'Creación rápida de Hyper-V'.\n2. Si deseas instalar un sistema personalizado (Ej. Windows 7 clásico), haz clic en 'Origen de instalación local' y selecciona tu archivo de imagen ISO.\n3. Dale a 'Crear máquina virtual'.\n4. Una vez creada, dale a 'Conectar' y luego a 'Iniciar'. ¡Listo!\n\nPRECAUCIONES:\n- Todo lo que hagas en Hyper-V se GUARDA permanentemente en su disco duro virtual.\n- Consume memoria RAM real mientras la máquina está encendida.\n\n(Al cerrar este bloc de notas, este archivo se autodestruirá de tu PC para no dejar rastro)."
-                else:
-                    texto = "=================================================\nMANUAL DE USO: WINDOWS SANDBOX (ENTORNO AISLADO)\n=================================================\n\n¿Qué es Windows Sandbox?\nEs un entorno de escritorio extremadamente ligero y temporal. Es básicamente una copia desechable de tu Windows actual, diseñada para probar software sospechoso o navegar sin infectar tu PC real.\n\nREQUISITOS PREVIOS:\n1. Windows 10/11 (Ediciones Pro, Enterprise, Education).\n2. Tener la Virtualización activada en la BIOS.\n\n¿CÓMO USARLO?\n1. Presiona la tecla Windows y busca 'Windows Sandbox' o 'Espacio aislado de Windows'.\n2. Ábrelo. Verás un escritorio de Windows limpio, como si acabaras de formatear.\n3. Puedes copiar archivos dudosos de tu PC real y pegarlos dentro del Sandbox para ejecutarlos.\n\n¡ATENCIÓN! REGLA DE ORO (PRECAUCIÓN):\n- Windows Sandbox es TOTALMENTE AMNÉSICO (Desechable).\n- En el instante en que cierras la ventana con la 'X', TODO LO QUE HICISTE SE BORRA PARA SIEMPRE.\n- No es un lugar para probar virus persistentes, porque el virus muere al cerrar la app. Tampoco es un lugar para guardar documentos importantes.\n\n(Al cerrar este bloc de notas, este archivo se autodestruirá de tu PC para no dejar rastro)."
-                
-                # Crear archivo de texto en la carpeta oculta TEMP
-                fd, path = tempfile.mkstemp(suffix=".txt", prefix=f"TREMEND_Manual_{tipo}_")
-                with os.fdopen(fd, 'w', encoding='utf-8') as f:
-                    f.write(texto)
-                
-                # Abrir el bloc de notas y ESPERAR a que el usuario lo cierre
-                subprocess.call(['notepad.exe', path])
-                
-                # Destrucción táctica
-                try: os.remove(path)
-                except: pass
-
-            # Lanzamos el manual en un hilo separado para que tu herramienta no se congele mientras el txt está abierto
-            t = threading.Thread(target=hilo_manual, daemon=True)
-            t.start()
-
-        # --- 5. Diseño de Botones ---
         ctk.CTkLabel(dialog_virt, text="Hyper-V (Máquinas Virtuales Permanentes)", font=("Arial", 12, "bold")).pack(pady=(10, 2))
-        frame_hv = ctk.CTkFrame(dialog_virt, fg_color="transparent")
-        frame_hv.pack(fill="x", padx=40)
-        ctk.CTkButton(frame_hv, text="🚀 Activar Hyper-V", fg_color="#2563EB", hover_color="#1D4ED8", command=lambda: activar_caracteristica("Microsoft-Hyper-V", "Hyper-V")).pack(side="left", expand=True, padx=5)
-        ctk.CTkButton(frame_hv, text="📖 Leer Manual", fg_color="#4B5563", hover_color="#374151", command=lambda: lanzar_manual('hyperv')).pack(side="right", expand=True, padx=5)
+        ctk.CTkButton(dialog_virt, text="🚀 Activar Hyper-V", fg_color="#2563EB", hover_color="#1D4ED8", command=lambda: activar_caracteristica("Microsoft-Hyper-V", "Hyper-V")).pack(fill="x", padx=40)
 
         ctk.CTkLabel(dialog_virt, text="Windows Sandbox (Entorno Aislado Desechable)", font=("Arial", 12, "bold")).pack(pady=(20, 2))
-        frame_sb = ctk.CTkFrame(dialog_virt, fg_color="transparent")
-        frame_sb.pack(fill="x", padx=40)
-        ctk.CTkButton(frame_sb, text="☢️ Activar Sandbox", fg_color="#D97706", hover_color="#B45309", command=lambda: activar_caracteristica("Containers-DisposableClientVM", "Windows Sandbox")).pack(side="left", expand=True, padx=5)
-        ctk.CTkButton(frame_sb, text="📖 Leer Manual", fg_color="#4B5563", hover_color="#374151", command=lambda: lanzar_manual('sandbox')).pack(side="right", expand=True, padx=5)
+        ctk.CTkButton(dialog_virt, text="☢️ Activar Sandbox", fg_color="#D97706", hover_color="#B45309", command=lambda: activar_caracteristica("Containers-DisposableClientVM", "Windows Sandbox")).pack(fill="x", padx=40)
+
+        # Agregamos una nota elegante indicando dónde leer los manuales
+        ctk.CTkLabel(dialog_virt, text="* Puedes leer los manuales de uso en la sección 'Manuales y Trucos'.", font=("Arial", 11, "italic"), text_color="#94A3B8").pack(pady=(20, 0))
+
     def btn_jtr():
         import tkinter.filedialog as fd
-        from tkinter import simpledialog
         
         archivo_bloqueado = fd.askopenfilename(
             title="Paso 1: Selecciona el archivo protegido", 
@@ -2361,7 +3136,6 @@ def cargar_categoria_soporte():
         
         if not archivo_bloqueado: return
         
-        # --- NUEVA INTERFAZ DE BOTONES ---
         dialog_atk = ctk.CTkToplevel(app)
         dialog_atk.title("John The Ripper - Vector de Ataque")
         dialog_atk.geometry("500x320")
@@ -2373,7 +3147,8 @@ def cargar_categoria_soporte():
         def lanzar(tipo):
             dialog_atk.destroy()
             if tipo == '4':
-                pistas = simpledialog.askstring("Pistas a Medida", "Escribe posibles contraseñas separadas por comas\n(Ej: ivanime.com, 12345, animehd):", parent=app)
+                dialogo = ctk.CTkInputDialog(text="Escribe posibles contraseñas separadas por comas\n(Ej: ivanime.com, 12345, animehd):", title="Pistas a Medida")
+                pistas = dialogo.get_input()
                 if not pistas: return
                 abrir_consola_y_ejecutar("ROMPE-CLAVES AVANZADO", lambda log: logica_romper_archivos(log, archivo_bloqueado, tipo, pistas))
             else:
@@ -2383,13 +3158,27 @@ def cargar_categoria_soporte():
         ctk.CTkButton(dialog_atk, text="🔢 2. Fuerza Bruta Numérica (PINs / Fechas)", font=("Arial", 14, "bold"), height=38, command=lambda: lanzar('2')).pack(fill="x", padx=40, pady=5)
         ctk.CTkButton(dialog_atk, text="🌍 3. Mega-Diccionario Nube (Top 1 Millón)", font=("Arial", 14, "bold"), height=38, fg_color="#8B5CF6", hover_color="#7C3AED", command=lambda: lanzar('3')).pack(fill="x", padx=40, pady=5)
         ctk.CTkButton(dialog_atk, text="🎯 4. Pistas a Medida (Escribe tus sospechas)", font=("Arial", 14, "bold"), height=38, fg_color="#F59E0B", hover_color="#D97706", command=lambda: lanzar('4')).pack(fill="x", padx=40, pady=15)
+
+    def btn_desproteger_excel():
+        import tkinter.filedialog as fd
+        archivo_excel = fd.askopenfilename(
+            title="Selecciona el archivo de Excel bloqueado", 
+            filetypes=[("Archivos de Excel", "*.xlsx")],
+            parent=app
+        )
+        if archivo_excel:
+            abrir_consola_y_ejecutar("DESBLOQUEO EXCEL", lambda log: logica_desproteger_excel(log, archivo_excel))
+
     def btn_cambiar_clave():
-        usr = simpledialog.askstring("Usuario", "Nombre del usuario local a modificar:", parent=app)
+        dialogo_usr = ctk.CTkInputDialog(text="Nombre del usuario local a modificar:", title="Usuario")
+        usr = dialogo_usr.get_input()
         if usr:
-            pwd = simpledialog.askstring("Clave", "Nueva clave (deja vacío para eliminarla):", parent=app)
+            dialogo_pwd = ctk.CTkInputDialog(text="Nueva clave (deja vacío para eliminarla):", title="Clave")
+            pwd = dialogo_pwd.get_input()
             if pwd is not None: abrir_consola_y_ejecutar("GESTOR CLAVES", lambda log: logica_cambiar_clave(log, usr, pwd))
+
     def btn_ytdlp():
-        urls_a_descargar = [] # Aquí guardaremos todos los enlaces
+        urls_a_descargar = [] 
         
         dialog_url = ctk.CTkToplevel(app)
         dialog_url.title("YouTube-DL - Paso 1: Cola de Descargas")
@@ -2407,19 +3196,20 @@ def cargar_categoria_soporte():
         btn_frame_int = ctk.CTkFrame(dialog_url, fg_color="transparent")
         btn_frame_int.pack(pady=10)
         
-        def agregar_enlace():
-            url_cruda = entrada.get().strip()
-            if not url_cruda: return
-
-            import urllib.parse
-            if "youtube.com" in url_cruda or "youtu.be" in url_cruda:
-                url_limpia = url_cruda.split("&")[0]
+        def limpiar_url_magico(url_cruda):
+            url_limpia = url_cruda.strip()
+            if not url_limpia: return None
+            # Limpiador suave: Quita listas de reproducción de YouTube, pero respeta los IDs de otros sitios
+            if "youtube.com" in url_limpia or "youtu.be" in url_limpia:
+                return url_limpia.split("&list=")[0].split("&index=")[0]
             else:
-                parsed = urllib.parse.urlparse(url_cruda)
-                url_limpia = urllib.parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', parsed.fragment))
+                # Quitamos rastreadores de marketing (utm_) pero dejamos los identificadores vitales (?viewkey, ?id, etc)
+                return url_limpia.split("&utm_")[0].split("?utm_")[0]
 
-            if url_limpia and url_limpia not in urls_a_descargar:
-                urls_a_descargar.append(url_limpia)
+        def agregar_enlace():
+            url_procesada = limpiar_url_magico(entrada.get())
+            if url_procesada and url_procesada not in urls_a_descargar:
+                urls_a_descargar.append(url_procesada)
                 lbl_contador.configure(text=f"📥 Enlaces en cola: {len(urls_a_descargar)}")
                 entrada.delete(0, 'end')
                 btn_siguiente.configure(state="normal", fg_color="#10B981") 
@@ -2434,27 +3224,19 @@ def cargar_categoria_soporte():
             except: pass
             
         def procesar_url():
-            url_cruda = entrada.get().strip()
-            if url_cruda:
-                import urllib.parse
-                if "youtube.com" in url_cruda or "youtu.be" in url_cruda: url_limpia = url_cruda.split("&")[0]
-                else:
-                    parsed = urllib.parse.urlparse(url_cruda)
-                    url_limpia = urllib.parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path, '', '', parsed.fragment))
-                
-                if url_limpia not in urls_a_descargar: urls_a_descargar.append(url_limpia)
+            url_procesada = limpiar_url_magico(entrada.get())
+            if url_procesada and url_procesada not in urls_a_descargar:
+                urls_a_descargar.append(url_procesada)
                 
             if not urls_a_descargar: return
             
             dialog_url.destroy()
             abrir_ventana_calidad(urls_a_descargar)
             
-        # ====== ¡AQUÍ ESTABAN LOS BOTONES PERDIDOS! ======
         ctk.CTkButton(btn_frame_int, text="➕ Pegar y Agregar", width=120, fg_color="#3B82F6", hover_color="#2563EB", command=pegar_y_agregar).pack(side="left", padx=5)
         btn_siguiente = ctk.CTkButton(btn_frame_int, text="Siguiente ➡️", width=120, fg_color="#334155", state="disabled", command=procesar_url)
         btn_siguiente.pack(side="left", padx=5)
         ctk.CTkButton(btn_frame_int, text="Cancelar", width=120, fg_color="#880000", hover_color="#AA0000", command=dialog_url.destroy).pack(side="left", padx=5)
-        # =================================================
 
         def abrir_ventana_calidad(lista_urls):
             dialog_cal = ctk.CTkToplevel(app)
@@ -2485,11 +3267,18 @@ def cargar_categoria_soporte():
             ctk.CTkButton(dialog_fmt, text="🍏 MOV (Apple / Mac)", fg_color="#444444", hover_color="#222222", command=lambda: sel_formato('mov')).pack(fill="x", padx=40, pady=15)
 
     def btn_diskpart():
-        disco = simpledialog.askstring("Desbloqueo USB", "Ingresa el NÚMERO del disco bloqueado (ej. 1, 2):", parent=app)
+        dialogo = ctk.CTkInputDialog(text="Ingresa el NÚMERO del disco bloqueado (ej. 1, 2):", title="Desbloqueo USB")
+        disco = dialogo.get_input()
         if disco: abrir_consola_y_ejecutar("DISKPART", lambda log: logica_diskpart_usb(log, disco))
+        
     def btn_sysprep():
-        confirm = simpledialog.askstring("Sysprep", "Peligro: El PC se apagará y quedará de fábrica.\nEscribe 'CONFIRMAR':", parent=app)
+        dialogo = ctk.CTkInputDialog(text="Peligro: El PC se apagará y quedará de fábrica.\nEscribe 'CONFIRMAR':", title="Sysprep")
+        confirm = dialogo.get_input()
         if confirm == "CONFIRMAR": abrir_consola_y_ejecutar("SYSPREP", logica_sysprep)
+
+    def btn_optimizador_android():
+        # Este no necesita popup porque detecta el teléfono automáticamente
+        abrir_consola_y_ejecutar("OPTIMIZADOR ANDROID", logica_optimizador_android)
 
     h_sop = [
         {"id": "1", "nombre": "1. Destructor de Carpetas Rebeldes", "cmd": btn_destructor, "nov": "Un destructor forzado. Elimina permanentemente cualquier carpeta bloqueada, virus persistente o archivo que Windows no te deje borrar.", "exp": "[Microsoft OS] takeown /f /a + icacls inyectando SID Admin *S-1-5-32-544:F + shutil.rmtree para vaciar inodos."},
@@ -2504,6 +3293,9 @@ def cargar_categoria_soporte():
         {"id": "10", "nombre": "10. Borrado Forense Militar (Wipe)", "cmd": lambda: abrir_consola_y_ejecutar("BORRADO WIPE", logica_borrado_seguro), "nov": "Sobrescribe con ceros todo el espacio vacío del disco para garantizar que ninguna foto o documento que borraste pueda ser recuperado por hackers.", "exp": "[Microsoft OS] cipher /w:C:\\ barre los clusters libres de la MFT sobrescribiéndolos con múltiples pasadas."},
         {"id": "11", "nombre": "11. Reiniciar directo a la BIOS (UEFI)", "cmd": lambda: abrir_consola_y_ejecutar("REINICIO BIOS", logica_reinicio_bios), "nov": "Un salvavidas: Reinicia la PC y te lleva directamente a la pantalla de la BIOS/UEFI sin que tengas que machacar F2 o SUPR repetidas veces.", "exp": "[Microsoft OS] Llamada ACPI ejecutando shutdown.exe /r /fw delegando la interrupción POST al firmware UEFI."},
         {"id": "12", "nombre": "12. Rompe-Claves de Archivos (John The Ripper)","cmd": btn_jtr,"nov": "Descifra y recupera contraseñas olvidadas de archivos .ZIP, .RAR y .PDF bloqueados mediante fuerza bruta.","exp": "[Openwall] Descarga motor JtR Jumbo a %TEMP%. Inyecta *2john tools para aislar el hash cifrado y ejecuta un wordlist attack mediante algoritmos MD5/SHA en la CPU."},
+        {"id": "13", "nombre": "13. Desbloqueador de Excel (.xlsx)", "cmd": btn_desproteger_excel, "nov": "Elimina al instante la contraseña de celdas y hojas bloqueadas de cualquier archivo de Excel moderno, creando una copia limpia para que puedas editarla libremente.", "exp": "[Automatización XML] Desempaqueta la estructura OOXML en memoria temporal, utiliza expresiones regulares (Regex) para purgar la etiqueta <sheetProtection> en los archivos sheet.xml y reempaqueta el documento."},
+        {"id": "14", "nombre": "14. Limpiador Android Extremo (Vía USB)", "cmd": btn_optimizador_android, "nov": "Libera gigabytes de espacio oculto en celulares (WhatsApp, Telegram, Facebook) conectándolo por USB. No borra tus cuentas, fotos ni chats, solo la basura acumulada.", "exp": "[Motor ADB] Descarga el bridge ADB oficial a la RAM. Conecta por shell inyectando comandos Linux 'rm -rf' en cachés globales, msgstore-* antiguos y thumbnails."},
+        {"id": "15", "nombre": "15. Auditoría de Seguridad (WinPEAS)", "cmd": lambda: abrir_consola_y_ejecutar("WINPEAS", logica_winpeas), "nov": "Escanea la computadora buscando vulnerabilidades, contraseñas mal protegidas y errores de configuración que permitirían a un virus escalar privilegios.", "exp": "[PEASS-ng] Descarga winPEASany.exe desde GitHub. Ejecuta un análisis de enumeración profunda (Privesc) y vuelca los resultados en un archivo de texto en el Escritorio."}
     ]
     construir_vista_dinamica("🛠️ Soporte Técnico y Utilidades", "🔍 Buscar (Ej: lazagne, usb, wipe)...", h_sop)
 
@@ -2551,9 +3343,9 @@ def cargar_categoria_enciclopedia():
     
     limpiar_panel()
     
-    # --- ENCABEZADO CON SISTEMA DE FILTRADO ---
+    # --- 1. ENCABEZADO ---
     header_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
-    header_frame.pack(fill="x", pady=(0, 20))
+    header_frame.pack(side="top", fill="x", pady=(0, 20))
     
     ctk.CTkLabel(header_frame, text="📚 Enciclopedia de Apps", font=("Arial", 24, "bold")).pack(side="left")
     
@@ -2580,13 +3372,24 @@ def cargar_categoria_enciclopedia():
     indice_actual = 0
     var_filtro = ctk.StringVar(value="Mostrar Todas")
 
-    # --- DISEÑO DEL CARRUSEL (El Libro Clásico, ahora Responsivo) ---
-    # Cálculo Matemático: Ancho total de la App, menos el Menú(240), HUD(280) y márgenes(~80)
-    # Esto asegura que el texto se acomode a los bordes y JAMÁS se corte por la izquierda.
     ancho_seguro_texto = ancho_app - 600
 
+    # --- 2. CONTROLES DE PÁGINA (ANCLADOS AL FONDO PRIMERO) ---
+    nav_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    nav_frame.pack(side="bottom", fill="x", pady=20)
+    
+    btn_prev = ctk.CTkButton(nav_frame, text="⬅️ Anterior", width=120, fg_color="#334155", hover_color="#475569")
+    btn_prev.pack(side="left", padx=30)
+    
+    lbl_contador = ctk.CTkLabel(nav_frame, text="", font=("Arial", 14, "bold"))
+    lbl_contador.pack(side="left", expand=True)
+    
+    btn_next = ctk.CTkButton(nav_frame, text="Siguiente ➡️", width=120, fg_color="#334155", hover_color="#475569")
+    btn_next.pack(side="right", padx=30)
+
+    # --- 3. TARJETA CENTRAL (TOMA EL ESPACIO RESTANTE) ---
     tarjeta_frame = ctk.CTkFrame(tools_frame, fg_color="#1E293B", corner_radius=15, border_width=1, border_color="#38BDF8")
-    tarjeta_frame.pack(fill="both", expand=True, padx=10, pady=10)
+    tarjeta_frame.pack(side="top", fill="both", expand=True, padx=10, pady=10)
     
     lbl_titulo = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 22, "bold"), text_color="#38BDF8", wraplength=ancho_seguro_texto)
     lbl_titulo.pack(pady=(30, 5), padx=30, anchor="w")
@@ -2606,19 +3409,6 @@ def cargar_categoria_enciclopedia():
     btn_frame = ctk.CTkFrame(tarjeta_frame, fg_color="transparent")
     btn_frame.pack(pady=30)
 
-    # --- CONTROLES DE PÁGINA ---
-    nav_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
-    nav_frame.pack(fill="x", pady=20)
-    
-    btn_prev = ctk.CTkButton(nav_frame, text="⬅️ Anterior", width=120, fg_color="#334155", hover_color="#475569")
-    btn_prev.pack(side="left", padx=30)
-    
-    lbl_contador = ctk.CTkLabel(nav_frame, text="", font=("Arial", 14, "bold"))
-    lbl_contador.pack(side="left", expand=True)
-    
-    btn_next = ctk.CTkButton(nav_frame, text="Siguiente ➡️", width=120, fg_color="#334155", hover_color="#475569")
-    btn_next.pack(side="right", padx=30)
-
     def mostrar_pagina(idx):
         if not datos_filtrados:
             lbl_titulo.configure(text="No hay resultados para este filtro.")
@@ -2637,7 +3427,6 @@ def cargar_categoria_enciclopedia():
         lbl_desc.configure(text=item.get('descripcion', ''))
         lbl_adv.configure(text=item.get('advertencia', ''))
         
-        # Efecto visual: Si hay una advertencia (Como en Office), el borde se pinta de naranja
         tarjeta_frame.configure(border_color="#F59E0B" if item.get('advertencia', '') else "#38BDF8")
         
         for widget in btn_frame.winfo_children(): widget.destroy()
@@ -2648,7 +3437,6 @@ def cargar_categoria_enciclopedia():
         else:
             def accionar_instalacion():
                 def comando_puente(log): logica_instalar_herramienta(log, item.get('carpeta',''), item.get('archivos',[]), item.get('comando_instalacion',''))
-                # Llama a tu hermosa Terminal Nativa Matrix para la instalación
                 abrir_consola_y_ejecutar(f"INSTALADOR DESATENDIDO: {item.get('titulo', '')}", comando_puente)
                 
             ctk.CTkButton(btn_frame, text=f"⬇️ Instalar {item.get('titulo', '')}", font=("Arial", 16, "bold"), height=50, fg_color="#10B981", hover_color="#059669", text_color="#FFFFFF", command=accionar_instalacion).pack()
@@ -2687,7 +3475,11 @@ def cargar_categoria_tienda():
     global app, datos_tienda, indice_tienda
     
     limpiar_panel()
-    ctk.CTkLabel(tools_frame, text="🛒 Venta de Licencias Oficiales", font=("Arial", 24, "bold")).pack(pady=(0, 20), anchor="w")
+
+    # --- 1. ENCABEZADO ---
+    header_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    header_frame.pack(side="top", fill="x", pady=(0, 20))
+    ctk.CTkLabel(header_frame, text="🛒 Venta de Licencias Oficiales", font=("Arial", 24, "bold")).pack(side="left")
     
     if not datos_tienda:
         url_tienda = f"https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/tienda.json?t={time.time()}"
@@ -2703,9 +3495,20 @@ def cargar_categoria_tienda():
         ctk.CTkLabel(tools_frame, text="La tienda está vacía por ahora.", text_color="#AAAAAA").pack(pady=20)
         return
 
-    # --- DISEÑO DEL CARRUSEL COMERCIAL ---
+    # --- 2. CONTROLES DE PÁGINA (EMPAQUETADOS AL FONDO PRIMERO) ---
+    nav_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    nav_frame.pack(side="bottom", fill="x", pady=20)
+    
+    btn_prev = ctk.CTkButton(nav_frame, text="⬅️ Anterior", width=120, fg_color="#334155", hover_color="#475569")
+    btn_prev.pack(side="left", padx=30)
+    lbl_contador = ctk.CTkLabel(nav_frame, text="", font=("Arial", 14, "bold"))
+    lbl_contador.pack(side="left", expand=True)
+    btn_next = ctk.CTkButton(nav_frame, text="Siguiente ➡️", width=120, fg_color="#334155", hover_color="#475569")
+    btn_next.pack(side="right", padx=30)
+
+    # --- 3. DISEÑO DEL CARRUSEL COMERCIAL (TOMA EL ESPACIO RESTANTE) ---
     tarjeta_frame = ctk.CTkFrame(tools_frame, fg_color="#1E293B", corner_radius=15, border_width=2, border_color="#F59E0B")
-    tarjeta_frame.pack(fill="both", expand=True, padx=10, pady=10)
+    tarjeta_frame.pack(side="top", fill="both", expand=True, padx=10, pady=10)
     
     lbl_titulo = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 22, "bold"), text_color="#FCD34D", wraplength=550)
     lbl_titulo.pack(pady=(20, 5), padx=30, anchor="w")
@@ -2726,7 +3529,6 @@ def cargar_categoria_tienda():
     lbl_adv = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 13, "bold"), text_color="#EF4444", justify="left", wraplength=550)
     lbl_adv.pack(pady=20, padx=30, anchor="w")
 
-    # --- NUEVO TEXTO DE ADVERTENCIA DE PRECIOS ---
     lbl_variacion = ctk.CTkLabel(
         tarjeta_frame, 
         text="📌 Nota Legal: Los precios mostrados son aproximados y están sujetos a cambios sin previo aviso. El valor final puede ser menor o mayor dependiendo de las ofertas del proveedor y la tasa de cambio al momento de confirmar la compra.", 
@@ -2740,11 +3542,11 @@ def cargar_categoria_tienda():
     btn_frame = ctk.CTkFrame(tarjeta_frame, fg_color="transparent")
     btn_frame.pack(pady=20)
 
-    # --- FUNCIÓN: RENDERIZAR PRODUCTO ---
     def mostrar_producto(idx):
         item = datos_tienda[idx]
         lbl_titulo.configure(text=item.get('producto', ''))
         lbl_precio_tremend.configure(text=f"Precio TREMEND: {item.get('precio_tremend', '')}")
+        lbl_precio_oficial.configure(text=f"Oficial: {item.get('precio_oficial', '')}")
         lbl_desc.configure(text=item.get('descripcion', ''))
         lbl_caract.configure(text=item.get('caracteristicas', ''))
         lbl_adv.configure(text=item.get('advertencia', ''))
@@ -2766,7 +3568,6 @@ def cargar_categoria_tienda():
         ctk.CTkButton(btn_frame, text="📲 Comprar por WhatsApp", font=("Arial", 15, "bold"), height=45, fg_color="#25D366", hover_color="#1DA851", text_color="#FFFFFF", command=comprar_wp).pack(side="left", padx=10)
         ctk.CTkButton(btn_frame, text="✉️ Soporte / Correo", font=("Arial", 15, "bold"), height=45, fg_color="#3B82F6", hover_color="#2563EB", text_color="#FFFFFF", command=enviar_correo).pack(side="left", padx=10)
 
-    # --- CONTROLES DEL CARRUSEL ---
     def cambiar_pagina(direccion):
         global indice_tienda
         indice_tienda += direccion
@@ -2775,13 +3576,8 @@ def cargar_categoria_tienda():
         mostrar_producto(indice_tienda)
         lbl_contador.configure(text=f"Producto {indice_tienda + 1} de {len(datos_tienda)}")
 
-    nav_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
-    nav_frame.pack(fill="x", pady=20)
-    
-    ctk.CTkButton(nav_frame, text="⬅️ Anterior", width=120, fg_color="#334155", hover_color="#475569", command=lambda: cambiar_pagina(-1)).pack(side="left", padx=30)
-    lbl_contador = ctk.CTkLabel(nav_frame, text="", font=("Arial", 14, "bold"))
-    lbl_contador.pack(side="left", expand=True)
-    ctk.CTkButton(nav_frame, text="Siguiente ➡️", width=120, fg_color="#334155", hover_color="#475569", command=lambda: cambiar_pagina(1)).pack(side="right", padx=30)
+    btn_prev.configure(command=lambda: cambiar_pagina(-1))
+    btn_next.configure(command=lambda: cambiar_pagina(1))
     
     mostrar_producto(indice_tienda)
     lbl_contador.configure(text=f"Producto {indice_tienda + 1} de {len(datos_tienda)}")
@@ -2824,6 +3620,136 @@ def cargar_categoria_webs():
         
     construir_vista_dinamica("🌐 Enciclopedia de Páginas Web", "🔍 Buscar (Ej: extensiones, inteligencia, roms)...", h_webs)
 
+# Variable global (Ponla junto a las otras arriba si prefieres, o déjala que se declare sola)
+datos_manuales = []
+
+def cargar_categoria_manuales():
+    import urllib.request, json, time, webbrowser
+    global app, datos_manuales
+    
+    limpiar_panel()
+    
+    # --- 1. ENCABEZADO ---
+    header_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    header_frame.pack(side="top", fill="x", pady=(0, 20))
+    
+    ctk.CTkLabel(header_frame, text="📖 Manuales y Trucos", font=("Arial", 24, "bold")).pack(side="left")
+    
+    if not datos_manuales:
+        url_indice = f"https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/manuales.json?t={time.time()}"
+        try:
+            req = urllib.request.Request(url_indice, headers={'User-Agent': 'Mozilla/5.0', 'Cache-Control': 'no-cache'})
+            respuesta = urllib.request.urlopen(req, timeout=5).read().decode('utf-8')
+            datos_manuales = json.loads(respuesta)
+        except Exception as e:
+            ctk.CTkLabel(tools_frame, text=f"Error al conectar con la Nube:\n{e}", text_color="#FF4444").pack(pady=20)
+            return
+
+    if not datos_manuales:
+        ctk.CTkLabel(tools_frame, text="La biblioteca de manuales está vacía.", text_color="#AAAAAA").pack(pady=20)
+        return
+
+    plataformas_unicas = set()
+    for item in datos_manuales:
+        plataformas_unicas.add(item.get('plataforma', 'General'))
+        
+    lista_filtros = ["Mostrar Todos"] + sorted(list(plataformas_unicas))
+    datos_filtrados = datos_manuales.copy()
+    indice_actual = 0
+    var_filtro = ctk.StringVar(value="Mostrar Todos")
+
+    ancho_seguro_texto = ancho_app - 600
+
+    # --- 2. CONTROLES DE PÁGINA (ANCLADOS AL FONDO PRIMERO) ---
+    nav_frame = ctk.CTkFrame(tools_frame, fg_color="transparent")
+    nav_frame.pack(side="bottom", fill="x", pady=10)
+    
+    btn_prev = ctk.CTkButton(nav_frame, text="⬅️ Anterior", width=120, fg_color="#334155", hover_color="#475569")
+    btn_prev.pack(side="left", padx=30)
+    
+    lbl_contador = ctk.CTkLabel(nav_frame, text="", font=("Arial", 14, "bold"))
+    lbl_contador.pack(side="left", expand=True)
+    
+    btn_next = ctk.CTkButton(nav_frame, text="Siguiente ➡️", width=120, fg_color="#334155", hover_color="#475569")
+    btn_next.pack(side="right", padx=30)
+
+    # --- 3. TARJETA CENTRAL (TOMA EL ESPACIO RESTANTE) ---
+    tarjeta_frame = ctk.CTkFrame(tools_frame, fg_color="#1E293B", corner_radius=15, border_width=1, border_color="#10B981")
+    tarjeta_frame.pack(side="top", fill="both", expand=True, padx=10, pady=10)
+    
+    lbl_titulo = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 22, "bold"), text_color="#10B981", wraplength=ancho_seguro_texto)
+    lbl_titulo.pack(pady=(30, 5), padx=30, anchor="w")
+    
+    lbl_autor = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 14, "italic"), text_color="#94A3B8")
+    lbl_autor.pack(pady=(0, 5), padx=30, anchor="w")
+    
+    lbl_plat = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 13, "bold"), text_color="#38BDF8")
+    lbl_plat.pack(pady=(0, 20), padx=30, anchor="w")
+    
+    lbl_desc = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 15), justify="left", wraplength=ancho_seguro_texto)
+    lbl_desc.pack(pady=10, padx=30, anchor="w")
+    
+    lbl_adv = ctk.CTkLabel(tarjeta_frame, text="", font=("Arial", 14, "bold"), text_color="#EF4444", justify="left", wraplength=ancho_seguro_texto)
+    lbl_adv.pack(pady=20, padx=30, anchor="w")
+    
+    btn_frame = ctk.CTkFrame(tarjeta_frame, fg_color="transparent")
+    btn_frame.pack(pady=30)
+
+    def mostrar_pagina(idx):
+        if not datos_filtrados:
+            lbl_titulo.configure(text="No hay manuales para este sistema.")
+            lbl_autor.configure(text="")
+            lbl_plat.configure(text="")
+            lbl_desc.configure(text="")
+            lbl_adv.configure(text="")
+            lbl_contador.configure(text="0 de 0")
+            for widget in btn_frame.winfo_children(): widget.destroy()
+            return
+
+        item = datos_filtrados[idx]
+        lbl_titulo.configure(text=item.get('titulo', ''))
+        lbl_autor.configure(text=f"Autor: {item.get('autor', '')}")
+        lbl_plat.configure(text=f"🖥️ Sistema/Dispositivo: {item.get('plataforma', 'General')}")
+        lbl_desc.configure(text=item.get('descripcion', ''))
+        lbl_adv.configure(text=item.get('advertencia', ''))
+        
+        tarjeta_frame.configure(border_color="#F59E0B" if item.get('advertencia', '') else "#10B981")
+        
+        for widget in btn_frame.winfo_children(): widget.destroy()
+            
+        if item.get('enlace', ''):
+            def abrir_repo(url=item.get('enlace', '')): webbrowser.open(url)
+            ctk.CTkButton(btn_frame, text="🌐 Ver Documentación Web", font=("Arial", 16, "bold"), height=50, fg_color="#3B82F6", hover_color="#2563EB", text_color="#FFFFFF", command=abrir_repo).pack()
+            
+        lbl_contador.configure(text=f"Manual {idx + 1} de {len(datos_filtrados)}")
+
+    def cambiar_pagina(direccion):
+        nonlocal indice_actual
+        if not datos_filtrados: return
+        indice_actual += direccion
+        if indice_actual < 0: indice_actual = len(datos_filtrados) - 1
+        elif indice_actual >= len(datos_filtrados): indice_actual = 0
+        mostrar_pagina(indice_actual)
+
+    btn_prev.configure(command=lambda: cambiar_pagina(-1))
+    btn_next.configure(command=lambda: cambiar_pagina(1))
+
+    def aplicar_filtro(seleccion):
+        nonlocal datos_filtrados, indice_actual
+        if seleccion == "Mostrar Todos":
+            datos_filtrados = datos_manuales.copy()
+        else:
+            datos_filtrados = [item for item in datos_manuales if item.get('plataforma', 'General') == seleccion]
+        
+        indice_actual = 0 
+        mostrar_pagina(indice_actual)
+
+    combo_filtro = ctk.CTkOptionMenu(header_frame, values=lista_filtros, variable=var_filtro, command=aplicar_filtro, fg_color="#10B981", button_color="#059669", button_hover_color="#047857", text_color="#FFFFFF", font=("Arial", 14, "bold"))
+    combo_filtro.pack(side="right")
+    ctk.CTkLabel(header_frame, text="🔍 Filtrar Sistema: ", font=("Arial", 14, "bold"), text_color="#94A3B8").pack(side="right", padx=10)
+
+    mostrar_pagina(0)
+
 def cargar_categoria_mac():
     import urllib.request, json, time, webbrowser
     global app
@@ -2854,6 +3780,11 @@ def cargar_categoria_mac():
         elif "mole" in nombre_api.lower():
             comando_ejecucion = lambda: abrir_consola_y_ejecutar("MOLE", logica_mole)
             txt_boton = "⚡ Ejecutar Herramienta"
+        # ---- AQUÍ INYECTAMOS EL NUEVO BOTÓN ----
+        elif "macpeas" in nombre_api.lower():
+            comando_ejecucion = lambda: abrir_consola_y_ejecutar("MACPEAS", logica_macpeas)
+            txt_boton = "⚡ Ejecutar Auditoría"
+        # ----------------------------------------
         else:
             # Si es una aplicación normal, le pone el enlace web a GitHub
             def make_cmd(url): return lambda: webbrowser.open(url)
@@ -2942,11 +3873,13 @@ def cargar_categoria_linux():
 
     # --- FUNCIONES INTERACTIVAS CON VENTANA ---
     def btn_ping():
-        dest = simpledialog.askstring("Ping", "Ingresa IP o Dominio:", parent=app)
+        dialogo = ctk.CTkInputDialog(text="Ingresa IP o Dominio:", title="Ping")
+        dest = dialogo.get_input()
         if dest: ejecutar_bash(f"ping -c 4 {dest}")
         
     def btn_nmap():
-        dest = simpledialog.askstring("Nmap", "Ingresa IP o Dominio a escanear (vacío para localhost):", parent=app)
+        dialogo = ctk.CTkInputDialog(text="Ingresa IP o Dominio a escanear (vacío para localhost):", title="Nmap")
+        dest = dialogo.get_input()
         target = dest if dest else "localhost"
         ejecutar_bash(f"nmap -sV -sC {target}")
 
@@ -2966,7 +3899,8 @@ def cargar_categoria_linux():
         {"nombre": "nmap -sV -sC", "desc": "Escáner de vulnerabilidades", "cmd": btn_nmap, "color": "#EF4444"},
         {"nombre": "find SUID", "desc": "Escalada de privilegios", "cmd": lambda: ejecutar_bash("find / -perm -4000 -type f 2>/dev/null | head -n 20"), "color": "#EF4444"},
         {"nombre": "grep Logs", "desc": "Cazar intrusos en auth.log", "cmd": lambda: ejecutar_bash('grep -iE "error|failed|unauthorized" /var/log/auth.log 2>/dev/null | tail -n 20'), "color": "#EF4444"},
-        
+        {"nombre": "LinPEAS - Auto", "desc": "Auditoría + Auto-Blindaje", "cmd": lambda: abrir_consola_y_ejecutar("LINPEAS", logica_linpeas), "color": "#EF4444"},
+
         {"cat": "REDES Y FIREWALL"},
         {"nombre": "ss -tulnp", "desc": "Puertos y sockets activos", "cmd": lambda: ejecutar_bash("ss -tulnp"), "color": "#3B82F6"},
         {"nombre": "iptables -L -n -v", "desc": "Ver reglas del firewall", "cmd": lambda: ejecutar_bash("sudo iptables -L -n -v"), "color": "#3B82F6"},
@@ -3240,6 +4174,9 @@ btn_nube.pack(fill="x", pady=2)
 ctk.CTkButton(sub_nube, text="🧰 Portables en la Nube", fg_color="transparent", anchor="w", command=cargar_categoria_portables).pack(pady=1, padx=(30, 0), fill="x")
 ctk.CTkButton(sub_nube, text="📚 Enciclopedia Apps", fg_color="transparent", anchor="w", command=cargar_categoria_enciclopedia).pack(pady=1, padx=(30, 0), fill="x")
 ctk.CTkButton(sub_nube, text="🌐 Enciclopedia Web", fg_color="transparent", anchor="w", command=cargar_categoria_webs).pack(pady=1, padx=(30, 0), fill="x")
+
+# --- NUEVO BOTÓN PARA LOS MANUALES ---
+ctk.CTkButton(sub_nube, text="📖 Manuales y Trucos", fg_color="transparent", anchor="w", command=cargar_categoria_manuales).pack(pady=1, padx=(30, 0), fill="x")
 
 # Ventas de licencias (Afuera como botón principal para maximizar la visibilidad)
 ctk.CTkButton(sidebar, text="🛒 Venta de Licencias", font=("Arial", 14, "bold"), fg_color="transparent", border_width=1, command=cargar_categoria_tienda).pack(pady=5, padx=10, fill="x")
