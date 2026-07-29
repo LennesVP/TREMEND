@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TREMEND Toolkit | Soporte Técnico</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #090D1A; color: #ffffff; }
+        .neon-text { text-shadow: 0 0 10px #38BDF8, 0 0 20px #38BDF8; color: #38BDF8; }
+        .card-glass { background: rgba(30, 41, 59, 0.5); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); transition: all 0.3s ease; }
+        .card-glass:hover { transform: translateY(-5px); }
+        .border-enciclopedia { border-top: 4px solid #38BDF8; }
+        .border-manual { border-top: 4px solid #10B981; }
+        .border-tienda { border-top: 4px solid #F59E0B; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col selection:bg-emerald-500 selection:text-white">
+
+    <nav class="p-4 border-b border-gray-800 bg-[#090D1A]/90 sticky top-0 z-50 backdrop-blur-md">
+        <div class="container mx-auto flex justify-between items-center relative">
+            <div class="text-2xl font-black tracking-widest text-[#00FFCC]">TREMEND</div>
+            
+            <button id="menu-btn" class="md:hidden text-emerald-400 focus:outline-none p-2">
+                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+            </button>
+
+            <div id="menu-links" class="hidden absolute top-full left-0 w-full bg-[#090D1A]/95 border-b border-gray-800 md:static md:w-auto md:bg-transparent md:border-none md:flex flex-col md:flex-row space-y-4 md:space-y-0 md:space-x-6 text-sm font-bold text-gray-300 p-6 md:p-0 shadow-xl md:shadow-none">
+                <a href="#inicio" class="hover:text-[#00FFCC] transition block">Inicio</a>
+                <a href="#enciclopedia" class="hover:text-[#38BDF8] transition block">Apps</a>
+                <a href="#manuales" class="hover:text-[#10B981] transition block">Manuales</a>
+                <a href="#tienda" class="hover:text-[#F59E0B] transition block">Licencias</a>
+                <a href="https://wa.me/573028384292" target="_blank" class="md:hidden bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-bold py-3 px-4 rounded-full text-center mt-4 block shadow-[0_0_10px_rgba(16,185,129,0.4)]">Contacto / Soporte</a>
+            </div>
+
+            <a href="https://wa.me/573028384292" target="_blank" class="hidden md:block bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-bold py-2 px-6 rounded-full transition shadow-[0_0_10px_rgba(16,185,129,0.4)]">Contacto</a>
+        </div>
+    </nav>
+
+    <main id="inicio" class="container mx-auto px-6 py-20 flex flex-col items-center text-center">
+        <div class="inline-block mb-4 px-4 py-1 rounded-full border border-blue-500/30 bg-blue-500/10 text-blue-400 text-xs font-bold uppercase tracking-wide">
+            🚀 Ecosistema en la Nube Activado
+        </div>
+        <h1 class="text-5xl md:text-7xl font-black mb-6 leading-tight">El Kit Definitivo para <br><span class="neon-text">Soporte Técnico</span></h1>
+        <p class="text-lg text-gray-400 max-w-2xl mb-10">Optimiza, repara y audita sistemas con una herramienta ultraligera. Creada por y para técnicos independientes.</p>
+        
+        <div class="flex flex-col sm:flex-row items-center gap-4 mt-4 w-full sm:w-auto">
+            
+            <div class="relative inline-flex shadow-[0_0_20px_rgba(16,185,129,0.4)] rounded-full w-full sm:w-auto">
+                <a href="#" class="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-bold py-4 px-6 sm:px-8 rounded-l-full transition flex items-center justify-center text-lg">
+                    ⬇️ Descargar TREMEND
+                </a>
+                <button id="dropdown-btn" class="bg-emerald-600 hover:bg-emerald-500 text-gray-900 font-bold py-4 px-4 rounded-r-full border-l border-emerald-700 transition flex items-center justify-center focus:outline-none">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
+                </button>
+
+                <!-- Menú Desplegable Oculto -->
+                <div id="dropdown-menu" class="hidden absolute top-full mt-2 right-0 w-64 bg-gray-900 border border-emerald-500/50 rounded-xl shadow-2xl overflow-hidden z-50 text-left">
+                    
+                    <!-- Enlace Dinámico al EXE (Último Release) -->
+                    <a href="https://github.com/LennesVP/TREMEND/releases/latest/download/TREMEND.exe" class="block px-4 py-4 text-white hover:bg-emerald-500 hover:text-gray-900 font-bold transition border-b border-gray-700">
+                        📦 Versión .EXE (Completa)
+                        <span class="block text-xs font-normal opacity-80 mt-1">Descarga siempre la versión estable más reciente.</span>
+                    </a>
+                    
+                    <!-- Enlace Dinámico al Portable BAT (Último Release) -->
+                    <a href="https://github.com/LennesVP/TREMEND/releases/latest/download/Iniciar_TREMEND.bat" class="block px-4 py-4 text-white hover:bg-emerald-500 hover:text-gray-900 font-bold transition">
+                        🧰 Versión Portable (.BAT)
+                        <span class="block text-xs font-normal opacity-80 mt-1">Lanzador ligero ideal para memorias USB.</span>
+                    </a>
+                </div>
+            </div>
+
+            <a href="https://github.com/LennesVP/TREMEND" target="_blank" class="w-full sm:w-auto card-glass hover:bg-gray-800 text-white font-bold py-4 px-6 sm:px-8 rounded-full transition flex items-center justify-center text-lg border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+                <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                Ver Repositorio
+            </a>
+        </div>
+    </main>
+
+    <section id="enciclopedia" class="container mx-auto px-6 py-16">
+        <div class="flex items-center mb-8">
+            <span class="text-3xl mr-3">📚</span>
+            <h2 class="text-3xl font-bold text-[#38BDF8]">Enciclopedia de Apps</h2>
+        </div>
+        <div id="grid-enciclopedia" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <p class="text-gray-500">Cargando base de datos desde GitHub...</p>
+        </div>
+    </section>
+
+    <section id="manuales" class="container mx-auto px-6 py-16 bg-[#050810]">
+        <div class="flex items-center mb-8">
+            <span class="text-3xl mr-3">📖</span>
+            <h2 class="text-3xl font-bold text-[#10B981]">Manuales y Trucos</h2>
+        </div>
+        <div id="grid-manuales" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <p class="text-gray-500">Cargando base de datos desde GitHub...</p>
+        </div>
+    </section>
+
+    <section id="tienda" class="container mx-auto px-6 py-16">
+        <div class="flex items-center mb-8">
+            <span class="text-3xl mr-3">🛒</span>
+            <h2 class="text-3xl font-bold text-[#F59E0B]">Venta de Licencias Oficiales</h2>
+        </div>
+        <div id="grid-tienda" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <p class="text-gray-500">Cargando base de datos desde GitHub...</p>
+        </div>
+    </section>
+
+    <footer class="border-t border-gray-800 p-10 text-center text-gray-500 mt-auto bg-[#050810]">
+        <h2 class="text-xl font-bold text-gray-300 mb-2">TREMEND Toolkit</h2>
+        <p class="mb-4">Soporte Técnico Especializado | Candelaria, Valle del Cauca, Colombia</p>
+        <p class="text-xs">&copy; 2026. Diseñado y programado por Lennes Daniel Varela Poveda.</p>
+    </footer>
+
+    <script>
+        // --- 1. LÓGICA DE LOS MENÚS ---
+        const menuBtn = document.getElementById('menu-btn');
+        const menuLinks = document.getElementById('menu-links');
+        
+        // Abre y cierra el menú hamburguesa en celulares
+        menuBtn.addEventListener('click', () => {
+            menuLinks.classList.toggle('hidden');
+        });
+
+        // Abre y cierra la flecha del botón de descarga
+        const dropdownBtn = document.getElementById('dropdown-btn');
+        const dropdownMenu = document.getElementById('dropdown-menu');
+        
+        dropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // Evita que se cierre instantáneamente
+            dropdownMenu.classList.toggle('hidden');
+        });
+
+        // Si el usuario hace clic en cualquier otro lado de la pantalla, se cierra el menú de descarga
+        document.addEventListener('click', (e) => {
+            if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
+                dropdownMenu.classList.add('hidden');
+            }
+        });
+
+
+        // --- 2. LÓGICA DE LAS TARJETAS JSON ---
+        const timestamp = new Date().getTime();
+
+        fetch(`https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/enciclopedia.json?t=${timestamp}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('grid-enciclopedia').innerHTML = data.map(item => `
+                    <div class="card-glass p-6 rounded-xl border-enciclopedia flex flex-col h-full">
+                        <h3 class="text-xl font-bold text-white mb-1">${item.titulo || 'App'}</h3>
+                        <span class="text-xs font-bold text-[#A78BFA] mb-3">${item.categoria || 'Herramienta'}</span>
+                        <p class="text-sm text-gray-400 flex-grow mb-4">${item.descripcion || ''}</p>
+                        ${item.advertencia ? `<p class="text-xs text-red-400 font-bold mb-4 bg-red-900/20 p-2 rounded">${item.advertencia}</p>` : ''}
+                        <div class="mt-auto">
+                            <span class="text-xs text-gray-500 font-mono bg-gray-800 px-2 py-1 rounded">Autor: ${item.autor || 'Desconocido'}</span>
+                        </div>
+                    </div>
+                `).join('');
+            }).catch(() => document.getElementById('grid-enciclopedia').innerHTML = '<p class="text-red-500">Error cargando apps.</p>');
+
+        fetch(`https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/manuales.json?t=${timestamp}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('grid-manuales').innerHTML = data.map(item => `
+                    <div class="card-glass p-6 rounded-xl border-manual flex flex-col h-full">
+                        <h3 class="text-xl font-bold text-white mb-1">${item.titulo}</h3>
+                        <span class="text-xs font-bold text-[#38BDF8] mb-3">🖥️ ${item.plataforma || 'General'}</span>
+                        <p class="text-sm text-gray-300 whitespace-pre-line mb-4 flex-grow">${item.descripcion}</p>
+                        ${item.advertencia ? `<p class="text-xs text-yellow-500 font-bold mt-4 bg-yellow-900/20 p-2 rounded">${item.advertencia}</p>` : ''}
+                    </div>
+                `).join('');
+            }).catch(() => document.getElementById('grid-manuales').innerHTML = '<p class="text-red-500">Error cargando manuales.</p>');
+
+        fetch(`https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/tienda.json?t=${timestamp}`)
+            .then(res => res.json())
+            .then(data => {
+                const numeroWA = "573028384292";
+                document.getElementById('grid-tienda').innerHTML = data.map(item => {
+                    const mensajeWA = encodeURIComponent(`Hola Lennes, me interesa adquirir la licencia de: ${item.producto} que vi en la web de TREMEND.`);
+                    return `
+                    <div class="card-glass p-6 rounded-xl border-tienda flex flex-col h-full">
+                        <h3 class="text-lg font-bold text-[#FCD34D] mb-2">${item.producto}</h3>
+                        <div class="flex items-center mb-3">
+                            <span class="text-2xl font-black text-[#10B981] mr-3">${item.precio_tremend}</span>
+                            <span class="text-sm text-gray-500 line-through">${item.precio_oficial}</span>
+                        </div>
+                        <p class="text-sm text-gray-400 mb-4 flex-grow">${item.descripcion}</p>
+                        <p class="text-xs text-gray-300 font-mono mb-4 bg-gray-800/50 p-2 rounded">${item.caracteristicas}</p>
+                        <a href="https://wa.me/${numeroWA}?text=${mensajeWA}" target="_blank" class="w-full text-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-2 rounded transition">
+                            📲 Comprar por WhatsApp
+                        </a>
+                    </div>
+                    `
+                }).join('');
+            }).catch(() => document.getElementById('grid-tienda').innerHTML = '<p class="text-red-500">Error cargando tienda.</p>');
+    </script>
+</body>
+</html>
