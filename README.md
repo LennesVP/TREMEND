@@ -75,11 +75,12 @@ Si estás fuera de Colombia o prefieres usar **PayPal** o Tarjeta de Crédito de
 
 [![PayPal](https://img.shields.io/badge/PayPal-Donar_al_Proyecto-00457C?style=for-the-badge&logo=paypal)](https://paypal.me/LDVP472)
 
-<a href='https://ko-fi.com/ldvp55' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>[cite: 11]
+<a href='https://ko-fi.com/ldvp55' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
 
 ### 🎁 Apoyo con Hardware (Proyecto "Nube Privada TrueNAS")
 Ayúdame enviándome componentes físicos desde mi lista de Amazon. 
 🌟 **Beneficio Exclusivo VIP:** Quien decida apoyarme adquiriendo uno de los componentes pesados para el servidor, obtendrá **1 Año entero de almacenamiento en nuestra nube (1 TB)** por una tarifa simbólica de tan solo $10,000 COP al mes.
+
 [![Amazon Wishlist](https://img.shields.io/badge/Amazon-Ver_mi_Lista_de_Deseos-FF9900?style=for-the-badge&logo=amazon&logoColor=black)](https://www.amazon.com/hz/wishlist/ls/3129WX8TBY0J6?ref_=wl_share)
 
 ### 🇨🇴 Apoyo Local (Colombia)
