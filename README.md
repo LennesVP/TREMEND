@@ -13,11 +13,11 @@ TREMEND Toolkit es una suite avanzada, portátil y sigilosa de diagnóstico y so
 
 ## 🌟 Novedades Exclusivas de la Versión 3.2
 Esta versión marca la evolución definitiva del proyecto hacia la automatización inteligente, la inteligencia artificial local y el análisis forense:
-* 🤖 **Protocolo Modo Dios:** Despliega un HUD holográfico con visión artificial para escanear códigos QR, códigos de barras e identificar IMEIs de celulares con validación matemática en vivo[cite: 12].
-* 🧠 **Inteligencia Artificial Local:** Integración de redes neuronales puras (`rembg` + `onnxruntime`) para borrar fondos fotográficos[cite: 12], y un Escáner Óptico de Pantallas (O.C.R.) para extraer texto de cualquier imagen del sistema[cite: 12].
-* 🎙️ **Asistente Virtual de Voz:** Nuevo sistema cognitivo integrado que te explica el funcionamiento y propósito de cada herramienta paso a paso a través de los altavoces de tu PC[cite: 12].
-* 🕵️ **Nuevos Laboratorios Forenses:** Analizador Anti-Phishing para detectar correos estafa[cite: 12], Radar Financiero de Divisas Globales en vivo[cite: 12], y un Visualizador Forense para extraer el historial web borrado evadiendo la seguridad de bases de datos SQLite[cite: 12].
-* 🗂️ **Automatización de Almacenamiento:** Clasifica el caos con el nuevo Organizador Inteligente de Archivos[cite: 12] y explora hasta el último rincón de tu disco con el Radar Visual de Almacenamiento multinúcleo[cite: 12].
+* 🤖 **Protocolo Modo Dios:** Despliega un HUD holográfico con visión artificial para escanear códigos QR, códigos de barras e identificar IMEIs de celulares con validación matemática en vivo.
+* 🧠 **Inteligencia Artificial Local:** Integración de redes neuronales puras (`rembg` + `onnxruntime`) para borrar fondos fotográficos, y un Escáner Óptico de Pantallas (O.C.R.) para extraer texto de cualquier imagen del sistema.
+* 🎙️ **Asistente Virtual de Voz:** Nuevo sistema cognitivo integrado que te explica el funcionamiento y propósito de cada herramienta paso a paso a través de los altavoces de tu PC.
+* 🕵️ **Nuevos Laboratorios Forenses:** Analizador Anti-Phishing para detectar correos estafa, Radar Financiero de Divisas Globales en vivo, y un Visualizador Forense para extraer el historial web borrado evadiendo la seguridad de bases de datos SQLite.
+* 🗂️ **Automatización de Almacenamiento:** Clasifica el caos con el nuevo Organizador Inteligente de Archivos y explora hasta el último rincón de tu disco con el Radar Visual de Almacenamiento multinúcleo.
 
 ---
 
@@ -27,11 +27,11 @@ A partir de la versión 3.2, la interfaz consolida un motor de ejecución intera
 ### 🪟 SISTEMAS OPERATIVOS
 
 **1. Ecosistema Windows (Ejecución Nativa)**
-* **🌐 Redes e Internet:** Escáner de puertos[cite: 12], resolución DNS inversa[cite: 12], radar de tráfico Sniffnet, y **[NUEVO] Laboratorio Anti-Phishing y Radar Financiero API**[cite: 12].
-* **🧹 Mantenimiento y Optimización:** Mantenimiento Extremo Multi-Disco[cite: 12], Optimizador Terminal Mole[cite: 12], reparación de fugas de espacio, y **[NUEVO] Organizador Inteligente y Radar Visual de Almacenamiento**[cite: 12].
-* **🖥️ Diagnóstico e Info del Sistema:** HUD Interactivo en vivo, Volcado forense de RAM (Ghost)[cite: 12], Gestor y Laboratorio de Batería[cite: 12], y **[NUEVO] Visualizador Forense Web y Radar de Hardware en Conflicto**[cite: 12].
-* **📦 Software y Licencias:** Extracción de licencias OEM[cite: 12], inventario a CSV[cite: 12], integración ASUS/Lenovo, y gestor de paquetes Winget[cite: 12].
-* **⚙️ Soporte Técnico:** Rompe-Claves de Archivos por fuerza bruta[cite: 12], Auditoría WinPEAS + Auto-Blindaje, Descargador Multimedia[cite: 12], y **[NUEVO] Modo Dios (HUD Escáner), Borrador de Fondos IA y Escáner Óptico OCR**[cite: 12].
+* **🌐 Redes e Internet:** Escáner de puertos, resolución DNS inversa, radar de tráfico Sniffnet, y **[NUEVO] Laboratorio Anti-Phishing y Radar Financiero API**.
+* **🧹 Mantenimiento y Optimización:** Mantenimiento Extremo Multi-Disco, Optimizador Terminal Mole, reparación de fugas de espacio, y **[NUEVO] Organizador Inteligente y Radar Visual de Almacenamiento**.
+* **🖥️ Diagnóstico e Info del Sistema:** HUD Interactivo en vivo, Volcado forense de RAM (Ghost), Gestor y Laboratorio de Batería, y **[NUEVO] Visualizador Forense Web y Radar de Hardware en Conflicto**.
+* **📦 Software y Licencias:** Extracción de licencias OEM, inventario a CSV, integración ASUS/Lenovo, y gestor de paquetes Winget.
+* **⚙️ Soporte Técnico:** Rompe-Claves de Archivos por fuerza bruta, Auditoría WinPEAS + Auto-Blindaje, Descargador Multimedia, y **[NUEVO] Modo Dios (HUD Escáner), Borrador de Fondos IA y Escáner Óptico OCR**.
 
 **2. Ecosistemas Alternativos y Móviles**
 * **🐧 Linux:** Categoría ejecutiva con layout de servidor Tiling. Terminal TTY persistente con herramientas de Ciberseguridad, Redes y LinPEAS + Protocolo Auto-Blindaje.
@@ -72,7 +72,9 @@ Rindimos tributo al trabajo de desarrolladores de élite:
 
 ### 🌍 Apoyo Internacional Directo (PayPal & Ko-fi)
 Si estás fuera de Colombia o prefieres usar **PayPal** o Tarjeta de Crédito de forma rápida y segura, puedes apoyar el desarrollo del código directamente aquí:
-[![PayPal](https://img.shields.io/badge/PayPal-Donar_al_Proyecto-00457C?style=for-the-badge&logo=paypal)](https://paypal.me/TU_LINK_AQUI) *(Nota: Recuerda insertar tu enlace real de PayPal aquí)*
+
+[![PayPal](https://img.shields.io/badge/PayPal-Donar_al_Proyecto-00457C?style=for-the-badge&logo=paypal)](https://paypal.me/LDVP472)
+
 <a href='https://ko-fi.com/ldvp55' target='_blank'><img height='36' style='border:0px;height:36px;' src='https://storage.ko-fi.com/cdn/kofi2.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>[cite: 11]
 
 ### 🎁 Apoyo con Hardware (Proyecto "Nube Privada TrueNAS")
@@ -82,7 +84,9 @@ Ayúdame enviándome componentes físicos desde mi lista de Amazon.
 
 ### 🇨🇴 Apoyo Local (Colombia)
 Si prefieres invitarme un café virtualmente de forma directa:
+
 [![MercadoPago](https://img.shields.io/badge/MercadoPago-Donar_un_Café-00B1EA?style=for-the-badge&logo=mercadopago)](https://link.mercadopago.com.co/tremend)
+
 * 🟣 **Transferencia Bancaria:** Llave De Nequi/Bre-B: `@LVP671`
 
 <a href="https://info.flagcounter.com/9OEc"><img src="https://s01.flagcounter.com/map/9OEc/size_l/txt_000000/border_CCCCCC/pageviews_1/viewers_0/flags_0/" alt="Flag Counter" border="0"></a>
