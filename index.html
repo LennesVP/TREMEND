@@ -31,6 +31,7 @@
                 <a href="#enciclopedia" class="hover:text-[#38BDF8] transition block">Apps</a>
                 <a href="#manuales" class="hover:text-[#10B981] transition block">Manuales</a>
                 <a href="#tienda" class="hover:text-[#F59E0B] transition block">Licencias</a>
+                <a href="#apoyo" class="hover:text-[#EF4444] transition block">Apoyar</a>
                 <a href="https://wa.me/573028384292" target="_blank" class="md:hidden bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-bold py-3 px-4 rounded-full text-center mt-4 block shadow-[0_0_10px_rgba(16,185,129,0.4)]">Contacto / Soporte</a>
             </div>
 
@@ -57,14 +58,10 @@
 
                 <!-- Menú Desplegable Oculto -->
                 <div id="dropdown-menu" class="hidden absolute top-full mt-2 right-0 w-64 bg-gray-900 border border-emerald-500/50 rounded-xl shadow-2xl overflow-hidden z-50 text-left">
-                    
-                    <!-- Enlace Dinámico al EXE (Último Release) -->
                     <a href="https://github.com/LennesVP/TREMEND/releases/latest/download/TREMEND.exe" class="block px-4 py-4 text-white hover:bg-emerald-500 hover:text-gray-900 font-bold transition border-b border-gray-700">
                         📦 Versión .EXE (Completa)
                         <span class="block text-xs font-normal opacity-80 mt-1">Descarga siempre la versión estable más reciente.</span>
                     </a>
-                    
-                    <!-- Enlace Dinámico al Portable BAT (Último Release) -->
                     <a href="https://github.com/LennesVP/TREMEND/releases/latest/download/Iniciar_TREMEND.bat" class="block px-4 py-4 text-white hover:bg-emerald-500 hover:text-gray-900 font-bold transition">
                         🧰 Versión Portable (.BAT)
                         <span class="block text-xs font-normal opacity-80 mt-1">Lanzador ligero ideal para memorias USB.</span>
@@ -106,6 +103,55 @@
         </div>
         <div id="grid-tienda" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <p class="text-gray-500">Cargando base de datos desde GitHub...</p>
+        </div>
+    </section>
+
+    <!-- NUEVA SECCIÓN: APOYA EL PROYECTO -->
+    <section id="apoyo" class="container mx-auto px-6 py-16 bg-[#050810]">
+        <div class="flex items-center mb-6">
+            <span class="text-3xl mr-3">💖</span>
+            <h2 class="text-3xl font-bold text-[#EF4444]">Apoya el Desarrollo</h2>
+        </div>
+        <p class="text-gray-400 mb-10 max-w-3xl text-lg">TREMEND Toolkit es y será de código abierto. Si esta herramienta te ha ahorrado horas de trabajo o te ha ayudado a generar ingresos, considera invitarme un café o convertirte en patrocinador para mantener los servidores vivos y el desarrollo activo.</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            
+            <!-- Buy Me a Coffee -->
+            <div class="card-glass p-6 rounded-xl border-t-4 border-[#FFDD00] flex flex-col h-full hover:shadow-[0_0_20px_rgba(255,221,0,0.2)] transition">
+                <h3 class="text-xl font-bold text-white mb-2">☕ Buy Me a Coffee</h3>
+                <p class="text-sm text-gray-400 mb-4 flex-grow">La forma más rápida y amigable de invitarme un café si una herramienta te salvó de un apuro técnico.</p>
+                <a href="https://ko-fi.com/ldvp55" target="_blank" class="w-full text-center bg-[#FFDD00] hover:bg-[#E6C700] text-gray-900 font-bold py-3 rounded-lg transition">Invitar un Café</a>
+            </div>
+
+            <!-- Transferencia/Bre-B -->
+            <div class="card-glass p-6 rounded-xl border-t-4 border-[#E10098] flex flex-col h-full hover:shadow-[0_0_20px_rgba(225,0,152,0.2)] transition">
+                <h3 class="text-xl font-bold text-white mb-2">📱 Transferencia/Bre-B</h3>
+                <p class="text-sm text-gray-400 mb-4 flex-grow">Para la gente de Colombia. Transferencias directas, al toque y sin comisiones.</p>
+                <!-- Puedes cambiar el link por tu número o un link de pago de Nequi -->
+                <a href="@LVP671" target="_blank" class="w-full text-center bg-[#E10098] hover:bg-[#C00082] text-white font-bold py-3 rounded-lg transition">Transferir Breve</a>
+            </div>
+
+            <!-- Mercado Pago -->
+            <div class="card-glass p-6 rounded-xl border-t-4 border-[#00B1EA] flex flex-col h-full hover:shadow-[0_0_20px_rgba(0,177,234,0.2)] transition">
+                <h3 class="text-xl font-bold text-white mb-2">🤝 Mercado Pago</h3>
+                <p class="text-sm text-gray-400 mb-4 flex-grow">Aportes 100% seguros con tarjeta o saldo en tu cuenta para toda Latinoamérica.</p>
+                <a href="https://link.mercadopago.com.co/tremend" target="_blank" class="w-full text-center bg-[#00B1EA] hover:bg-[#0098C9] text-white font-bold py-3 rounded-lg transition">Aportar con Mercado Pago</a>
+            </div>
+
+            <!-- GitHub Sponsors -->
+            <div class="card-glass p-6 rounded-xl border-t-4 border-[#FAFBFC] flex flex-col h-full hover:shadow-[0_0_20px_rgba(250,251,252,0.2)] transition">
+                <h3 class="text-xl font-bold text-white mb-2">🐙 GitHub Sponsors</h3>
+                <p class="text-sm text-gray-400 mb-4 flex-grow">Apoyo directo desde la plataforma de desarrolladores para financiar las horas de código abierto.</p>
+                <a href="https://github.com/sponsors/LennesVP" target="_blank" class="w-full text-center bg-[#FAFBFC] hover:bg-[#E1E4E8] text-gray-900 font-bold py-3 rounded-lg transition">Patrocinar en GitHub</a>
+            </div>
+
+            <!-- Amazon Wishlist -->
+            <div class="card-glass p-6 rounded-xl border-t-4 border-[#FF9900] flex flex-col h-full hover:shadow-[0_0_20px_rgba(255,153,0,0.2)] transition">
+                <h3 class="text-xl font-bold text-white mb-2">📦 Amazon Wishlist</h3>
+                <p class="text-sm text-gray-400 mb-4 flex-grow">¿Prefieres apoyar regalando hardware o libros? Échale un vistazo a mi lista de deseos para mejorar mi entorno de pruebas.</p>
+                <a href="https://www.amazon.com/hz/wishlist/ls/3129WX8TBY0J6?ref_=wl_share" target="_blank" class="w-full text-center bg-[#FF9900] hover:bg-[#E68A00] text-gray-900 font-bold py-3 rounded-lg transition">Ver Lista de Amazon</a>
+            </div>
+
         </div>
     </section>
 
