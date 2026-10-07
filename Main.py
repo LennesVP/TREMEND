@@ -61,7 +61,7 @@ def notificar_voz(mensaje):
         print(f"[-] No se pudo reproducir la voz: {e}")
 
 # Define la versión de este archivo físico
-VERSION_ACTUAL = "3.2"
+VERSION_ACTUAL = "3.3"
 
 # ============================================================================
 # 0. ESCUDO DE ADMINISTRADOR AUTOMÁTICO (UAC)
@@ -98,7 +98,7 @@ x_pos = int((ancho_pantalla - ancho_app) / 2)
 y_pos = int((alto_pantalla - alto_app) / 2)
 app.geometry(f"+{x_pos}+{y_pos}")
 
-app.title("TREMEND Toolkit V3.2 [ESTABLE Y BLINDADO]")
+app.title("TREMEND Toolkit V3.3 [ESTABLE Y BLINDADO]")
 
 # ============================================================================
 # 2. MOTOR DE TERMINAL NATIVA Y EJECUCIÓN (SEGURO CONTRA CRASHES)
@@ -1717,29 +1717,55 @@ def logica_mantenimiento_profundo(log, discos_seleccionados):
         log(f"[*] APLICANDO OPTIMIZACIÓN DE NÚCLEO AL SISTEMA (C:)")
         log(f"=======================================================")
         log("[*] Destruyendo directorios temporales de Windows...")
+        
         rutas_temp = [os.environ.get('TEMP'), r"C:\Windows\Temp", r"C:\Windows\Prefetch"]
+        bytes_liberados = 0
+        archivos_destruidos = 0
+        
         for ruta in rutas_temp:
             if ruta and os.path.exists(ruta):
                 log(f"    -> Vaciando: {ruta}")
                 for item in os.listdir(ruta):
                     try:
                         p = os.path.join(ruta, item)
-                        if os.path.isfile(p): os.unlink(p)
-                        elif os.path.isdir(p): shutil.rmtree(p, ignore_errors=True)
+                        # Calculamos el peso antes de destruirlo
+                        if os.path.isfile(p): 
+                            bytes_liberados += os.path.getsize(p)
+                            os.unlink(p)
+                            archivos_destruidos += 1
+                        elif os.path.isdir(p): 
+                            # Función rápida para calcular peso de carpeta
+                            for dirpath, _, filenames in os.walk(p):
+                                for f in filenames:
+                                    fp = os.path.join(dirpath, f)
+                                    if not os.path.islink(fp):
+                                        bytes_liberados += os.path.getsize(fp)
+                            shutil.rmtree(p, ignore_errors=True)
+                            archivos_destruidos += 1
                     except: pass
         
-        log("[+] Archivos temporales destruidos.")
+        # Matemáticas para mostrar MB o GB
+        if bytes_liberados > (1024**3):
+            espacio_str = f"{(bytes_liberados / (1024**3)):.2f} GB"
+        else:
+            espacio_str = f"{(bytes_liberados / (1024**2)):.2f} MB"
+            
+        log(f"[+] ¡Limpieza Táctica Exitosa!")
+        log(f"    -> Se destruyeron {archivos_destruidos} elementos basura.")
+        log(f"    -> Espacio recuperado: {espacio_str}")
 
-        log("[*] Verificando e inyectando salud a la imagen de Windows (DISM)...")
-        run_cmd(log, "DISM /Online /Cleanup-Image /RestoreHealth")
+        # --- CORRECCIÓN DE OPTIMIZACIÓN VISUAL ---
+        log("\n[*] Verificando e inyectando salud a la imagen de Windows (DISM)...")
+        log("[!] AVISO: Este proceso es pesado y reconstruye el núcleo del sistema.")
+        log("[!] Es normal que tarde varios minutos. TREMEND ocultará la barra de progreso para evitar lag visual.")
+        log("[!] Por favor, no cierres la ventana y ten paciencia...")
+        
+        # Filtramos la barra de progreso (los "=") para que no inunde la UI
+        run_cmd(log, 'DISM /Online /Cleanup-Image /RestoreHealth | findstr /V /C:"="')
 
-        log("[*] Escaneando e integrando archivos del sistema corruptos (SFC)...")
+        log("\n[*] Escaneando e integrando archivos del sistema corruptos (SFC)...")
+        log("[!] Iniciando comprobación. Esto también tomará algunos minutos...")
         run_cmd(log, "sfc /scannow")
-
-    log("\n[+] MANTENIMIENTO EXTREMO FINALIZADO CON ÉXITO.")
-    try:
-        notificar_voz("El Mantenimiento Extremo ha terminado.")
-    except: pass
 
 def logica_ghelper(log):
     import urllib.request, json, os, platform, subprocess, shutil, zipfile, time
@@ -2043,11 +2069,155 @@ def logica_reparar_update(log):
             except: pass
     run_cmd(log, "net start wuauserv & net start cryptSvc & net start bits & net start msiserver")
 
-def logica_shadowcopies(log):
-    log("\n[*] Purgando Puntos de Restauración (VSS)...")
-    run_cmd(log, "vssadmin delete shadows /all /quiet")
+def logica_maquina_tiempo(log):
+    import subprocess, json, datetime
+    from tkinter import messagebox
+    import customtkinter as ctk
 
-    notificar_voz("El Purgado De Puntos De Restauración ha terminado.")
+    log("\n" + "="*75)
+    log(" ⏳ MÁQUINA DEL TIEMPO (GESTOR INTELIGENTE DE RESTAURACIÓN) ")
+    log("="*75)
+    log("[*] Interrogando al núcleo de Windows sobre los Puntos de Restauración...")
+    log("[*] Activando la protección del sistema en el disco C: (por si está desactivada)...")
+
+    # Script PS para activar la protección, extraer los puntos y devolverlos en JSON limpio
+    script_ps = """
+    try {
+        Enable-ComputerRestore -Drive "C:\" -ErrorAction SilentlyContinue
+        $points = Get-ComputerRestorePoint -ErrorAction SilentlyContinue
+        if ($points) {
+            $data = @()
+            foreach ($p in $points) {
+                $fecha_limpia = $p.CreationTime.ToString("yyyy-MM-dd")
+                $data += [PSCustomObject]@{
+                    ID = $p.SequenceNumber
+                    Nombre = $p.Description
+                    Fecha = $fecha_limpia
+                }
+            }
+            $data | ConvertTo-Json -Compress
+        } else {
+            Write-Output "VACIO"
+        }
+    } catch { Write-Output "ERROR" }
+    """
+    
+    # Ocultamos la ventana de PowerShell
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    
+    resultado = subprocess.run(["powershell", "-NoProfile", "-Command", script_ps], capture_output=True, text=True, startupinfo=startupinfo)
+    salida = resultado.stdout.strip()
+
+    # --- CASO 1: NO HAY PUNTOS DE RESTAURACIÓN ---
+    if "VACIO" in salida or not salida:
+        log("\n[-] ALERTA ROJA: No se encontró NINGÚN Punto de Restauración en este equipo.")
+        log("    -> El sistema está totalmente vulnerable ante una actualización fallida o virus.")
+        
+        if messagebox.askyesno("Sistema Vulnerable", "No se encontraron Puntos de Restauración.\n\nSi el computador está funcionando perfectamente en este momento, lo más recomendable es CREAR UN PUNTO DE RESPALDO AHORA MISMO.\n\n¿Deseas que TREMEND cree uno automáticamente?"):
+            log("\n[*] Forjando nuevo Punto de Restauración de grado sistema...")
+            log("[!] Esto puede tardar unos minutos. Por favor no cierres la ventana.")
+            
+            ps_crear = 'Checkpoint-Computer -Description "TREMEND_Respaldo_Seguro" -RestorePointType "MODIFY_SETTINGS" -ErrorAction Stop'
+            res_crear = subprocess.run(["powershell", "-NoProfile", "-Command", ps_crear], capture_output=True, text=True, startupinfo=startupinfo)
+            
+            if res_crear.returncode == 0:
+                log("[+] ¡ÉXITO! Escudo de restauración creado. Tu sistema ahora está a salvo.")
+                messagebox.showinfo("Éxito", "Punto de Restauración creado correctamente.")
+            else:
+                log(f"[-] Error al crear el punto (Posible límite de espacio en disco): {res_crear.stderr}")
+        else:
+            log("[*] Operación cancelada. Se recomienda crear uno manualmente pronto.")
+        return
+
+    # --- CASO 2: SÍ HAY PUNTOS DE RESTAURACIÓN (ANÁLISIS INTELIGENTE) ---
+    if "ERROR" in salida:
+        log("[-] Ocurrió un error al leer la base de datos de Windows (WMI).")
+        return
+
+    try:
+        puntos = json.loads(salida)
+        if isinstance(puntos, dict): puntos = [puntos] # Por si solo hay 1 punto
+    except:
+        log("[-] Error decodificando los datos del sistema.")
+        return
+
+    log(f"\n[+] Se encontraron {len(puntos)} Puntos de Restauración en el sistema:\n")
+    
+    # Análisis de fechas (Heurística de Ingeniero)
+    hoy = datetime.datetime.now().date()
+    puntos_viejos = 0
+    lista_menu = ""
+
+    for i, p in enumerate(puntos):
+        try:
+            fecha_obj = datetime.datetime.strptime(p["Fecha"], "%yyyy-%mm-%dd").date()
+        except:
+            # Fallback seguro para parseo de fechas en Python
+            partes = p["Fecha"].split("-")
+            fecha_obj = datetime.date(int(partes[0]), int(partes[1]), int(partes[2]))
+            
+        dias_antiguedad = (hoy - fecha_obj).days
+        
+        estado_str = "🟢 CONFIABLE"
+        if dias_antiguedad > 30:
+            estado_str = "🔴 OBSOLETO/RIESGOSO"
+            puntos_viejos += 1
+        elif dias_antiguedad > 15:
+            estado_str = "🟡 ANTIGUO"
+
+        # Mostramos en el log de la terminal
+        log(f"  [{p['ID']}] Fecha: {p['Fecha']} ({dias_antiguedad} días) | Info: {p['Nombre'][:30]}")
+        log(f"        -> Estado: {estado_str}")
+        
+        # Construimos el texto para el menú interactivo
+        lista_menu += f"ID {p['ID']}: {p['Fecha']} - {p['Nombre'][:25]}\n"
+
+    log("\n" + "-"*60)
+    # Lógica de Recomendación
+    if puntos_viejos == len(puntos):
+        log("[!] RECOMENDACIÓN DE TREMEND:")
+        log("    -> TODOS tus puntos de restauración son muy viejos (más de 30 días).")
+        log("    -> NO es recomendable confiar en ellos, ya que al restaurarlos podrías romper programas actuales.")
+        log("    -> Te sugerimos eliminar los viejos y crear uno nuevo y fresco.")
+    else:
+        log("[+] El sistema cuenta con puntos de restauración recientes y confiables.")
+
+    # --- MENÚ DE ACCIÓN (GUI) ---
+    def menu_opciones():
+        menu_texto = "Elige una acción:\n\n1. 🔄 Restaurar el sistema a un punto específico\n2. ➕ Crear un nuevo punto de respaldo seguro\n3. 🗑️ Purgar puntos viejos (Liberar espacio)"
+        dialogo_opcion = ctk.CTkInputDialog(text=menu_texto, title="Máquina del Tiempo")
+        opcion = dialogo_opcion.get_input()
+
+        if opcion == '1':
+            dialogo_id = ctk.CTkInputDialog(text=f"Ingresa el NÚMERO DE ID a restaurar:\n\n{lista_menu}", title="Restaurar Sistema")
+            id_restaurar = dialogo_id.get_input()
+            if id_restaurar and id_restaurar.isdigit():
+                if messagebox.askyesno("⚠️ ALERTA CRÍTICA", f"Estás a punto de regresar tu PC en el tiempo al punto ID {id_restaurar}.\n\nTu computador SE REINICIARÁ INMEDIATAMENTE y no podrás usarlo por varios minutos.\n\n¿Estás completamente seguro?"):
+                    log(f"\n[*] INICIANDO SECUENCIA DE RESTAURACIÓN (ID {id_restaurar})...")
+                    log("[!] Agárrate, el sistema se reiniciará en 5 segundos.")
+                    ps_restore = f"Restore-Computer -RestorePoint {id_restaurar} -Force"
+                    subprocess.Popen(["powershell", "-NoProfile", "-Command", ps_restore], startupinfo=startupinfo)
+            else:
+                log("[-] ID inválido o cancelado.")
+                
+        elif opcion == '2':
+            log("\n[*] Forjando nuevo Punto de Restauración en segundo plano...")
+            ps_crear = 'Checkpoint-Computer -Description "TREMEND_Respaldo_Fresco" -RestorePointType "MODIFY_SETTINGS" -ErrorAction Stop'
+            res = subprocess.run(["powershell", "-NoProfile", "-Command", ps_crear], capture_output=True, text=True, startupinfo=startupinfo)
+            if res.returncode == 0:
+                log("[+] ¡ÉXITO! Nuevo escudo de restauración creado correctamente.")
+            else:
+                log(f"[-] Falló la creación: {res.stderr}")
+                
+        elif opcion == '3':
+            if messagebox.askyesno("Limpieza", "¿Borrar todos los puntos viejos para liberar espacio en el disco duro?"):
+                log("\n[*] Purgando Puntos de Restauración viejos (VSS)...")
+                subprocess.run("vssadmin delete shadows /all /quiet", shell=True, capture_output=True, startupinfo=startupinfo)
+                log("[+] Espacio liberado con éxito.")
+
+    # Lanzamos el menú tras medio segundo para que alcance a leer el log
+    app.after(500, menu_opciones)
 
 def logica_wmi(log):
     log("\n[*] Reparando Repositorio WMI...")
@@ -2221,6 +2391,78 @@ def logica_iconos(log):
     run_cmd(log, "start explorer.exe")
 
 # --- CATEGORÍA 3: DIAGNÓSTICO ---
+def logica_cazador_malware(log):
+    log("\n" + "="*75)
+    log(" 🦠 CAZADOR FORENSE DE MALWARE Y KEYLOGGERS (HEURÍSTICA) ")
+    log("="*75)
+    log("[*] Iniciando escaneo profundo de memoria RAM y rastreo de inyecciones...")
+    log("[!] AVISO: El análisis de firmas digitales tomará un par de minutos. No cierres la ventana.")
+
+    # Script en PowerShell que ejecuta la heurística avanzada
+    script_ps = """
+    Write-Host "`n[1] Analizando procesos activos y firmas criptográficas (Cazando el Keylogger)..." -ForegroundColor Cyan
+    # Buscamos SOLO programas que estén transmitiendo datos a internet ahora mismo
+    $procesos_red = Get-NetTCPConnection -State Established -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess -Unique
+    $amenazas_detectadas = 0
+
+    foreach ($pId in $procesos_red) {
+        $proc = Get-Process -Id $pId -ErrorAction SilentlyContinue
+        if ($proc -and $proc.Path) {
+            # Descartamos las rutas oficiales del núcleo de Windows para no romper el PC
+            if ($proc.Path -notmatch "\\\\Windows\\\\System32" -and $proc.Path -notmatch "\\\\Windows\\\\SysWOW64") {
+                # Aquí está la magia: Revisamos si el creador del programa está verificado
+                $firma = Get-AuthenticodeSignature -FilePath $proc.Path -ErrorAction SilentlyContinue
+                if ($firma.Status -ne "Valid") {
+                    Write-Host "[🔥] ALERTA ROJA: Proceso ESPÍA detectado (Sin firma y enviando datos):" -ForegroundColor Red
+                    Write-Host "      -> Nombre : $($proc.Name)" -ForegroundColor Yellow
+                    Write-Host "      -> Ruta   : $($proc.Path)" -ForegroundColor Yellow
+                    
+                    try {
+                        # Asesinamos el Keylogger en la memoria RAM para cortar la transmisión
+                        Stop-Process -Id $pId -Force -ErrorAction Stop
+                        Write-Host "      [+] Proceso asesinado en RAM. Conexión con el hacker cortada." -ForegroundColor Green
+                    } catch {
+                        Write-Host "      [-] El malware se resiste (Permisos insuficientes)." -ForegroundColor Red
+                    }
+                    $amenazas_detectadas++
+                }
+            }
+        }
+    }
+
+    if ($amenazas_detectadas -eq 0) {
+        Write-Host "[+] Fase 1 limpia: No se detectaron Keyloggers o Troyanos transmitiendo datos actualmente." -ForegroundColor Green
+    } else {
+        Write-Host "[!] Se neutralizaron $amenazas_detectadas amenazas activas en memoria." -ForegroundColor Yellow
+    }
+
+    Write-Host "`n[2] Invocando Escáner de Raíz (Motor Anti-Malware Nativo)..." -ForegroundColor Cyan
+    Write-Host "[*] Lanzando motor de purga profunda en modo silencioso..."
+    # Ejecutamos la herramienta MRT (Malicious Software Removal Tool) de Windows de forma oculta
+    Start-Process -FilePath "mrt.exe" -ArgumentList "/F /Q" -Wait -NoNewWindow
+    Write-Host "[+] Escaneo MRT finalizado."
+
+    Write-Host "`n[3] Invocando Antivirus de Windows Defender - Búsqueda Rápida..." -ForegroundColor Cyan
+    $defender_path = "C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\*\\MpCmdRun.exe"
+    $exe = Get-ChildItem -Path $defender_path -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($exe) {
+        Write-Host "[*] Ejecutando purga heurística final..."
+        & $exe.FullName -Scan -ScanType 1
+        Write-Host "[+] Purga de Defender completada."
+    } else {
+        Write-Host "[-] No se pudo localizar el motor de línea de comandos de Defender." -ForegroundColor Yellow
+    }
+    """
+    
+    run_ps_script(log, script_ps)
+    
+    log("\n=======================================================")
+    log(" [+] CAZADOR FORENSE FINALIZADO CON ÉXITO ")
+    log("=======================================================")
+    log("[!] Tu sistema ha sido blindado cruzando firmas digitales y tráfico de red.")
+    try: notificar_voz("El cazador forense de Malware y Keyloggers ha finalizado su escaneo.")
+    except: pass
+
 def logica_diagnostico_rapido(log):
     log("\n[*] Ejecutando Diagnóstico Rápido y WinSat Score...")
     run_cmd(log, "systeminfo")
@@ -3135,9 +3377,373 @@ def logica_historial_web(log, navegador, ruta_original):
     except: pass
 
 # --- CATEGORÍA 4: SOFTWARE Y LICENCIAS ---
-def logica_gestor_winget(log):
-    log("\n[*] Iniciando gestor de paquetes Winget (Por Microsoft)...")
-    run_cmd(log, "winget upgrade --all --silent --accept-package-agreements --accept-source-agreements")
+def logica_gestor_winget(*args, **kwargs):
+    import subprocess, json, threading, os
+    from tkinter import ttk, messagebox
+    import customtkinter as ctk
+
+    if args and args[0]: args[0]("\n[*] Abriendo Centro de Inteligencia de Software...")
+
+    def analizar_app(nombre):
+        n = nombre.lower()
+        if any(x in n for x in ["candy crush", "solitaire", "xbox", "bing", "widget", "gethelp", "zune", "tiktok", "instagram", "facebook", "feedback", "mcafee", "avast", "onedrive"]):
+            return "🗑️", "🔴 Sugerencias a Eliminar (Bloatware)", "App innecesaria o telemetría. Sugerencia: Eliminar."
+        elif any(x in n for x in ["c++", "net", "framework", "runtime", "redistributable", "driver", "intel", "amd", "nvidia", "realtek", "geforce", "radeon"]):
+            return "⚙️", "🟡 Sistema y Controladores", "COMPONENTE CRÍTICO DEL SISTEMA. ¡NO BORRAR!"
+        elif any(x in n for x in ["dropbox", "google drive", "cloud", "sync"]):
+            return "☁️", "☁️ Nube", "Sincronización en la nube. Bórralo si no lo usas."
+        elif any(x in n for x in ["game", "riot", "steam", "epic", "ubisoft", "ea "]):
+            return "🎮", "🎮 Juegos", "Software de entretenimiento."
+        elif any(x in n for x in ["edge", "chrome", "firefox", "brave", "opera"]):
+            return "🌐", "🌐 Navegadores y Red", "Navegador de internet principal."
+        elif any(x in n for x in ["office", "word", "excel", "powerpoint", "adobe", "pdf", "capcut", "filmora"]):
+            return "📄", "📄 Ofimática y Edición", "Herramientas de trabajo y edición multimedia."
+        elif any(x in n for x in ["skype", "teams", "zoom", "discord", "webex", "whatsapp"]):
+            return "💬", "💬 Comunicación", "App de chat. Consume memoria en segundo plano."
+        elif any(x in n for x in ["hp ", "dell", "lenovo", "asus", "acer", "myasus"]):
+            return "💻", "💻 Software de Fabricante", "Programa del fabricante del PC. Evalúa si es útil."
+        else:
+            return "📦", "⚪ Otros Programas", "Software de terceros. Evalúa si lo conoces."
+
+    datos_sistema = {"actualizables": [], "instaladas": []}
+    mapa_actualizables = {}
+    mapa_instaladas = {}
+
+    win_gestor = ctk.CTkToplevel(app)
+    win_gestor.title("TREMEND - Centro de Inteligencia de Software")
+    win_gestor.geometry("1150x700")
+    
+    win_gestor.lift()
+    win_gestor.attributes("-topmost", True)
+    win_gestor.after(200, lambda: win_gestor.attributes("-topmost", False))
+    win_gestor.focus_force()
+
+    frame_carga = ctk.CTkFrame(win_gestor, fg_color="transparent")
+    frame_carga.pack(expand=True, fill="both")
+    ctk.CTkLabel(frame_carga, text="Analizando el Sistema...", font=("Arial", 28, "bold"), text_color="#38BDF8").pack(pady=(250, 10))
+    ctk.CTkLabel(frame_carga, text="Clasificando programas, evaluando impacto y buscando rutas...", font=("Arial", 14), text_color="#94A3B8").pack(pady=(0, 20))
+    barra_carga = ctk.CTkProgressBar(frame_carga, width=400, mode="indeterminate", progress_color="#10B981")
+    barra_carga.pack()
+    barra_carga.start()
+
+    def escanear_sistema():
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
+        try:
+            res_upg = subprocess.run('winget upgrade --accept-source-agreements --accept-package-agreements', shell=True, capture_output=True, text=True, startupinfo=startupinfo)
+            capturando = False
+            for linea in res_upg.stdout.splitlines():
+                if "Nombre" in linea and "Id" in linea and "Versión" in linea:
+                    capturando = True; continue
+                if capturando and linea.strip() and not linea.startswith("-"):
+                    partes = [p.strip() for p in linea.split("  ") if p.strip()]
+                    if len(partes) >= 3:
+                        nombre, id_app, v_vieja = partes[0], partes[1], partes[2]
+                        v_nueva = partes[3] if len(partes) > 3 else "Última"
+                        if "Microsoft Visual C++" not in nombre:
+                            icono, categoria, desc = analizar_app(nombre)
+                            datos_sistema["actualizables"].append({
+                                "nombre": nombre, "id": id_app, "v_vieja": v_vieja, "v_nueva": v_nueva, "icono": icono, "cat": categoria
+                            })
+        except: pass
+
+        try:
+            script_ps = """
+$apps = @()
+$apps += Get-AppxPackage | Select-Object @{N='Nombre';E={$_.Name}}, @{N='Id';E={$_.PackageFullName}}, @{N='Tipo';E={'UWP'}}, @{N='Ruta';E={$_.InstallLocation}}
+$paths = "HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*", "HKLM:\\SOFTWARE\\WOW6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*", "HKCU:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*"
+$apps += Get-ItemProperty $paths -ErrorAction SilentlyContinue | Where-Object DisplayName | Select-Object @{N='Nombre';E={$_.DisplayName}}, @{N='Id';E={$_.PSChildName}}, @{N='Tipo';E={'Desktop'}}, @{N='Ruta';E={$_.InstallLocation}}
+$apps | ConvertTo-Json -Compress
+"""
+            res_list = subprocess.run(["powershell", "-NoProfile", "-Command", script_ps], capture_output=True, text=True, encoding='utf-8', errors='ignore', startupinfo=startupinfo)
+            apps_brutas = json.loads(res_list.stdout)
+            if isinstance(apps_brutas, dict): apps_brutas = [apps_brutas]
+            
+            for a in apps_brutas:
+                nombre = a.get("Nombre", "")
+                id_app = a.get("Id", "")
+                tipo = a.get("Tipo", "Desktop")
+                ruta = a.get("Ruta", "")
+                if not ruta: ruta = "Ruta oculta o no disponible"
+
+                if nombre and "Microsoft.VCLibs" not in nombre and "Microsoft.UI" not in nombre:
+                    icono, categoria, desc = analizar_app(nombre)
+                    nombre_limpio = nombre.replace("Microsoft.", "").replace("Windows.", "")
+                    datos_sistema["instaladas"].append({
+                        "nombre": nombre_limpio, "id": id_app, "tipo": tipo, "icono": icono, "cat": categoria, "desc": desc, "ruta": ruta
+                    })
+            datos_sistema["instaladas"] = sorted(datos_sistema["instaladas"], key=lambda x: x['nombre'].lower())
+        except: pass
+
+        win_gestor.after(0, construir_interfaz_final)
+
+    def construir_interfaz_final():
+        frame_carga.destroy()
+        
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("Treeview", background="#0F172A", foreground="#E2E8F0", fieldbackground="#0F172A", borderwidth=0, font=('Arial', 12), rowheight=35)
+        style.map("Treeview", background=[('selected', '#334155')])
+        style.configure("Treeview.Heading", background="#1E293B", foreground="#38BDF8", font=('Arial', 13, 'bold'), borderwidth=0)
+
+        tabview = ctk.CTkTabview(win_gestor, fg_color="#1E293B", text_color="#FFFFFF", segmented_button_selected_color="#3B82F6")
+        tabview.pack(pady=10, padx=20, fill="both", expand=True)
+        tab_act = tabview.add("🔄 Actualizar Software")
+        tab_des = tabview.add("🗑️ Eliminar Software")
+
+        def toggle_check(event, tree, lbl_cont, txt_base="Seleccionados"):
+            region = tree.identify_region(event.x, event.y)
+            if region == "cell":
+                col = tree.identify_column(event.x)
+                if col == '#1': 
+                    item = tree.identify_row(event.y)
+                    if item:
+                        vals = list(tree.item(item, "values"))
+                        vals[0] = "[ ✔ ]" if vals[0] == "[   ]" else "[   ]"
+                        tree.item(item, values=vals)
+                        contador = sum(1 for child in tree.get_children() if tree.item(child, "values")[0] == "[ ✔ ]")
+                        lbl_cont.configure(text=f"{txt_base}: {contador}")
+
+        def seleccionar_todo(tree, lbl_cont, marcar, txt_base="Seleccionados"):
+            check_str = "[ ✔ ]" if marcar else "[   ]"
+            for child in tree.get_children():
+                vals = list(tree.item(child, "values"))
+                vals[0] = check_str
+                tree.item(child, values=vals)
+            contador = sum(1 for child in tree.get_children() if tree.item(child, "values")[0] == "[ ✔ ]")
+            lbl_cont.configure(text=f"{txt_base}: {contador}")
+
+        # ==========================================
+        # PESTAÑA 1: ACTUALIZAR
+        # ==========================================
+        top_act = ctk.CTkFrame(tab_act, fg_color="transparent")
+        top_act.pack(fill="x", pady=5)
+        ctk.CTkLabel(top_act, text="Software obsoleto detectado:", font=("Arial", 16, "bold"), text_color="#10B981").pack(side="left")
+        lbl_cont_act = ctk.CTkLabel(top_act, text="Seleccionados: 0", font=("Arial", 14, "bold"), text_color="#FCD34D")
+        lbl_cont_act.pack(side="right")
+
+        frame_tabla_act = ctk.CTkFrame(tab_act, fg_color="transparent")
+        frame_tabla_act.pack(fill="both", expand=True, pady=10)
+        
+        scroll_y_act = ttk.Scrollbar(frame_tabla_act, orient="vertical")
+        scroll_y_act.pack(side="right", fill="y")
+        scroll_x_act = ttk.Scrollbar(frame_tabla_act, orient="horizontal")
+        scroll_x_act.pack(side="bottom", fill="x")
+
+        tree_act = ttk.Treeview(frame_tabla_act, columns=("check", "icono", "nombre", "v_vieja", "v_nueva"), show="headings", height=10, yscrollcommand=scroll_y_act.set, xscrollcommand=scroll_x_act.set)
+        scroll_y_act.config(command=tree_act.yview)
+        scroll_x_act.config(command=tree_act.xview)
+
+        tree_act.heading("check", text="Sel")
+        tree_act.heading("icono", text="Tipo")
+        tree_act.heading("nombre", text="Nombre del Programa")
+        tree_act.heading("v_vieja", text="Versión Actual")
+        tree_act.heading("v_nueva", text="Nueva Versión")
+        tree_act.column("check", width=60, anchor="center")
+        tree_act.column("icono", width=50, anchor="center")
+        tree_act.column("nombre", width=350, anchor="w")
+        tree_act.column("v_vieja", width=120, anchor="center")
+        tree_act.column("v_nueva", width=120, anchor="center")
+        tree_act.pack(fill="both", expand=True)
+
+        tree_act.bind("<Button-1>", lambda e: toggle_check(e, tree_act, lbl_cont_act, "Seleccionados"))
+
+        for a in datos_sistema["actualizables"]:
+            iid = tree_act.insert("", "end", values=("[ ✔ ]", a['icono'], a['nombre'], a['v_vieja'], a['v_nueva']))
+            mapa_actualizables[iid] = a['id'] 
+            
+        seleccionar_todo(tree_act, lbl_cont_act, True, "Seleccionados") 
+
+        btn_frame_act = ctk.CTkFrame(tab_act, fg_color="transparent")
+        btn_frame_act.pack(fill="x", pady=5)
+        ctk.CTkButton(btn_frame_act, text="Marcar Todos", width=100, fg_color="#334155", command=lambda: seleccionar_todo(tree_act, lbl_cont_act, True, "Seleccionados")).pack(side="left", padx=5)
+        ctk.CTkButton(btn_frame_act, text="Desmarcar Todos", width=100, fg_color="#334155", command=lambda: seleccionar_todo(tree_act, lbl_cont_act, False, "Seleccionados")).pack(side="left", padx=5)
+
+        def run_actualizar():
+            ids = [mapa_actualizables[c] for c in tree_act.get_children() if tree_act.item(c, "values")[0] == "[ ✔ ]"]
+            if not ids:
+                win_gestor.attributes("-topmost", False)
+                messagebox.showwarning("Aviso", "No seleccionaste nada.", parent=win_gestor)
+                win_gestor.attributes("-topmost", True)
+                return
+                
+            win_gestor.destroy()
+            def proc_act(log_ui):
+                log_ui(f"[*] Iniciando actualización silenciosa de {len(ids)} programas...")
+                for id_app in ids:
+                    log_ui(f"    -> Procesando: {id_app}")
+                    run_cmd(log_ui, f"winget upgrade --id \"{id_app}\" --silent --accept-package-agreements --accept-source-agreements")
+                log_ui("\n[+] Mantenimiento finalizado.")
+            abrir_consola_y_ejecutar("ACTUALIZANDO SOFTWARE", proc_act)
+
+        def run_actualizar_todo():
+            win_gestor.destroy()
+            def proc_todo(log_ui):
+                log_ui("\n[*] Iniciando MODO DIOS: Actualización Global Automática...")
+                run_cmd(log_ui, "winget upgrade --all --silent --accept-package-agreements --accept-source-agreements")
+                log_ui("\n[+] Todo el sistema está actualizado.")
+            abrir_consola_y_ejecutar("MODO DIOS (ACTUALIZAR)", proc_todo)
+
+        ctk.CTkButton(btn_frame_act, text="⚡ ACTUALIZAR SELECCIONADOS", font=("Arial", 14, "bold"), height=40, fg_color="#3B82F6", hover_color="#2563EB", command=run_actualizar).pack(side="right", padx=10)
+        ctk.CTkButton(btn_frame_act, text="🚀 ACTUALIZAR TODO (Recomendado)", font=("Arial", 14, "bold"), height=40, fg_color="#10B981", hover_color="#059669", command=run_actualizar_todo).pack(side="right", padx=10)
+
+        # ==========================================
+        # PESTAÑA 2: DESINSTALAR
+        # ==========================================
+        top_des = ctk.CTkFrame(tab_des, fg_color="transparent")
+        top_des.pack(fill="x", pady=5)
+        
+        filtros = ["Todas las aplicaciones", "🔴 Sugerencias a Eliminar (Bloatware)", "🟡 Sistema y Controladores", "☁️ Nube", "🎮 Juegos", "📄 Ofimática y Edición", "💬 Comunicación", "💻 Software de Fabricante", "⚪ Otros Programas"]
+        combo_filtro = ctk.CTkOptionMenu(top_des, values=filtros, width=350, font=("Arial", 13), fg_color="#334155", button_color="#475569")
+        combo_filtro.pack(side="left", padx=5)
+        
+        lbl_cont_des = ctk.CTkLabel(top_des, text="Seleccionados para Borrar: 0", font=("Arial", 14, "bold"), text_color="#EF4444")
+        lbl_cont_des.pack(side="right", padx=5)
+
+        frame_tabla_des = ctk.CTkFrame(tab_des, fg_color="transparent")
+        frame_tabla_des.pack(fill="both", expand=True, pady=10)
+        
+        scroll_y_des = ttk.Scrollbar(frame_tabla_des, orient="vertical")
+        scroll_y_des.pack(side="right", fill="y")
+        scroll_x_des = ttk.Scrollbar(frame_tabla_des, orient="horizontal")
+        scroll_x_des.pack(side="bottom", fill="x")
+
+        tree_des = ttk.Treeview(frame_tabla_des, columns=("check", "folder", "icono", "nombre", "cat", "desc"), show="headings", height=10, yscrollcommand=scroll_y_des.set, xscrollcommand=scroll_x_des.set)
+        scroll_y_des.config(command=tree_des.yview)
+        scroll_x_des.config(command=tree_des.xview)
+
+        tree_des.heading("check", text="Borrar")
+        tree_des.heading("folder", text="Ruta")
+        tree_des.heading("icono", text="Tipo")
+        tree_des.heading("nombre", text="Nombre de Aplicación")
+        tree_des.heading("cat", text="Importancia")
+        tree_des.heading("desc", text="Sugerencia de Inteligencia Artificial")
+        
+        tree_des.column("check", width=60, anchor="center")
+        tree_des.column("folder", width=50, anchor="center") 
+        tree_des.column("icono", width=50, anchor="center")
+        tree_des.column("nombre", width=300, anchor="w")
+        tree_des.column("cat", width=250, anchor="w")
+        tree_des.column("desc", width=550, anchor="w")
+        tree_des.pack(fill="both", expand=True)
+
+        def toggle_click_des(event):
+            region = tree_des.identify_region(event.x, event.y)
+            if region == "cell":
+                col = tree_des.identify_column(event.x)
+                item = tree_des.identify_row(event.y)
+                if not item: return
+                
+                if col == '#1': 
+                    vals = list(tree_des.item(item, "values"))
+                    vals[0] = "[ ✔ ]" if vals[0] == "[   ]" else "[   ]"
+                    tree_des.item(item, values=vals)
+                    contador = sum(1 for child in tree_des.get_children() if tree_des.item(child, "values")[0] == "[ ✔ ]")
+                    lbl_cont_des.configure(text=f"Seleccionados para Borrar: {contador}")
+                
+                elif col == '#2':
+                    app_info = mapa_instaladas.get(item)
+                    if not app_info: return
+                    
+                    ruta_app = app_info["ruta"]
+                    if "oculta" in ruta_app.lower() or not os.path.exists(ruta_app):
+                        messagebox.showwarning("No Encontrado", f"Windows ofusca la ruta de esta aplicación (UWP) o ya no existe.\n\nRuta leída: {ruta_app}", parent=win_gestor)
+                    else:
+                        try:
+                            os.startfile(os.path.normpath(ruta_app))
+                        except Exception as e:
+                            print(f"Error abriendo explorador: {e}")
+
+        tree_des.bind("<Button-1>", toggle_click_des)
+
+        def filtrar_lista_des(choice):
+            tree_des.delete(*tree_des.get_children())
+            mapa_instaladas.clear()
+            lbl_cont_des.configure(text="Seleccionados para Borrar: 0")
+            
+            for a in datos_sistema["instaladas"]:
+                if choice == "Todas las aplicaciones" or a['cat'] == choice:
+                    iid = tree_des.insert("", "end", values=("[   ]", "📁", a['icono'], a['nombre'], a['cat'], a['desc']))
+                    mapa_instaladas[iid] = {"id": a['id'], "tipo": a['tipo'], "ruta": a['ruta'], "nombre_real": a['nombre']}
+
+        combo_filtro.configure(command=filtrar_lista_des)
+        filtrar_lista_des("Todas las aplicaciones") 
+
+        btn_frame_des = ctk.CTkFrame(tab_des, fg_color="transparent")
+        btn_frame_des.pack(fill="x", pady=5)
+        
+        ctk.CTkLabel(btn_frame_des, text="* Tip: Haz clic en el icono 📁 al lado del Checkbox para abrir la carpeta secreta del programa.", font=("Arial", 12, "italic"), text_color="#94A3B8").pack(side="left")
+
+        def run_borrar():
+            apps_del = []
+            for c in tree_des.get_children():
+                if tree_des.item(c, "values")[0] == "[ ✔ ]":
+                    apps_del.append(mapa_instaladas[c])
+            
+            if not apps_del:
+                win_gestor.attributes("-topmost", False)
+                win_gestor.update()
+                messagebox.showwarning("Atención", "No seleccionaste nada para borrar.", parent=win_gestor)
+                win_gestor.attributes("-topmost", True)
+                return
+                
+            win_gestor.attributes("-topmost", False)
+            win_gestor.update()
+            
+            confirmacion = messagebox.askyesno("⚠️ Confirmación Crítica", f"¿Estás seguro de destruir de raíz estas {len(apps_del)} aplicaciones?\n\nEsta acción eliminará registros y rutas y NO se puede deshacer.", parent=win_gestor)
+            
+            if confirmacion:
+                win_gestor.destroy()
+                
+                # FIX BUCLE INFINITO DEFINITIVO: Eliminada para siempre la importación recursiva de 'Main'
+                def proc_del(log_ui):
+                    log_ui(f"\n[*] INICIANDO PROTOCOLO DE PURGA MILITAR ({len(apps_del)} Apps)...")
+                    for a in apps_del:
+                        log_ui(f"\n    -> DESTRUYENDO: {a['nombre_real']}")
+                        
+                        # Bypass impecable para OneDrive
+                        if "onedrive" in a['nombre_real'].lower():
+                            log_ui("    [!] OneDrive detectado. Activando bypass nuclear...")
+                            subprocess.run("taskkill /f /im OneDrive.exe", shell=True, capture_output=True)
+                            
+                            sys_root = os.environ.get("SystemRoot", "C:\\Windows")
+                            loc_app = os.environ.get("LocalAppData", "")
+                            
+                            rutas_od = [
+                                f"{sys_root}\\SysWOW64\\OneDriveSetup.exe",
+                                f"{sys_root}\\System32\\OneDriveSetup.exe",
+                                f"{loc_app}\\Microsoft\\OneDrive\\OneDriveSetup.exe"
+                            ]
+                            
+                            for r_od in rutas_od:
+                                if os.path.exists(r_od):
+                                    run_cmd(log_ui, f'"{r_od}" /uninstall')
+                            continue
+
+                        # Desinstalador UWP (Con Escudo Anti-Errores)
+                        if a['tipo'] == "UWP":
+                            script_uwp = f"""
+                            try {{
+                                Remove-AppxPackage -Package "{a['id']}" -AllUsers -ErrorAction Stop
+                            }} catch {{
+                                Write-Host "    [!] Protegida por Windows. No se puede eliminar del nucleo." -ForegroundColor Yellow
+                            }}
+                            """
+                            run_ps_script(log_ui, script_uwp)
+                        # Desinstalador Winget (Terceros)
+                        else:
+                            run_cmd(log_ui, f"winget uninstall --id \"{a['id']}\" --silent --accept-source-agreements")
+                    
+                    log_ui("\n[+] Secuencia de eliminación finalizada. Registro limpio.")
+                
+                abrir_consola_y_ejecutar("PURGA DE SOFTWARE", proc_del)
+            else:
+                win_gestor.attributes("-topmost", True)
+
+        ctk.CTkButton(btn_frame_des, text="💀 ELIMINAR SELECCIONADOS", font=("Arial", 14, "bold"), height=40, fg_color="#EF4444", hover_color="#DC2626", command=run_borrar).pack(side="right", padx=10)
+
+    threading.Thread(target=escanear_sistema, daemon=True).start()
 
 def logica_clave_windows(log):
     log("\n[*] Consultando Registro de Windows para licencias activas...")
@@ -4034,14 +4640,23 @@ def logica_ytdlp(log, lista_urls, calidad, formato, ruta_cookies=""):
 
     dl_path = os.path.join(os.environ.get("USERPROFILE"), "Downloads")
     urls_param = ' '.join([f'"{u}"' for u in lista_urls])
-    params_base = '--no-playlist --windows-filenames -o "%(title).80s [%(id)s].%(ext)s" --embed-metadata --embed-thumbnail'
+    params_base = '--yes-playlist --windows-filenames -o "%(playlist_index|)s%(playlist_index& - |)s%(title).80s [%(id)s].%(ext)s" --embed-metadata --embed-thumbnail'
     
+    # --- MOTOR DE CÓDECS Y RESOLUCIONES CORREGIDO ---
     if calidad == '3':
         cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" {params_base} -x --audio-format mp3 -P "{dl_path}" {urls_param}'
     elif calidad == '1':
+        # Máxima Calidad: Prioriza el mejor video disponible
         cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" {params_base} -S "vcodec:vp9" --remux-video {formato} -f "bestvideo+bestaudio/best" --merge-output-format {formato} -P "{dl_path}" {urls_param}'
     elif calidad == '2':
-        cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" {params_base} -S "vcodec:vp9" --remux-video {formato} -f "bestvideo[height<=1080]+bestaudio/best" --merge-output-format {formato} -P "{dl_path}" {urls_param}'
+        # 1080p: Busca <=1080. Si no hay, forzará el escalado mediante FFmpeg a 1080p.
+        cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" {params_base} -S "vcodec:vp9,res:1080" --remux-video {formato} -f "bestvideo[height<=1080]+bestaudio/best" --merge-output-format {formato} -P "{dl_path}" {urls_param}'
+    elif calidad == '6':
+        # 720p: Forzamos el límite a 720p absolutos usando -S "res:720"
+        cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" {params_base} -S "vcodec:vp9,res:720" --remux-video {formato} -f "bestvideo[height<=720]+bestaudio/best" --merge-output-format {formato} -P "{dl_path}" {urls_param}'
+    elif calidad == '7':
+        # 480p: El Fix Maestro. Obligamos al motor a no sobrepasar los 480p, forzando un reescalado duro si es necesario.
+        cmd = f'"{exe_path}" --ffmpeg-location "{temp_dir}" {params_base} -S "vcodec:vp9,res:480" --remux-video {formato} -f "bestvideo[height<=480]+bestaudio/best" --merge-output-format {formato} -P "{dl_path}" {urls_param}'
     else: return
 
     log("[*] Procesando flujos y uniendo contenedores. Por favor, espera...")
@@ -4049,6 +4664,7 @@ def logica_ytdlp(log, lista_urls, calidad, formato, ruta_cookies=""):
     log("[+] Extracción e integración completadas. Archivos unificados en Descargas.")
     try: notificar_voz("La descarga del contenido ha finalizado.")
     except: pass
+    
     from tkinter import messagebox
     if messagebox.askyesno("Limpieza", "¿Deseas ELIMINAR los motores multimedia para no dejar rastro?"):
         shutil.rmtree(temp_dir, ignore_errors=True)
@@ -4897,7 +5513,7 @@ def abrir_guia_asistente():
         ("4. Destrabar Cola de Impresión", "Solución instantánea para documentos trabados. Detiene el servicio de impresión, limpia los archivos atorados y reactiva la impresora."),
         ("5. Purgado Extremo de WinSxS", "Libera masivamente espacio del disco duro destruyendo archivos residuales y copias muertas de actualizaciones de Windows."),
         ("6. Reparar Windows Update Roto", "Arregla el fallo crítico donde el actualizador se queda buscando o se traba en cero por ciento descargando, reiniciando la base de datos interna."),
-        ("7. Purgar Puntos de Restauración", "Borra copias de seguridad de Windows muy antiguas que están acaparando cientos de Gigabytes invisibles de forma completamente segura."),
+        ("7. Gestor de Puntos de Restauración", "Funciona como una máquina del tiempo para tu computadora. Escanea si tienes respaldos de seguridad, te avisa si están muy viejos y no son confiables, y te permite crear un respaldo nuevo o regresar la computadora en el tiempo con un solo clic."),
         ("8. Reparar Telemetría de Hardware", "Arregla errores raros, como cuando la laptop no lee la batería, no funciona el brillo o los programas se cierran solos por errores de lectura."),
         ("9. Bloqueo de Espionaje Microsoft", "Detiene y bloquea los rastreadores nativos de Microsoft que envían lo que tecleas. Mejora el rendimiento de disco y red enormemente."),
         ("10. Sincronización Nuclear de Hora", "Soluciona errores graves de 'Sitio No Seguro' en internet, obligando a tu computadora a actualizar su hora con el reloj atómico global."),
@@ -4913,28 +5529,29 @@ def abrir_guia_asistente():
     ]
 
     guia_diag_win = [
-        ("1. Diagnóstico Veloz", "Resumen instantáneo con la calificación matemática oficial de velocidad y fluidez que Windows le da a esta PC."),
-        ("2. Radiografía Completa Hardware", "Lista precisa con marcas y modelos reales de la Placa Madre, RAM instalada, Procesador exacto y Tarjetas Gráficas de esta computadora."),
-        ("3. Salud de Discos S.M.A.R.T", "Lee los sensores internos ocultos de tus discos duros y de estado sólido para advertirte si están a punto de sufrir una falla física."),
-        ("4. Monitor de Estabilidad Windows", "Abre una línea de tiempo gráfica que te muestra los últimos días de la computadora, detallando por qué ocurrió cada pantallazo azul o cierre inesperado."),
-        ("5. Cuadrícula Forense de Tareas", "Despliega una hoja de cálculo interactiva para investigar y filtrar procesos y servicios en memoria, mucho más detallado que el Administrador de Tareas."),
-        ("6. Tiempo de Actividad Real", "Muestra cuánto tiempo exacto lleva esta computadora encendida. Revela si el Inicio Rápido de Windows está impidiendo apagados reales."),
-        ("7. Auditar Tareas Ocultas", "Visualiza programas y mantenimientos fantasmas instalados en el fondo de tu equipo que podrían estar robando recursos y batería."),
-        ("8. Auditoría de Arranque", "Descubre exactamente cuáles programas se abren a escondidas apenas enciendes tu computadora, lo que hace que tu sistema tarde muchísimo en iniciar."),
-        ("9. Historial Forense de USBs", "Descifra y lista los nombres de todos los pendrives, controles y celulares que se han conectado en este equipo a lo largo de toda su historia."),
-        ("10. Extractor de Pantallazos", "Extrae los nombres y códigos de error exactos de todos los Pantallazos Azules de la Muerte recientes para diagnosticar hardware dañado."),
-        ("11. Gestor y Laboratorio de Batería", "Una doble herramienta increíble. Por un lado, te muestra de forma interactiva y visual cómo funciona el código de programación interna al cargar un celular. Por otro lado, lee los sensores de tu P C para mostrarte tu batería real y generar un reporte de su nivel de daño."),
-        ("12. Reporte de Suspensión", "Si tu laptop se descarga estando guardada o suspendida, descubre exactamente qué programa impidió que entrara en reposo absoluto."),
-        ("13. Gestor Avanzado BitLocker", "Una suite forense para discos encriptados. Te permite ver el estado de cifrado, extraer la clave de tu PC para guardarla, o hacer un escaneo profundo en tus pendrives para encontrar claves perdidas y desbloquear discos duros al instante."),
-        ("14. Auditoría de Usuarios Internos", "Expone las cuentas registradas internamente en tu sistema, listando su nivel de seguridad e intentando detectar infiltraciones."),
-        ("15. Extraer Serial de Fábrica", "Copia automáticamente a tu portapapeles el número de serie codificado de la placa base, indispensable para revisar garantías o descargar actualizaciones de BIOS."),
-        ("16. Escáner Forense RAM", "Busca virus militares sin archivo que no dejan rastros en el disco duro y se ocultan directamente en la Memoria RAM de la computadora."),
-        {"17. Visualizador Forense Web", "Genera una gráfica moderna, interactiva y al instante que te muestra cuáles son las páginas web más visitadas y las últimas búsquedas, evadiendo la seguridad del sistema."},
-        ("18. Radar de Hardware en Conflicto", "Detecta piezas físicas de la computadora que estén fallando o que no tengan drivers instalados. Al detectarlas, arma automáticamente una búsqueda avanzada en internet para llevarte directo a la solución.")
+        ("1. Cazador Forense Anti Keyloggers", "Es tu perro sabueso digital. Analiza la memoria RAM buscando programas piratas o sin firma que estén transmitiendo tus datos al instante. Si detecta algo espiándote, corta la conexión del hacker y lanza el antivirus de raíz."),
+        ("2. Diagnóstico Veloz", "Resumen instantáneo con la calificación matemática oficial de velocidad y fluidez que Windows le da a esta PC."),
+        ("3. Radiografía Completa Hardware", "Lista precisa con marcas y modelos reales de la Placa Madre, RAM instalada, Procesador exacto y Tarjetas Gráficas de esta computadora."),
+        ("4. Salud de Discos S.M.A.R.T", "Lee los sensores internos ocultos de tus discos duros y de estado sólido para advertirte si están a punto de sufrir una falla física."),
+        ("5. Monitor de Estabilidad Windows", "Abre una línea de tiempo gráfica que te muestra los últimos días de la computadora, detallando por qué ocurrió cada pantallazo azul o cierre inesperado."),
+        ("6. Cuadrícula Forense de Tareas", "Despliega una hoja de cálculo interactiva para investigar y filtrar procesos y servicios en memoria, mucho más detallado que el Administrador de Tareas."),
+        ("7. Tiempo de Actividad Real", "Muestra cuánto tiempo exacto lleva esta computadora encendida. Revela si el Inicio Rápido de Windows está impidiendo apagados reales."),
+        ("8. Auditar Tareas Ocultas", "Visualiza programas y mantenimientos fantasmas instalados en el fondo de tu equipo que podrían estar robando recursos y batería."),
+        ("9. Auditoría de Arranque", "Descubre exactamente cuáles programas se abren a escondidas apenas enciendes tu computadora, lo que hace que tu sistema tarde muchísimo en iniciar."),
+        ("10. Historial Forense de USBs", "Descifra y lista los nombres de todos los pendrives, controles y celulares que se han conectado en este equipo a lo largo de toda su historia."),
+        ("11. Extractor de Pantallazos", "Extrae los nombres y códigos de error exactos de todos los Pantallazos Azules de la Muerte recientes para diagnosticar hardware dañado."),
+        ("12. Gestor y Laboratorio de Batería", "Una doble herramienta increíble. Por un lado, te muestra de forma interactiva y visual cómo funciona el código de programación interna al cargar un celular. Por otro lado, lee los sensores de tu P C para mostrarte tu batería real y generar un reporte de su nivel de daño."),
+        ("13. Reporte de Suspensión", "Si tu laptop se descarga estando guardada o suspendida, descubre exactamente qué programa impidió que entrara en reposo absoluto."),
+        ("14. Gestor Avanzado BitLocker", "Una suite forense para discos encriptados. Te permite ver el estado de cifrado, extraer la clave de tu PC para guardarla, o hacer un escaneo profundo en tus pendrives para encontrar claves perdidas y desbloquear discos duros al instante."),
+        ("15. Auditoría de Usuarios Internos", "Expone las cuentas registradas internamente en tu sistema, listando su nivel de seguridad e intentando detectar infiltraciones."),
+        ("16. Extraer Serial de Fábrica", "Copia automáticamente a tu portapapeles el número de serie codificado de la placa base, indispensable para revisar garantías o descargar actualizaciones de BIOS."),
+        ("17. Escáner Forense RAM", "Busca virus militares sin archivo que no dejan rastros en el disco duro y se ocultan directamente en la Memoria RAM de la computadora."),
+        {"18. Visualizador Forense Web", "Genera una gráfica moderna, interactiva y al instante que te muestra cuáles son las páginas web más visitadas y las últimas búsquedas, evadiendo la seguridad del sistema."},
+        ("19. Radar de Hardware en Conflicto", "Detecta piezas físicas de la computadora que estén fallando o que no tengan drivers instalados. Al detectarlas, arma automáticamente una búsqueda avanzada en internet para llevarte directo a la solución.")
     ]
     
     guia_soft_win = [
-        ("1. Actualizar Aplicaciones", "Detecta programas instalados como Zoom, VLC o Chrome, y descarga sus últimas versiones de golpe en segundo plano de forma invisible."),
+        ("1. Gestor Interactivo de Software", "Abre un panel visual inteligente. Evaluará todos tus programas asignándoles un nivel de importancia, así sabrás exactamente qué hace cada programa. Podrás actualizar lo que necesites, o borrar aplicaciones basura permanentemente."),
         ("2. Extraer Clave Original", "Recupera tu licencia legítima de Microsoft leyendo directamente el código quemado en el chip de tu computadora."),
         ("3. Inventario Software a Excel", "Genera una base de datos en Excel al instante, listando perfectamente cada programa y la versión instalada en el sistema."),
         ("4. Respaldo Total de Controladores", "La salvación de PCs antiguas. Copia todos los controladores de Wi-Fi, Gráfica y Audio antes de un formateo para no quedar incomunicado."),
@@ -5175,121 +5792,126 @@ lbl_ip.pack(anchor="w", padx=20, pady=2)
 lbl_net = ctk.CTkLabel(hud_frame, text="⚡ Ping: Calculando...", font=("Arial", 12, "bold"), text_color="#FCD34D")
 lbl_net.pack(anchor="w", padx=20, pady=(10, 2))
 
-    # --- MOTOR LÓGICO DEL HUD (MAXIMIZADO Y ANTI-CRASH) ---
+# --- MOTOR LÓGICO DEL HUD (MAXIMIZADO Y ANTI-CRASH) ---
 from ctypes import wintypes
 import ctypes
+import shutil
 
 class MEMORYSTATUSEX(ctypes.Structure):
-        _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong), ("ullTotalPhys", ctypes.c_ulonglong),
-                    ("ullAvailPhys", ctypes.c_ulonglong), ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
-                    ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong), ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
+    _fields_ = [("dwLength", ctypes.c_ulong), ("dwMemoryLoad", ctypes.c_ulong), ("ullTotalPhys", ctypes.c_ulonglong),
+                ("ullAvailPhys", ctypes.c_ulonglong), ("ullTotalPageFile", ctypes.c_ulonglong), ("ullAvailPageFile", ctypes.c_ulonglong),
+                ("ullTotalVirtual", ctypes.c_ulonglong), ("ullAvailVirtual", ctypes.c_ulonglong), ("ullAvailExtendedVirtual", ctypes.c_ulonglong)]
 
 class FILETIME(ctypes.Structure):
-        _fields_ = [("dwLowDateTime", wintypes.DWORD), ("dwHighDateTime", wintypes.DWORD)]
+    _fields_ = [("dwLowDateTime", wintypes.DWORD), ("dwHighDateTime", wintypes.DWORD)]
 
 def arrancar_motor_hud():
-        import subprocess, threading, time, shutil, socket
+    import subprocess
+    import time
+    import threading
+    
+    def get_system_times():
+        idleTime, kernelTime, userTime = FILETIME(), FILETIME(), FILETIME()
+        ctypes.windll.kernel32.GetSystemTimes(ctypes.byref(idleTime), ctypes.byref(kernelTime), ctypes.byref(userTime))
+        idle = (idleTime.dwHighDateTime << 32) | idleTime.dwLowDateTime
+        sys_time = ((kernelTime.dwHighDateTime << 32) | kernelTime.dwLowDateTime) + ((userTime.dwHighDateTime << 32) | userTime.dwLowDateTime)
+        return idle, sys_time
 
-        def get_system_times():
+    # Obtenemos la RAM física real instalada en los slots
+    try:
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        script_ram = "Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum | Select-Object -ExpandProperty Sum"
+        ram_instalada_bytes = int(subprocess.run(["powershell", "-NoProfile", "-Command", script_ram], capture_output=True, text=True, startupinfo=startupinfo).stdout.strip())
+        ram_fisica_gb = ram_instalada_bytes / (1024**3)
+    except:
+        ram_fisica_gb = 0
+
+    def tarea_actualizacion():
+        idle_prev, sys_prev = get_system_times()
+        while True:
+            time.sleep(1.5)
+            
+            # 1. CPU
+            idle_now, sys_now = get_system_times()
+            idle_diff = idle_now - idle_prev
+            sys_diff = sys_now - sys_prev
+            cpu_percent = int((sys_diff - idle_diff) * 100.0 / sys_diff) if sys_diff > 0 else 0
+            idle_prev, sys_prev = idle_now, sys_now
+
+            # 2. RAM
             try:
-                idleTime, kernelTime, userTime = FILETIME(), FILETIME(), FILETIME()
-                ctypes.windll.kernel32.GetSystemTimes(ctypes.byref(idleTime), ctypes.byref(kernelTime), ctypes.byref(userTime))
-                idle = (idleTime.dwHighDateTime << 32) | idleTime.dwLowDateTime
-                sys_time = ((kernelTime.dwHighDateTime << 32) | kernelTime.dwLowDateTime) + ((userTime.dwHighDateTime << 32) | userTime.dwLowDateTime)
-                return idle, sys_time
-            except: return 0, 0
+                stat = MEMORYSTATUSEX()
+                stat.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
+                ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
+                ram_percent = stat.dwMemoryLoad
+                ram_total = ram_fisica_gb if ram_fisica_gb > 0 else stat.ullTotalPhys / (1024**3)
+                ram_usada = (stat.ullTotalPhys - stat.ullAvailPhys) / (1024**3)
+            except: ram_percent, ram_total, ram_usada = 0, 0, 0
 
-        def tarea_actualizacion():
-            # 1. Escudo Anti-Congelamiento: Leemos la RAM real en segundo plano
-            ram_fisica_gb = 0
+            # 3. Disco C:
             try:
-                startupinfo = subprocess.STARTUPINFO()
-                startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                script_ram = "Get-CimInstance Win32_PhysicalMemory | Measure-Object -Property Capacity -Sum | Select-Object -ExpandProperty Sum"
-                out = subprocess.run(["powershell", "-NoProfile", "-Command", script_ram], capture_output=True, text=True, startupinfo=startupinfo, timeout=5).stdout.strip()
-                if out.isdigit():
-                    ram_fisica_gb = int(out) / (1024**3)
-            except: pass
+                total_b, _, free_b = shutil.disk_usage("C:\\")
+                disco_total = total_b / (1024**3)
+                disco_usado = (total_b - free_b) / (1024**3)
+                disco_percent = (disco_usado / disco_total) * 100 if disco_total > 0 else 0
+            except: disco_percent, disco_total, disco_usado = 0, 0, 0
 
-            idle_prev, sys_prev = get_system_times()
+            color_cpu = "#EF4444" if cpu_percent > 85 else ("#F59E0B" if cpu_percent > 60 else "#10B981")
+            color_ram = "#EF4444" if ram_percent > 85 else ("#F59E0B" if ram_percent > 60 else "#3B82F6")
+            color_disco = "#EF4444" if disco_percent > 90 else "#8B5CF6"
 
-            while True:
-                time.sleep(1.5) # Ciclo de refresco
-                
-                # --- CPU ---
+            def refrescar_ui():
                 try:
-                    idle_now, sys_now = get_system_times()
-                    if sys_now > sys_prev:
-                        idle_diff = idle_now - idle_prev
-                        sys_diff = sys_now - sys_prev
-                        cpu_percent = int((sys_diff - idle_diff) * 100.0 / sys_diff)
-                    else: cpu_percent = 0
-                    idle_prev, sys_prev = idle_now, sys_now
-                except: cpu_percent = 0
+                    # Actualización pura con escudo Anti-Crash global
+                    lbl_cpu_val.configure(text=f"{cpu_percent}%")
+                    pb_cpu.set(cpu_percent / 100.0)
+                    pb_cpu.configure(progress_color=color_cpu)
 
-                # --- RAM ---
-                try:
-                    stat = MEMORYSTATUSEX()
-                    stat.dwLength = ctypes.sizeof(MEMORYSTATUSEX)
-                    ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(stat))
-                    ram_percent = stat.dwMemoryLoad
-                    ram_total = ram_fisica_gb if ram_fisica_gb > 0 else stat.ullTotalPhys / (1024**3)
+                    lbl_ram_val.configure(text=f"{ram_usada:.1f} GB / {ram_total:.1f} GB ({ram_percent}%)")
+                    pb_ram.set(ram_percent / 100.0)
+                    pb_ram.configure(progress_color=color_ram)
+
+                    lbl_disco_val.configure(text=f"{disco_usado:.1f} GB / {disco_total:.1f} GB ({int(disco_percent)}%)")
+                    pb_disco.set(disco_percent / 100.0)
+                    pb_disco.configure(progress_color=color_disco)
+                except Exception: pass 
+
+            app.after(0, refrescar_ui)
+
+    def tarea_ping():
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        
+        while True:
+            try:
+                salida = subprocess.run(["ping", "-n", "1", "-w", "1000", "8.8.8.8"], capture_output=True, text=True, startupinfo=startupinfo)
+                if "tiempo=" in salida.stdout or "time=" in salida.stdout:
+                    tag = "tiempo=" if "tiempo=" in salida.stdout else "time="
+                    tiempo_str = salida.stdout.split(tag)[1].split("ms")[0].strip()
+                    ms = int(tiempo_str.replace("<", "").replace("=", ""))
                     
-                    # Corrección del bug de Windows (Hardware Reservado)
-                    if ram_fisica_gb > 0:
-                        ram_usada = ram_total * (ram_percent / 100.0)
-                    else:
-                        ram_usada = (stat.ullTotalPhys - stat.ullAvailPhys) / (1024**3)
-                except: ram_percent, ram_total, ram_usada = 0, 0, 0
-
-                # --- DISCO ---
-                try:
-                    total_b, _, free_b = shutil.disk_usage("C:\\")
-                    disco_total = total_b / (1024**3)
-                    disco_usado = (total_b - free_b) / (1024**3)
-                    disco_percent = (disco_usado / disco_total) * 100 if disco_total > 0 else 0
-                except: disco_percent, disco_total, disco_usado = 0, 0, 0
-                
-                # --- PING EN VIVO (Maximizando el HUD) ---
-                try:
-                    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-                    s.settimeout(0.5)
-                    t0 = time.time()
-                    s.connect(('8.8.8.8', 53))
-                    ping_ms = int((time.time() - t0) * 1000)
-                    s.close()
-                except: ping_ms = -1
-
-                # Colores Dinámicos
-                ccpu = "#EF4444" if cpu_percent > 85 else ("#F59E0B" if cpu_percent > 60 else "#10B981")
-                cram = "#EF4444" if ram_percent > 85 else ("#F59E0B" if ram_percent > 60 else "#3B82F6")
-                cdisco = "#EF4444" if disco_percent > 90 else "#8B5CF6"
-
-                # Inyección Segura (Closures con variables pre-asignadas evitan colisiones de memoria)
-                def refrescar(cp=cpu_percent, c_c=ccpu, ru=ram_usada, rt=ram_total, rp=ram_percent, c_r=cram, du=disco_usado, dt=disco_total, dp=disco_percent, c_d=cdisco, pm=ping_ms):
-                    if not app.winfo_exists(): return
-                    try:
-                        lbl_cpu_val.configure(text=f"{cp}%")
-                        pb_cpu.set(cp / 100.0)
-                        pb_cpu.configure(progress_color=c_c)
-
-                        lbl_ram_val.configure(text=f"{ru:.1f} GB / {rt:.1f} GB ({rp}%)")
-                        pb_ram.set(rp / 100.0)
-                        pb_ram.configure(progress_color=c_r)
-
-                        lbl_disco_val.configure(text=f"{du:.1f} GB / {dt:.1f} GB ({dp:.1f}%)")
-                        pb_disco.set(dp / 100.0)
-                        pb_disco.configure(progress_color=c_d)
+                    color = "#10B981" if ms < 50 else ("#F59E0B" if ms < 150 else "#EF4444")
                         
-                        if pm >= 0:
-                            lbl_net.configure(text=f"⚡ Ping: {pm} ms", text_color="#10B981" if pm < 100 else "#F59E0B")
-                        else:
-                            lbl_net.configure(text="⚡ Ping: Desconectado", text_color="#EF4444")
-                    except: pass 
-
-                app.after(0, refrescar)
-
-        threading.Thread(target=tarea_actualizacion, daemon=True).start()
+                    def update_ui_ping():
+                        try: lbl_net.configure(text=f"⚡ Ping: {ms} ms", text_color=color)
+                        except Exception: pass
+                    app.after(0, update_ui_ping)
+                else:
+                    def update_ui_desc():
+                        try: lbl_net.configure(text="⚡ Ping: Desconectado", text_color="#EF4444")
+                        except Exception: pass
+                    app.after(0, update_ui_desc)
+            except Exception:
+                def update_ui_err():
+                    try: lbl_net.configure(text="⚡ Ping: Error", text_color="#EF4444")
+                    except Exception: pass
+                app.after(0, update_ui_err)
+            
+            time.sleep(2)
+            
+    threading.Thread(target=tarea_actualizacion, daemon=True).start()
+    threading.Thread(target=tarea_ping, daemon=True).start()
 
 arrancar_motor_hud()
 import subprocess
@@ -5678,6 +6300,117 @@ def cargar_categoria_redes():
         {"id": "29", "nombre": "29. Laboratorio Forense Anti-Phishing", "cmd": lambda: abrir_consola_y_ejecutar("ANTI-PHISHING", logica_analizador_phishing), "nov": "Detecta si un correo electrónico es falso o real. Pega el código original del correo y la herramienta analizará las firmas de seguridad y geolocalizará la IP del remitente.", "exp": "[Fusión OSINT + Regex] Módulo 2 en 1. Parsea cabeceras crudas (RFC 5322) usando Regex para validar firmas criptográficas SPF/DKIM/DMARC. Extrae la IP de origen y pivota hacia ip-api.com para trazar el ASN/ISP."}
     ]
     construir_vista_dinamica("🌐 Redes e Internet", "🔍 Buscar (Ej: dns, 16, wifi)...", h_redes)
+
+def logica_boton_panico(log):
+    import psutil, ctypes, time, threading
+    import customtkinter as ctk
+    from tkinter import messagebox
+
+    log("\n" + "="*75)
+    log(" 🚨 INICIANDO CENTRO DE CONTROL Y BOTÓN DE PÁNICO ")
+    log("="*75)
+    log("[*] Desplegando sensores en tiempo real de CPU y RAM...")
+
+    win_panico = ctk.CTkToplevel(app)
+    win_panico.title("TREMEND - Liberador Extremo de Recursos")
+    win_panico.geometry("600x480")
+    win_panico.attributes("-topmost", True)
+    win_panico.transient(app)
+
+    ctk.CTkLabel(win_panico, text="Monitor de Rendimiento Crítico", font=("Arial", 22, "bold"), text_color="#38BDF8").pack(pady=(20, 5))
+    ctk.CTkLabel(win_panico, text="Evalúa la carga actual. Usa el botón de pánico si el sistema no responde.", font=("Arial", 12), text_color="#94A3B8").pack(pady=(0, 20))
+
+    # --- INDICADORES GRÁFICOS ---
+    frame_sensores = ctk.CTkFrame(win_panico, fg_color="#1E293B", corner_radius=10)
+    frame_sensores.pack(fill="x", padx=30, pady=10)
+
+    # CPU
+    ctk.CTkLabel(frame_sensores, text="Procesador (CPU)", font=("Arial", 14, "bold"), text_color="#E2E8F0").pack(anchor="w", padx=20, pady=(15, 0))
+    lbl_cpu = ctk.CTkLabel(frame_sensores, text="0%", font=("Arial", 28, "bold"), text_color="#10B981")
+    lbl_cpu.pack(pady=5)
+    lbl_estado_cpu = ctk.CTkLabel(frame_sensores, text="Normal", font=("Arial", 12, "bold"), text_color="#10B981")
+    lbl_estado_cpu.pack()
+
+    # RAM
+    ctk.CTkLabel(frame_sensores, text="Memoria RAM", font=("Arial", 14, "bold"), text_color="#E2E8F0").pack(anchor="w", padx=20, pady=(15, 0))
+    lbl_ram = ctk.CTkLabel(frame_sensores, text="0%", font=("Arial", 28, "bold"), text_color="#10B981")
+    lbl_ram.pack(pady=5)
+    lbl_estado_ram = ctk.CTkLabel(frame_sensores, text="Normal", font=("Arial", 12, "bold"), text_color="#10B981")
+    lbl_estado_ram.pack(pady=(0, 15))
+
+    # --- MOTOR DE SENSORES EN TIEMPO REAL ---
+    def actualizar_sensores():
+        while win_panico.winfo_exists():
+            cpu_val = psutil.cpu_percent(interval=None)
+            ram_info = psutil.virtual_memory()
+            ram_val = ram_info.percent
+
+            # Lógica de Límites (Verde, Amarillo, Rojo)
+            if cpu_val < 60:
+                c_cpu, t_cpu = "#10B981", "Óptimo"
+            elif cpu_val < 85:
+                c_cpu, t_cpu = "#F59E0B", "Sobrecarga (Cuidado)"
+            else:
+                c_cpu, t_cpu = "#EF4444", "CRÍTICO (Riesgo de sobrecalentamiento)"
+
+            if ram_val < 60:
+                c_ram, t_ram = "#10B981", "Óptimo"
+            elif ram_val < 85:
+                c_ram, t_ram = "#F59E0B", "Llenándose (Cuidado)"
+            else:
+                c_ram, t_ram = "#EF4444", "CRÍTICO (El equipo se congelará)"
+
+            def refrescar(cv=cpu_val, cc=c_cpu, tc=t_cpu, rv=ram_val, cr=c_ram, tr=t_ram):
+                if win_panico.winfo_exists():
+                    lbl_cpu.configure(text=f"{cv:.1f}%", text_color=cc)
+                    lbl_estado_cpu.configure(text=tc, text_color=cc)
+                    lbl_ram.configure(text=f"{rv:.1f}%", text_color=cr)
+                    lbl_estado_ram.configure(text=tr, text_color=cr)
+
+            app.after(0, refrescar)
+            time.sleep(1.5)
+
+    threading.Thread(target=actualizar_sensores, daemon=True).start()
+
+    # --- PROTOCOLO DE PÁNICO ---
+    def ejecutar_panico():
+        if messagebox.askyesno("⚠️ ALERTA CRÍTICA", "Se cerrarán forzosamente TODOS los navegadores web y programas en segundo plano.\n\nADVERTENCIA: Si tienes documentos de Word/Excel sin guardar, guárdalos antes de continuar.\n\n¿Estás seguro de ejecutar el Protocolo de Pánico?"):
+            log("\n[!] PROTOCOLO DE PÁNICO INICIADO.")
+            log("[*] Ejecutando purga de aplicaciones consumidoras...")
+            
+            apps_pesadas = ['chrome.exe', 'msedge.exe', 'brave.exe', 'firefox.exe', 'opera.exe',
+                            'discord.exe', 'steam.exe', 'epicgames.exe', 'teams.exe', 'skype.exe',
+                            'spotify.exe', 'iexplore.exe', 'whatsapp.exe']
+            muertos = 0
+            
+            # 1. Matar aplicaciones pesadas y navegadores (Libera CPU y RAM masiva)
+            for proc in psutil.process_iter(['name']):
+                try:
+                    if proc.info['name'].lower() in apps_pesadas:
+                        proc.kill()
+                        muertos += 1
+                except: pass
+            
+            log(f"    -> Se aniquilaron {muertos} procesos pesados.")
+            log("[*] Obligando al Kernel de Windows a soltar la RAM inactiva (EmptyWorkingSet)...")
+
+            # 2. El Truco Maestro: Empty Working Set (Libera RAM de todo lo demás sin cerrarlos)
+            liberados = 0
+            for proc in psutil.process_iter(['pid', 'name']):
+                try:
+                    # 0x0100 (PROCESS_QUERY_INFORMATION) | 0x0400 (PROCESS_QUERY_LIMITED_INFORMATION) | 0x0001 (PROCESS_VM_READ)
+                    handle = ctypes.windll.kernel32.OpenProcess(0x1F0FFF, False, proc.info['pid'])
+                    if handle:
+                        if ctypes.windll.psapi.EmptyWorkingSet(handle):
+                            liberados += 1
+                        ctypes.windll.kernel32.CloseHandle(handle)
+                except: pass
+
+            log(f"    -> Se obligó a {liberados} programas a devolver memoria RAM al sistema.")
+            log("\n[+] ¡SISTEMA ESTABILIZADO! El procesador y la RAM ahora pueden respirar.")
+            messagebox.showinfo("Éxito", "Protocolo finalizado. El equipo debería sentirse mucho más rápido ahora.")
+
+    ctk.CTkButton(win_panico, text="🚨 PROTOCOLO DE PÁNICO (Cerrar y Liberar Todo)", font=("Arial", 16, "bold"), height=55, fg_color="#EF4444", hover_color="#DC2626", command=ejecutar_panico).pack(side="bottom", fill="x", padx=40, pady=30)
 
 def cargar_categoria_mantenimiento():
     global app
@@ -6121,7 +6854,7 @@ def cargar_categoria_mantenimiento():
             {"id": "4", "nombre": "4. Restablecer Cola de Impresión", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR IMPRESIÓN", logica_spooler), "nov": "Soluciona de inmediato los atascos cuando envías un documento y la impresora se queda trabada sin hacer nada.", "exp": "[Microsoft OS] Detiene Spooler. Purga recursivamente caché .SHD y .SPL del directorio System32, liberando el buffer de cola."},
             {"id": "5", "nombre": "5. Limpieza Extrema de WinSxS", "cmd": lambda: abrir_consola_y_ejecutar("LIMPIEZA WINSXS", logica_winsxs), "nov": "Libera masivamente espacio de disco duro borrando copias de seguridad viejas y obsoletas de actualizaciones de Windows.", "exp": "[Microsoft OS] Ejecuta DISM /Online /Cleanup-Image /StartComponentCleanup /ResetBase. Minimiza el footprint consolidando el S.O."},
             {"id": "6", "nombre": "6. Reparar Windows Update Roto", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR UPDATE", logica_reparar_update), "nov": "Arregla el problema crítico cuando las actualizaciones de Windows se quedan trabadas en 'Descargando 0%' eternamente.", "exp": "[Microsoft OS] Detiene criptográficos (wuauserv, bits), renombra SoftwareDistribution a .old y regenera bases de datos de Windows Update."},
-            {"id": "7", "nombre": "7. Purgar Puntos Restauración", "cmd": lambda: abrir_consola_y_ejecutar("BORRAR VSS", logica_shadowcopies), "nov": "Borra copias de seguridad de Windows muy antiguas que consumen excesivo espacio oculto en tu disco duro (Seguro).", "exp": "[Microsoft OS] Ejecuta vssadmin delete shadows /all /quiet. Purga registros inactivos y shadow copies asignadas recuperando espacio en MFT."},
+            {"id": "7", "nombre": "7. Gestor de Puntos de Restauración", "cmd": lambda: abrir_consola_y_ejecutar("MÁQUINA DEL TIEMPO", logica_maquina_tiempo), "nov": "Escanea tus puntos de restauración, te advierte si son muy viejos, crea backups nuevos o te permite regresar el PC en el tiempo con un clic.", "exp": "[Fusión WMI/VSS] Interroga la clase RestorePoint. Implementa análisis de fechas (Datetime) y despliega menú para crear (Checkpoint-Computer), restaurar o purgar volúmenes ocultos."},
             {"id": "8", "nombre": "8. Reparar Telemetría Base (WMI)", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR WMI", logica_wmi), "nov": "Arregla errores raros, como cuando la PC no lee el nivel de batería, no da audio o los programas se cierran solos.", "exp": "[Microsoft OS] Detiene winmgmt, ejecuta la bandera '/resetrepository' para reconstruir archivos MOF/CIM averiados y relanza servicios."},
             {"id": "9", "nombre": "9. Bloquear Espionaje Microsoft", "cmd": lambda: abrir_consola_y_ejecutar("BLOQUEO TELEMETRÍA", logica_telemetria), "nov": "Evita que Windows envíe reportes de uso constante a los servidores de Microsoft. Mejora el rendimiento del internet y disco.", "exp": "[Inyección de Registro] Fuerza detención de DiagTrack y altera llave DWORD AllowTelemetry a 0 en el Registro cortando el tráfico saliente."},
             {"id": "10", "nombre": "10. Reparar Sincronización (Hora)", "cmd": lambda: abrir_consola_y_ejecutar("REPARAR HORA", logica_hora), "nov": "Soluciona el error 'La conexión no es privada' obligando a tu PC a sincronizar la hora exacta con relojes atómicos.", "exp": "[Microsoft OS] Reinicia Time Broker. Modifica peerlist forzando sincronización SNTP estricta contra time.windows.com con resync de placa."},
@@ -6133,7 +6866,8 @@ def cargar_categoria_mantenimiento():
             {"id": "16", "nombre": "16. Mole (Optimizador Terminal)", "cmd": lambda: abrir_consola_y_ejecutar("MOLE", logica_mole), "nov": "Potente optimizador estilo CCleaner, pero corriendo puramente en texto dentro de tu consola. Limpia gigabytes en un parpadeo.", "exp": "[TUI Scripting] Llama al script nativo quick-install.ps1 vía irm. Abre una sesión externa interactiva (conhost) para navegación CLI con purga."},
             {"id": "17", "nombre": "17. Escáner de Fugas y Memoria Virtual", "cmd": btn_fugas_espacio, "nov": "Purga el bug de espacio de Windows 11. Además, escanea tu hardware y te recomienda el límite perfecto de memoria virtual, permitiéndote elegir en qué disco guardarla.", "exp": "[Fusión OSINT HW] Escanea el TotalPhysicalMemory y mapea volumenes vía psutil. Presenta un dashboard interactivo que inyecta parámetros en Win32_PageFileSetting reubicando el pagefile.sys y pulverizando el CapabilityAccessManager."},
             {"id": "18", "nombre": "18. Organizador Inteligente de Archivos", "cmd": lambda: abrir_consola_y_ejecutar("ORGANIZADOR INTELIGENTE", logica_organizador_archivos), "nov": "Selecciona una carpeta hecha un desastre (como Descargas) y automáticamente separará todo en subcarpetas por fotos, videos, programas, etc.", "exp": "[Python shutil & os] Automatiza la clasificación por extensión iterando el directorio. Crea una bóveda Sandbox e incluye una rutina recursiva (Bottom-Up) para purgar directorios vacíos remanentes."},
-            {"id": "19", "nombre": "19. Radar Visual de Almacenamiento", "cmd": btn_mapa_espacio, "nov": "Muestra un mapa interactivo de tu disco duro ordenando las carpetas de la más pesada a la más ligera. Además, la inteligencia artificial te sugerirá archivos basura de Windows que puedes eliminar con un clic.", "exp": "[Hilos WMI/OS] Combina un scanner recursivo de alto rendimiento (os.scandir) con un renderizador ttk.Treeview. Incluye módulo Heurístico pre-scan para identificar y truncar inodos huérfanos del S.O."}
+            {"id": "19", "nombre": "19. Radar Visual de Almacenamiento", "cmd": btn_mapa_espacio, "nov": "Muestra un mapa interactivo de tu disco duro ordenando las carpetas de la más pesada a la más ligera. Además, la inteligencia artificial te sugerirá archivos basura de Windows que puedes eliminar con un clic.", "exp": "[Hilos WMI/OS] Combina un scanner recursivo de alto rendimiento (os.scandir) con un renderizador ttk.Treeview. Incluye módulo Heurístico pre-scan para identificar y truncar inodos huérfanos del S.O."},
+            {"id": "20", "nombre": "20. Gestor de Pánico (Liberar RAM/CPU)", "cmd": lambda: abrir_consola_y_ejecutar("MODO PÁNICO", logica_boton_panico), "nov": "Mide en tiempo real tu procesador y RAM. Si la PC se está trabando, un botón cerrará todo lo innecesario para que vuelva a respirar.", "exp": "[Fusión OS/PSAPI] Ejecuta lecturas en vivo con psutil. El botón inyecta kill signals a binarios pesados (Chromium/Electron) e invoca la API EmptyWorkingSet para forzar al Kernel a descargar páginas de memoria inactivas."}
     ]
     construir_vista_dinamica("🧹 Mantenimiento y Optimización", "🔍 Buscar (Ej: chkdsk, debloat)...", h_mant)
 
@@ -6222,31 +6956,32 @@ def cargar_categoria_diagnostico():
                     abrir_consola_y_ejecutar("DESBLOQUEO BITLOCKER", lambda log: logica_bitlocker(log, '4', drive, clave))
 
     h_diag = [
-        {"id": "1", "nombre": "1. Diagnóstico Veloz", "cmd": lambda: abrir_consola_y_ejecutar("INFO RÁPIDA", logica_diagnostico_rapido), "nov": "Resumen instantáneo con la calificación matemática oficial de velocidad y fluidez que Windows le da a esta PC.", "exp": "[Microsoft OS] Invoca systeminfo y evalúa la clase WMI 'Win32_WinSat', exponiendo la calificación formal WinEI del indexador interno."},
-        {"id": "2", "nombre": "2. Radiografía Completa Hardware", "cmd": lambda: abrir_consola_y_ejecutar("RADIOGRAFÍA HW", logica_radiografia_hardware_completa), "nov": "Lista precisa con marcas y modelos reales de la Placa Madre, RAM instalada, Procesador exacto y Tarjetas Gráficas de esta computadora.", "exp": "[CIM Engine] Volcado canalizado. Interroga las clases Win32_BaseBoard, Processor y parsea arreglos matemáticos de PhysicalMemory (DIMMs)."},
-        {"id": "3", "nombre": "3. Salud de Discos S.M.A.R.T", "cmd": lambda: abrir_consola_y_ejecutar("SALUD DE DISCOS", logica_salud_discos), "nov": "Lee los sensores internos ocultos de tus discos duros y de estado sólido para advertirte si están a punto de sufrir una falla física.", "exp": "[Lectura a Nivel Hardware] Parsea el firmware físico utilizando Get-PhysicalDisk, evaluando la variable HealthStatus extraída del sensor S.M.A.R.T."},
-        {"id": "4", "nombre": "4. Monitor de Estabilidad Windows", "cmd": btn_perfmon, "nov": "Abre una línea de tiempo gráfica que te muestra los últimos días de la computadora, detallando por qué ocurrió cada pantallazo azul o cierre inesperado.", "exp": "[Microsoft OS] Emplea perfmon /rel para tabular crasheos históricos de aplicaciones y hardware utilizando un índice lógico de estabilidad."},
-        {"id": "5", "nombre": "5. Cuadrícula Forense de Tareas", "cmd": btn_visor, "nov": "Despliega una hoja de cálculo interactiva para investigar y filtrar procesos y servicios en memoria, mucho más detallado que el Administrador de Tareas.", "exp": "[Pipeline GridView] Redirige cadenas de datos masivas de Get-Process y EventLogs directamente hacia la interfaz gráfica de filtrado en RAM Out-GridView."},
-        {"id": "6", "nombre": "6. Tiempo de Actividad Real", "cmd": lambda: abrir_consola_y_ejecutar("UPTIME", logica_uptime), "nov": "Muestra cuánto tiempo exacto lleva esta computadora encendida. Revela si el Inicio Rápido de Windows está impidiendo apagados reales.", "exp": "[Microsoft OS] Resta la variable LastBootUpTime (Win32_OperatingSystem) a la hora actual revelando el falso apagado asociado a la hibernación de kernel."},
-        {"id": "7", "nombre": "7. Auditar Tareas Ocultas", "cmd": lambda: abrir_consola_y_ejecutar("AUDITAR TAREAS", logica_tareas_servicios), "nov": "Visualiza programas y mantenimientos fantasmas instalados en el fondo de tu equipo que podrían estar robando recursos y batería.", "exp": "[Microsoft OS] Pipe estructurado combinando la tabla schtasks y Get-Service, aislando exclusivamente los daemons cuyo estatus sea 'Running'."},
-        {"id": "8", "nombre": "8. Auditoría de Arranque", "cmd": lambda: abrir_consola_y_ejecutar("AUDITAR ARRANQUE", logica_programas_arranque), "nov": "Descubre exactamente cuáles programas se abren a escondidas apenas enciendes tu computadora, lo que hace que tu sistema tarde muchísimo en iniciar.", "exp": "[Microsoft OS] Evalúa ramas del registro y WMI (Win32_StartupCommand). Mapea binarios de persistencia que se enganchan a la fase WinLogon."},
-        {"id": "9", "nombre": "9. Historial Forense de USBs", "cmd": lambda: abrir_consola_y_ejecutar("HISTORIAL USB", logica_historial_usb), "nov": "Descifra y lista los nombres de todos los pendrives, controles y celulares que se han conectado en este equipo a lo largo de toda su historia.", "exp": "[Lennes Varela] Parsea registro Plug and Play (PnP). Itera recursivamente sobre la rama HKLM\\SYSTEM\\CurrentControlSet\\Enum\\USBSTOR extrayendo Device IDs."},
-        {"id": "10", "nombre": "10. Extractor de Pantallazos", "cmd": lambda: abrir_consola_y_ejecutar("BSOD", logica_pantallazos_azules), "nov": "Extrae los nombres y códigos de error exactos de todos los Pantallazos Azules de la Muerte recientes para diagnosticar hardware dañado.", "exp": "[Microsoft OS] Filtra EventLog System Logs buscando el origen 'BugCheck'. Extrae el volcado hexadecimal de memoria asociado al kernel panic."},
-        {"id": "11", "nombre": "11. Gestor y Laboratorio de Batería", "cmd": lambda: abrir_consola_y_ejecutar("CENTRO DE ENERGÍA", logica_monitor_bateria), "nov": "Muestra un simulador de código para entender cómo se programa una batería. Además, monitorea tu batería real en vivo y crea un reporte de desgaste.", "exp": "[Fusión WMI/psutil] Combina un simulador educativo interactivo (bucle while asíncrono) con un lector en vivo de sensores vía psutil y el dumper nativo de Windows (powercfg)."},
-        {"id": "12", "nombre": "12. Reporte de Suspensión", "cmd": lambda: abrir_consola_y_ejecutar("SLEEPSTUDY", logica_sleepstudy), "nov": "Si tu laptop se descarga estando guardada o suspendida, descubre exactamente qué programa impidió que entrara en reposo absoluto.", "exp": "[Microsoft OS] powercfg /SleepStudy analiza estados S0 Modern Standby, exponiendo los bloqueadores del Active-State Power Management (ASPM)."},
-        {"id": "13", "nombre": "13. Gestor Avanzado BitLocker", "cmd": btn_bitlocker, "nov": "Revisa el estado de cifrado, extrae tu clave actual, busca claves perdidas en USBs y desbloquea discos protegidos fácilmente.", "exp": "[Forense BDE] Interfaz interactiva para el motor 'manage-bde'. Incluye escáner recursivo ultra-rápido (dir /s /b) combinando regex para extraer recovery keys en texto plano de unidades montadas."},
-        {"id": "14", "nombre": "14. Auditoría de Usuarios Internos", "cmd": lambda: abrir_consola_y_ejecutar("USUARIOS LOCALES", logica_usuarios_locales), "nov": "Expone las cuentas registradas internamente en tu sistema, listando su nivel de seguridad e intentando detectar infiltraciones.", "exp": "[Microsoft OS] Extrae base de datos SAM ejecutando rutinas CIM hacia Win32_UserAccount para identificar el estatus de habilitación y privilegios base."},
-        {"id": "15", "nombre": "15. Extraer Serial de Fábrica", "cmd": lambda: abrir_consola_y_ejecutar("NÚMERO DE SERIE", logica_numero_serie), "nov": "Copia automáticamente a tu portapapeles el número de serie codificado de la placa base, indispensable para revisar garantías o descargar actualizaciones de BIOS.", "exp": "[Microsoft OS] Consulta nativa a Win32_ComputerSystemProduct aislando la variable string 'IdentifyingNumber' incrustada en ROM por el fabricante OEM."},
-        {"id": "16", "nombre": "16. Escáner Forense RAM", "cmd": lambda: abrir_consola_y_ejecutar("GHOST RAM", logica_memoria_ghost), "nov": "Busca virus militares sin archivo que no dejan rastros en el disco duro y se ocultan directamente en la Memoria RAM de la computadora.", "exp": "[Ejecución Nativa en Rust] Inyecta analizador de hilos. Rastrea memoria localizando inyecciones de código (Process Hollowing) mediante banderas de paginación RWX."},
-        {"id": "17", "nombre": "17. Visualizador Forense Web", "cmd": btn_historial_web, "nov": "Genera una gráfica moderna, interactiva y al instante que te muestra cuáles son las páginas web más visitadas y las últimas búsquedas, evadiendo la seguridad del sistema.", "exp": "[Bypass de Seguridad SQLite3] Evade los file locks (Errno 13) clonando la Database History del navegador Chromium hacia el %TEMP%. Interpreta sentencias SQL nativas y renderiza una interfaz interactiva Tailwind/Chart.js."},
-        {"id": "18", "nombre": "18. Radar de Hardware en Conflicto", "cmd": lambda: abrir_consola_y_ejecutar("RADAR HARDWARE", logica_radar_hardware), "nov": "Detecta piezas físicas de la computadora que estén fallando o que no tengan drivers instalados. Al detectarlas, arma automáticamente una búsqueda avanzada en internet para llevarte directo a la solución.", "exp": "[Auto-Dorking Forense] Interroga la clase WMI Win32_PnPEntity buscando ConfigManagerErrorCode != 0. Extrae la firma de hardware (VEN/DEV) y estructura una búsqueda con operadores lógicos de Google apuntando a dominios especializados."}
+        {"id": "1", "nombre": "1. Cazador Forense (Anti-Keyloggers)", "cmd": lambda: abrir_consola_y_ejecutar("CAZADOR DE MALWARE", logica_cazador_malware), "nov": "Detecta virus ocultos (como Keyloggers de Office pirata) cruzando el tráfico de red con firmas digitales de los programas.", "exp": "[Heurística Híbrida] Aísla sockets TCP establecidos y escanea el AuthenticodeSignature del OwningProcess. Aniquila PIDs no firmados e invoca mrt.exe y MpCmdRun para purga profunda."},
+        {"id": "2", "nombre": "2. Diagnóstico Veloz", "cmd": lambda: abrir_consola_y_ejecutar("INFO RÁPIDA", logica_diagnostico_rapido), "nov": "Resumen instantáneo con la calificación matemática oficial de velocidad y fluidez que Windows le da a esta PC.", "exp": "[Microsoft OS] Invoca systeminfo y evalúa la clase WMI 'Win32_WinSat', exponiendo la calificación formal WinEI del indexador interno."},
+        {"id": "3", "nombre": "3. Radiografía Completa Hardware", "cmd": lambda: abrir_consola_y_ejecutar("RADIOGRAFÍA HW", logica_radiografia_hardware_completa), "nov": "Lista precisa con marcas y modelos reales de la Placa Madre, RAM instalada, Procesador exacto y Tarjetas Gráficas de esta computadora.", "exp": "[CIM Engine] Volcado canalizado. Interroga las clases Win32_BaseBoard, Processor y parsea arreglos matemáticos de PhysicalMemory (DIMMs)."},
+        {"id": "4", "nombre": "4. Salud de Discos S.M.A.R.T", "cmd": lambda: abrir_consola_y_ejecutar("SALUD DE DISCOS", logica_salud_discos), "nov": "Lee los sensores internos ocultos de tus discos duros y de estado sólido para advertirte si están a punto de sufrir una falla física.", "exp": "[Lectura a Nivel Hardware] Parsea el firmware físico utilizando Get-PhysicalDisk, evaluando la variable HealthStatus extraída del sensor S.M.A.R.T."},
+        {"id": "5", "nombre": "5. Monitor de Estabilidad Windows", "cmd": btn_perfmon, "nov": "Abre una línea de tiempo gráfica que te muestra los últimos días de la computadora, detallando por qué ocurrió cada pantallazo azul o cierre inesperado.", "exp": "[Microsoft OS] Emplea perfmon /rel para tabular crasheos históricos de aplicaciones y hardware utilizando un índice lógico de estabilidad."},
+        {"id": "6", "nombre": "6. Cuadrícula Forense de Tareas", "cmd": btn_visor, "nov": "Despliega una hoja de cálculo interactiva para investigar y filtrar procesos y servicios en memoria, mucho más detallado que el Administrador de Tareas.", "exp": "[Pipeline GridView] Redirige cadenas de datos masivas de Get-Process y EventLogs directamente hacia la interfaz gráfica de filtrado en RAM Out-GridView."},
+        {"id": "7", "nombre": "7. Tiempo de Actividad Real", "cmd": lambda: abrir_consola_y_ejecutar("UPTIME", logica_uptime), "nov": "Muestra cuánto tiempo exacto lleva esta computadora encendida. Revela si el Inicio Rápido de Windows está impidiendo apagados reales.", "exp": "[Microsoft OS] Resta la variable LastBootUpTime (Win32_OperatingSystem) a la hora actual revelando el falso apagado asociado a la hibernación de kernel."},
+        {"id": "8", "nombre": "8. Auditar Tareas Ocultas", "cmd": lambda: abrir_consola_y_ejecutar("AUDITAR TAREAS", logica_tareas_servicios), "nov": "Visualiza programas y mantenimientos fantasmas instalados en el fondo de tu equipo que podrían estar robando recursos y batería.", "exp": "[Microsoft OS] Pipe estructurado combinando la tabla schtasks y Get-Service, aislando exclusivamente los daemons cuyo estatus sea 'Running'."},
+        {"id": "9", "nombre": "9. Auditoría de Arranque", "cmd": lambda: abrir_consola_y_ejecutar("AUDITAR ARRANQUE", logica_programas_arranque), "nov": "Descubre exactamente cuáles programas se abren a escondidas apenas enciendes tu computadora, lo que hace que tu sistema tarde muchísimo en iniciar.", "exp": "[Microsoft OS] Evalúa ramas del registro y WMI (Win32_StartupCommand). Mapea binarios de persistencia que se enganchan a la fase WinLogon."},
+        {"id": "10", "nombre": "10. Historial Forense de USBs", "cmd": lambda: abrir_consola_y_ejecutar("HISTORIAL USB", logica_historial_usb), "nov": "Descifra y lista los nombres de todos los pendrives, controles y celulares que se han conectado en este equipo a lo largo de toda su historia.", "exp": "[Lennes Varela] Parsea registro Plug and Play (PnP). Itera recursivamente sobre la rama HKLM\\SYSTEM\\CurrentControlSet\\Enum\\USBSTOR extrayendo Device IDs."},
+        {"id": "11", "nombre": "11. Extractor de Pantallazos", "cmd": lambda: abrir_consola_y_ejecutar("BSOD", logica_pantallazos_azules), "nov": "Extrae los nombres y códigos de error exactos de todos los Pantallazos Azules de la Muerte recientes para diagnosticar hardware dañado.", "exp": "[Microsoft OS] Filtra EventLog System Logs buscando el origen 'BugCheck'. Extrae el volcado hexadecimal de memoria asociado al kernel panic."},
+        {"id": "12", "nombre": "12. Gestor y Laboratorio de Batería", "cmd": lambda: abrir_consola_y_ejecutar("CENTRO DE ENERGÍA", logica_monitor_bateria), "nov": "Muestra un simulador de código para entender cómo se programa una batería. Además, monitorea tu batería real en vivo y crea un reporte de desgaste.", "exp": "[Fusión WMI/psutil] Combina un simulador educativo interactivo (bucle while asíncrono) con un lector en vivo de sensores vía psutil y el dumper nativo de Windows (powercfg)."},
+        {"id": "13", "nombre": "13. Reporte de Suspensión", "cmd": lambda: abrir_consola_y_ejecutar("SLEEPSTUDY", logica_sleepstudy), "nov": "Si tu laptop se descarga estando guardada o suspendida, descubre exactamente qué programa impidió que entrara en reposo absoluto.", "exp": "[Microsoft OS] powercfg /SleepStudy analiza estados S0 Modern Standby, exponiendo los bloqueadores del Active-State Power Management (ASPM)."},
+        {"id": "14", "nombre": "14. Gestor Avanzado BitLocker", "cmd": btn_bitlocker, "nov": "Revisa el estado de cifrado, extrae tu clave actual, busca claves perdidas en USBs y desbloquea discos protegidos fácilmente.", "exp": "[Forense BDE] Interfaz interactiva para el motor 'manage-bde'. Incluye escáner recursivo ultra-rápido (dir /s /b) combinando regex para extraer recovery keys en texto plano de unidades montadas."},
+        {"id": "15", "nombre": "15. Auditoría de Usuarios Internos", "cmd": lambda: abrir_consola_y_ejecutar("USUARIOS LOCALES", logica_usuarios_locales), "nov": "Expone las cuentas registradas internamente en tu sistema, listando su nivel de seguridad e intentando detectar infiltraciones.", "exp": "[Microsoft OS] Extrae base de datos SAM ejecutando rutinas CIM hacia Win32_UserAccount para identificar el estatus de habilitación y privilegios base."},
+        {"id": "16", "nombre": "16. Extraer Serial de Fábrica", "cmd": lambda: abrir_consola_y_ejecutar("NÚMERO DE SERIE", logica_numero_serie), "nov": "Copia automáticamente a tu portapapeles el número de serie codificado de la placa base, indispensable para revisar garantías o descargar actualizaciones de BIOS.", "exp": "[Microsoft OS] Consulta nativa a Win32_ComputerSystemProduct aislando la variable string 'IdentifyingNumber' incrustada en ROM por el fabricante OEM."},
+        {"id": "17", "nombre": "17. Escáner Forense RAM", "cmd": lambda: abrir_consola_y_ejecutar("GHOST RAM", logica_memoria_ghost), "nov": "Busca virus militares sin archivo que no dejan rastros en el disco duro y se ocultan directamente en la Memoria RAM de la computadora.", "exp": "[Ejecución Nativa en Rust] Inyecta analizador de hilos. Rastrea memoria localizando inyecciones de código (Process Hollowing) mediante banderas de paginación RWX."},
+        {"id": "18", "nombre": "18. Visualizador Forense Web", "cmd": btn_historial_web, "nov": "Genera una gráfica moderna, interactiva y al instante que te muestra cuáles son las páginas web más visitadas y las últimas búsquedas, evadiendo la seguridad del sistema.", "exp": "[Bypass de Seguridad SQLite3] Evade los file locks (Errno 13) clonando la Database History del navegador Chromium hacia el %TEMP%. Interpreta sentencias SQL nativas y renderiza una interfaz interactiva Tailwind/Chart.js."},
+        {"id": "19", "nombre": "19. Radar de Hardware en Conflicto", "cmd": lambda: abrir_consola_y_ejecutar("RADAR HARDWARE", logica_radar_hardware), "nov": "Detecta piezas físicas de la computadora que estén fallando o que no tengan drivers instalados. Al detectarlas, arma automáticamente una búsqueda avanzada en internet para llevarte directo a la solución.", "exp": "[Auto-Dorking Forense] Interroga la clase WMI Win32_PnPEntity buscando ConfigManagerErrorCode != 0. Extrae la firma de hardware (VEN/DEV) y estructura una búsqueda con operadores lógicos de Google apuntando a dominios especializados."}
     ]
     construir_vista_dinamica("🖥️ Diagnóstico e Info del Sistema", "🔍 Buscar (Ej: bateria, smart, usb)...", h_diag)
 
 def cargar_categoria_software():
     global app
     h_soft = [
-            {"id": "1", "nombre": "1. Actualizar Apps Globales (Winget)", "cmd": lambda: abrir_consola_y_ejecutar("WINGET UPGRADE", logica_gestor_winget), "nov": "Analiza todos los programas de tu PC y descarga sus últimas versiones de golpe, de forma invisible y sin publicidad molesta.", "exp": "[Motor Microsoft Winget] Ejecuta 'upgrade --all' con banderas silenciosas (--silent) aceptando acuerdos de origen y licencia en background asíncrono."},
+            {"id": "1", "nombre": "1. Gestor Interactivo (Actualizar/Eliminar)", "cmd": logica_gestor_winget, "nov": "Abre un panel visual experto. Analiza la importancia de los programas, te permite seleccionar individualmente qué actualizar y te deja borrar basura del registro de forma segura.", "exp": "[Fusión Winget/Appx] Módulo Heurístico Integrado. Clasifica PIDs y APPs mediante Regex semántico. Despliega GUI de 2 vías permitiendo purga paralela de paquetes Desktop (winget) y contenedores UWP (Remove-AppxPackage)."},
             {"id": "2", "nombre": "2. Extraer Clave Original de Windows", "cmd": lambda: abrir_consola_y_ejecutar("CLAVE WINDOWS", logica_clave_windows), "nov": "Si vas a formatear y no tienes tu licencia, esta herramienta escanea la placa madre y saca a la luz la clave de fábrica original.", "exp": "[Microsoft OS] Lee tabla ACPI (MSDM) y ataca la rama de registro 'SoftwareProtectionPlatform' desencriptando el valor alfanumérico BackupProductKeyDefault."},
             {"id": "3", "nombre": "3. Inventario Software a Excel (CSV)", "cmd": lambda: abrir_consola_y_ejecutar("INVENTARIO CSV", logica_inventario_software), "nov": "Crea un documento de Excel en tu escritorio con una lista impecable de todos los programas instalados y sus versiones exactas.", "exp": "[Librería Python Winreg] Itera recursivamente en ramas HKLM 'Uninstall' (Nativo y Wow6432Node), exportando diccionarios de DisplayName a formato tabular."},
             {"id": "4", "nombre": "4. Respaldo Total de Controladores", "cmd": lambda: abrir_consola_y_ejecutar("CLONAR DRIVERS", logica_respaldo_drivers), "nov": "Ideal para PCs antiguas. Clona los controladores de Wi-Fi, Gráfica y Audio antes de un formateo para no quedar incomunicado.", "exp": "[Microsoft OS] Emplea la utilidad de imágenes de despliegue DISM con el parámetro '/export-driver', clonando librerías dinámicas y certificados de catálogo."},
@@ -6397,21 +7132,35 @@ def cargar_categoria_soporte():
         btn_frame_int = ctk.CTkFrame(dialog_url, fg_color="transparent")
         btn_frame_int.pack(pady=10)
         
-        def limpiar_url_magico(url_cruda):
+        # NUEVO: Lógica Inteligente para detectar Playlists / Mixes
+        def procesar_interactivo(url_cruda):
             url_limpia = url_cruda.strip()
-            if not url_limpia: return None
+            if not url_limpia: return
+            
             if "youtube.com" in url_limpia or "youtu.be" in url_limpia:
-                return url_limpia.split("&list=")[0].split("&index=")[0]
+                # Quitamos el index para que el Mix inicie desde la canción 1
+                if "&index=" in url_limpia:
+                    url_limpia = url_limpia.split("&index=")[0]
+                    
+                # Si detecta un Mix/Playlist, le pregunta al usuario
+                if "list=" in url_limpia:
+                    from tkinter import messagebox
+                    respuesta = messagebox.askyesno("Mix / Playlist Detectado", "Este enlace contiene un Mix o Lista de Reproducción.\n\n¿Deseas descargar TODOS los videos de la lista?\n\n(Si eliges 'No', solo se agregará el video individual).", parent=dialog_url)
+                    if not respuesta:
+                        # Si dice que No, podamos la lista y dejamos solo el video
+                        url_limpia = url_limpia.split("&list=")[0].split("?list=")[0]
             else:
-                return url_limpia.split("&utm_")[0].split("?utm_")[0]
+                # Limpieza para otras redes (Instagram, TikTok, etc)
+                url_limpia = url_limpia.split("&utm_")[0].split("?utm_")[0]
 
-        def agregar_enlace():
-            url_procesada = limpiar_url_magico(entrada.get())
-            if url_procesada and url_procesada not in urls_a_descargar:
-                urls_a_descargar.append(url_procesada)
+            if url_limpia not in urls_a_descargar:
+                urls_a_descargar.append(url_limpia)
                 lbl_contador.configure(text=f"📥 Enlaces en cola: {len(urls_a_descargar)}")
                 entrada.delete(0, 'end')
                 btn_siguiente.configure(state="normal", fg_color="#10B981") 
+
+        def agregar_enlace():
+            procesar_interactivo(entrada.get())
                 
         def pegar_y_agregar():
             try:
@@ -6419,16 +7168,12 @@ def cargar_categoria_soporte():
                 if texto:
                     entrada.delete(0, 'end')
                     entrada.insert(0, texto)
-                    agregar_enlace()
+                    procesar_interactivo(texto)
             except: pass
             
         def procesar_url():
-            url_procesada = limpiar_url_magico(entrada.get())
-            if url_procesada and url_procesada not in urls_a_descargar:
-                urls_a_descargar.append(url_procesada)
-                
+            procesar_interactivo(entrada.get())
             if not urls_a_descargar: return
-            
             dialog_url.destroy()
             abrir_ventana_calidad(urls_a_descargar)
             
@@ -6440,9 +7185,10 @@ def cargar_categoria_soporte():
         def abrir_ventana_calidad(lista_urls):
             dialog_cal = ctk.CTkToplevel(app)
             dialog_cal.title("Descargador Universal - Paso 2")
-            dialog_cal.geometry("500x350")
+            dialog_cal.geometry("500x520")
             dialog_cal.attributes("-topmost", True)
             dialog_cal.transient(app)
+            
             ctk.CTkLabel(dialog_cal, text=f"Elige el formato para los {len(lista_urls)} enlaces:", font=("Arial", 14, "bold")).pack(pady=(15, 10))
             
             def sel_calidad(cal):
@@ -6460,15 +7206,25 @@ def cargar_categoria_soporte():
                     if cal == '3': abrir_consola_y_ejecutar("DESCARGADOR MEDIOS", lambda log: logica_ytdlp(log, lista_urls, '3', 'mp3', ""))
                     elif cal == '4': abrir_consola_y_ejecutar("EXTRACTOR DE GALERÍAS", lambda log: logica_ytdlp(log, lista_urls, '4', 'img', ""))
                     else: abrir_ventana_formato(lista_urls, cal)
-                
+            
+            # --- SECCIÓN DE VIDEOS (Ordenados por Calidad) ---
             ctk.CTkButton(dialog_cal, text="🌟 1. Video Máxima Calidad (2K/4K/8K)", command=lambda: sel_calidad('1')).pack(fill="x", padx=40, pady=5)
             ctk.CTkButton(dialog_cal, text="📺 2. Video Calidad Estable (1080p)", command=lambda: sel_calidad('2')).pack(fill="x", padx=40, pady=5)
-            ctk.CTkButton(dialog_cal, text="🎵 3. Solo Audio Puro (MP3)", fg_color="#107C41", hover_color="#0F5C30", command=lambda: sel_calidad('3')).pack(fill="x", padx=40, pady=5)
+            ctk.CTkButton(dialog_cal, text="📱 3. Video Ligero (720p)", fg_color="#3B82F6", hover_color="#2563EB", command=lambda: sel_calidad('6')).pack(fill="x", padx=40, pady=5)
+            ctk.CTkButton(dialog_cal, text="🪶 4. Video Ultra Ligero (480p/360p)", fg_color="#64748B", hover_color="#475569", command=lambda: sel_calidad('7')).pack(fill="x", padx=40, pady=5)
             
+            # Separador
             ctk.CTkFrame(dialog_cal, height=2, fg_color="#334155").pack(fill="x", padx=40, pady=10)
             
-            ctk.CTkButton(dialog_cal, text="📸 4. Fotos (Posts Públicos directos)", fg_color="#A855F7", hover_color="#9333EA", command=lambda: sel_calidad('4')).pack(fill="x", padx=40, pady=5)
-            ctk.CTkButton(dialog_cal, text="🔐 5. Fotos (Posts Privados con cookies.txt)", fg_color="#F59E0B", hover_color="#D97706", command=lambda: sel_calidad('5')).pack(fill="x", padx=40, pady=5)
+            # --- SECCIÓN DE AUDIO ---
+            ctk.CTkButton(dialog_cal, text="🎵 5. Solo Audio Puro (MP3)", fg_color="#107C41", hover_color="#0F5C30", command=lambda: sel_calidad('3')).pack(fill="x", padx=40, pady=5)
+            
+            # Separador
+            ctk.CTkFrame(dialog_cal, height=2, fg_color="#334155").pack(fill="x", padx=40, pady=10)
+            
+            # --- SECCIÓN DE FOTOS / GALERÍAS ---
+            ctk.CTkButton(dialog_cal, text="📸 6. Fotos (Posts Públicos directos)", fg_color="#A855F7", hover_color="#9333EA", command=lambda: sel_calidad('4')).pack(fill="x", padx=40, pady=5)
+            ctk.CTkButton(dialog_cal, text="🔐 7. Fotos (Posts Privados con cookies.txt)", fg_color="#F59E0B", hover_color="#D97706", command=lambda: sel_calidad('5')).pack(fill="x", padx=40, pady=5)
 
         def abrir_ventana_formato(lista_urls, calidad):
             dialog_fmt = ctk.CTkToplevel(app)

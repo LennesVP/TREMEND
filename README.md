@@ -1,7 +1,7 @@
-# 🚀 TREMEND Toolkit V3.2 [SEGURIDAD MILITAR Y MULTIPLATAFORMA]
+# 🚀 TREMEND Toolkit V3.3 [SEGURIDAD MILITAR Y MULTIPLATAFORMA]
 **Desarrollado por:** LDVP (Lennes D. Varela Poveda)
 
-![Versión](https://img.shields.io/badge/Versi%C3%B3n-3.2%20Stable-blue)
+![Versión](https://img.shields.io/badge/Versi%C3%B3n-3.3%20Stable-blue)
 ![Plataforma](https://img.shields.io/badge/OS-Windows%20%7C%20Linux%20%7C%20Android%20%7C%20Mac-lightgrey)
 ![Licencia](https://img.shields.io/badge/Licencia-Open%20Source-brightgreen)
 ![Visitas](https://komarev.com/ghpvc/?username=LennesVP&repo=TREMEND&label=Visitas+al+Repositorio&color=8B5CF6&style=flat)
@@ -11,27 +11,26 @@ TREMEND Toolkit es una suite avanzada, portátil y sigilosa de diagnóstico y so
 
 ---
 
-## 🌟 Novedades Exclusivas de la Versión 3.2
-Esta versión marca la evolución definitiva del proyecto hacia la automatización inteligente, la inteligencia artificial local y el análisis forense:
-* 🤖 **Protocolo Modo Dios:** Despliega un HUD holográfico con visión artificial para escanear códigos QR, códigos de barras e identificar IMEIs de celulares con validación matemática en vivo.
-* 🧠 **Inteligencia Artificial Local:** Integración de redes neuronales puras (`rembg` + `onnxruntime`) para borrar fondos fotográficos, y un Escáner Óptico de Pantallas (O.C.R.) para extraer texto de cualquier imagen del sistema.
-* 🎙️ **Asistente Virtual de Voz:** Nuevo sistema cognitivo integrado que te explica el funcionamiento y propósito de cada herramienta paso a paso a través de los altavoces de tu PC.
-* 🕵️ **Nuevos Laboratorios Forenses:** Analizador Anti-Phishing para detectar correos estafa, Radar Financiero de Divisas Globales en vivo, y un Visualizador Forense para extraer el historial web borrado evadiendo la seguridad de bases de datos SQLite.
-* 🗂️ **Automatización de Almacenamiento:** Clasifica el caos con el nuevo Organizador Inteligente de Archivos y explora hasta el último rincón de tu disco con el Radar Visual de Almacenamiento multinúcleo.
+## 🌟 Novedades Exclusivas de la Versión 3.3
+Esta versión marca un hito en la **estabilidad extrema** y la optimización del núcleo del programa, solucionando cuellos de botella y eliminando dependencias externas:
+* 🎛️ **Monitor de Sistema (HUD) 100% Nativo:** Reescritura total del motor de sensores en tiempo real (CPU, RAM, Disco, Ping). Ahora se conecta directamente al núcleo de Windows utilizando llamadas a la API de C++ (`ctypes`), eliminando por completo la necesidad de instalar librerías externas de terceros y garantizando cero congelamientos.
+* 🛡️ **Escudo Anti-Crasheos UWP:** El Centro de Inteligencia de Software ahora incluye un bypass de seguridad. Si intentas desinstalar una aplicación blindada vital para el sistema operativo (SystemApps), el programa la bloqueará inteligentemente en lugar de arrojar errores fatales.
+* 🤖 **Protocolo Modo Dios e IA Local:** Despliega un HUD holográfico con visión artificial para escanear IMEIs, integración de redes neuronales puras (`rembg`) para borrar fondos fotográficos offline, y un Escáner Óptico de Pantallas (O.C.R.).
+* 🎙️ **Asistente Virtual de Voz (V4):** Sistema cognitivo integrado mejorado con multihilo asíncrono para explicarte el funcionamiento de cada herramienta a través de los altavoces de tu PC sin interrumpir tu trabajo.
 
 ---
 
-## 🏗️ Arquitectura del Proyecto (V3.2)
-A partir de la versión 3.2, la interfaz consolida un motor de ejecución interactiva con una mini-terminal nativa y expande enormemente el catálogo FOSS multiplataforma:
+## 🏗️ Arquitectura del Proyecto (V3.3)
+La interfaz consolida un motor de ejecución interactiva con una mini-terminal nativa y expande enormemente el catálogo FOSS multiplataforma:
 
 ### 🪟 SISTEMAS OPERATIVOS
 
 **1. Ecosistema Windows (Ejecución Nativa)**
-* **🌐 Redes e Internet:** Escáner de puertos, resolución DNS inversa, radar de tráfico Sniffnet, y **[NUEVO] Laboratorio Anti-Phishing y Radar Financiero API**.
-* **🧹 Mantenimiento y Optimización:** Mantenimiento Extremo Multi-Disco, Optimizador Terminal Mole, reparación de fugas de espacio, y **[NUEVO] Organizador Inteligente y Radar Visual de Almacenamiento**.
-* **🖥️ Diagnóstico e Info del Sistema:** HUD Interactivo en vivo, Volcado forense de RAM (Ghost), Gestor y Laboratorio de Batería, y **[NUEVO] Visualizador Forense Web y Radar de Hardware en Conflicto**.
-* **📦 Software y Licencias:** Extracción de licencias OEM, inventario a CSV, integración ASUS/Lenovo, y gestor de paquetes Winget.
-* **⚙️ Soporte Técnico:** Rompe-Claves de Archivos por fuerza bruta, Auditoría WinPEAS + Auto-Blindaje, Descargador Multimedia, y **[NUEVO] Modo Dios (HUD Escáner), Borrador de Fondos IA y Escáner Óptico OCR**.
+* **🌐 Redes e Internet:** Escáner de puertos, resolución DNS inversa, radar de tráfico Sniffnet, Laboratorio Anti-Phishing y Radar Financiero API.
+* **🧹 Mantenimiento y Optimización:** Mantenimiento Extremo Multi-Disco, Optimizador Terminal Mole, reparación de fugas de espacio, Organizador Inteligente y Radar Visual de Almacenamiento.
+* **🖥️ Diagnóstico e Info del Sistema:** HUD Interactivo nativo en vivo, Volcado forense de RAM (Ghost), Gestor de Batería, Visualizador Forense Web y Radar de Hardware en Conflicto.
+* **📦 Software y Licencias:** Extracción de licencias OEM, inventario a CSV, integración ASUS/Lenovo, y Gestor de paquetes Winget blindado.
+* **⚙️ Soporte Técnico:** Rompe-Claves de Archivos por fuerza bruta, Auditoría WinPEAS + Auto-Blindaje, Modo Dios (HUD Escáner), Borrador de Fondos IA y Escáner Óptico OCR.
 
 **2. Ecosistemas Alternativos y Móviles**
 * **🐧 Linux:** Categoría ejecutiva con layout de servidor Tiling. Terminal TTY persistente con herramientas de Ciberseguridad, Redes y LinPEAS + Protocolo Auto-Blindaje.
@@ -48,7 +47,7 @@ TREMEND Toolkit no almacena binarios pesados en su código fuente. Utiliza catá
 
 ---
 
-## 📥 Opciones de Descarga (Release v3.2)
+## 📥 Opciones de Descarga (Release v3.3)
 Dirígete a la sección de **[Releases](https://github.com/LennesVP/TREMEND/releases/latest)** para obtener la suite.
 * **`TREMEND.exe`:** El programa completo y horneado para tu estación de trabajo.
 * **`Iniciar_TREMEND.bat` (Dropper en la Nube):** Script ultraligero que descarga silenciosamente la última versión en la memoria RAM y la abre sin dejar basura en el disco del cliente.
@@ -59,7 +58,7 @@ Dirígete a la sección de **[Releases](https://github.com/LennesVP/TREMEND/rele
 **Correo directo:** tremend67@gmail.com.
 
 ## 🤝 Créditos y Reconocimientos
-Rindimos tributo al trabajo de desarrolladores de élite:
+Rendimos tributo al trabajo de desarrolladores de élite:
 * Motores Base: *Microsoft Corp, Linux Coreutils, Python Software Foundation*.
 * Utilidades: *Chris Titus Tech, massgravel, carlospolop (PEASS-ng), AlessandroZ, pandaadir05, yt-dlp contributors*.
 
