@@ -6,6 +6,26 @@
 ![Licencia](https://img.shields.io/badge/Licencia-Open%20Source-brightgreen)
 ![Visitas](https://komarev.com/ghpvc/?username=LennesVP&repo=TREMEND&label=Visitas+al+Repositorio&color=8B5CF6&style=flat)
 ![Última Actualización](https://img.shields.io/github/last-commit/LennesVP/TREMEND?color=00FFCC&label=Última%20Actualización&style=flat)
+<div align="center">
+
+# 🔒 META COMUNITARIA: DESBLOQUEO DE TREMEND V3.4 🚀
+
+**La versión 3.4 ya está en desarrollo**, pero cada nueva versión (**V3.4, V3.5...**) se publicará **únicamente cuando alcancemos la meta de apoyo de la comunidad**.
+
+[![Estrellas Actuales](https://img.shields.io/github/stars/LennesVP/TREMEND?style=for-the-badge&logo=github&label=ESTRELLAS%20ACTUALES&color=00FFCC)](https://github.com/LennesVP/TREMEND/stargazers)
+[![Meta V3.4](https://img.shields.io/badge/META%20PARA%20LIBERAR%20V3.4-50%20ESTRELLAS-F59E0B?style=for-the-badge)](https://github.com/LennesVP/TREMEND)
+[![Apoyar en Ko-fi](https://img.shields.io/badge/APOYAR%20EL%20PROYECTO-KO--FI-FF5E5B?style=for-the-badge&logo=ko-fi&logoColor=white)](https://ko-fi.com/ldvp55)
+
+### 📊 ¿Cómo ayudar a liberar la V3.4 más rápido?
+1. ⭐ **Dale a la Estrella (`Star`)** arriba a la derecha en este repositorio (toma 1 segundo y es gratis).
+2. 📲 **Comparte el repositorio** con tus colegas técnicos, programadores o en tus redes.
+3. ☕ **Haz un aporte voluntario en [Ko-fi](https://ko-fi.com/ldvp55)** para mantener vivo el desarrollo y los servidores.
+
+> *Apenas el contador llegue a **50 estrellas**, se habilitará la descarga oficial de **TREMEND Toolkit V3.4** y se abrirá la meta para la **V3.5**.*
+
+</div>
+
+---
 
 TREMEND Toolkit es una suite avanzada, portátil y sigilosa de diagnóstico y soporte técnico. Diseñada para administradores de sistemas y técnicos de hardware, centraliza comandos nativos y herramientas de élite en una interfaz gráfica interactiva, eliminando la necesidad de memorizar extensas líneas de código en PowerShell, CMD o Terminales Bash.
 

@@ -3,7 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TREMEND Toolkit | Soporte Técnico</title>
+    
+    <!-- 1. META TÍTULOS Y DESCRIPCIONES (SEO) -->
+    <title>TREMEND Toolkit | Herramienta de Soporte Técnico</title>
+    <meta name="description" content="TREMEND Toolkit es la herramienta definitiva para soporte técnico. Optimiza, repara y audita sistemas Windows, Linux, Mac y Android con IA integrada.">
+    <meta name="keywords" content="soporte técnico, reparar windows, optimizar pc, auditoría redes, TREMEND">
+    
+    <!-- 2. FAVICON RÁPIDO (Icono de la pestaña) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛠️</text></svg>">
+
+    <!-- 3. DATOS ESTRUCTURADOS (Para que Google entienda que vendes/ofreces software) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "TREMEND Toolkit",
+      "operatingSystem": "Windows, Linux, macOS, Android",
+      "applicationCategory": "UtilitiesApplication",
+      "description": "El Kit Definitivo para Soporte Técnico. Optimiza, repara y audita sistemas con una herramienta ultraligera.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "COP"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Lennes Daniel Varela Poveda"
+      }
+    }
+    </script>
+
+    <!-- 4. ANALÍTICA INSTALADA (Marcador de posición para Google Analytics) -->
+    <!-- Reemplaza 'G-XXXXXXXXXX' con tu ID real de Google Analytics cuando lo tengas -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-XXXXXXXXXX');
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
@@ -22,7 +61,7 @@
         <div class="container mx-auto flex justify-between items-center relative">
             <div class="text-2xl font-black tracking-widest text-[#00FFCC]">TREMEND</div>
             
-            <button id="menu-btn" class="md:hidden text-emerald-400 focus:outline-none p-2">
+            <button id="menu-btn" class="md:hidden text-emerald-400 focus:outline-none p-2" aria-label="Abrir menú">
                 <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
             </button>
 
@@ -33,10 +72,9 @@
                 <a href="#manuales" class="hover:text-[#10B981] transition block">Manuales</a>
                 <a href="#tienda" class="hover:text-[#F59E0B] transition block">Licencias</a>
                 <a href="#apoyo" class="hover:text-[#EF4444] transition block">Apoyar</a>
-                <a href="https://wa.me/573028384292" target="_blank" class="md:hidden bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-bold py-3 px-4 rounded-full text-center mt-4 block shadow-[0_0_10px_rgba(16,185,129,0.4)]">Contacto / Soporte</a>
             </div>
-
-            <a href="https://wa.me/573028384292" target="_blank" class="hidden md:block bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-bold py-2 px-6 rounded-full transition shadow-[0_0_10px_rgba(16,185,129,0.4)]">Contacto</a>
+            
+            <div class="hidden md:block w-[100px]"></div> <!-- Espaciador para centrar menú -->
         </div>
     </nav>
 
@@ -49,35 +87,20 @@
         
         <div class="flex flex-col sm:flex-row items-center gap-4 mt-4 w-full sm:w-auto">
             
-            <div class="relative inline-flex shadow-[0_0_20px_rgba(16,185,129,0.4)] rounded-full w-full sm:w-auto">
-                <a href="#" class="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-bold py-4 px-6 sm:px-8 rounded-l-full transition flex items-center justify-center text-lg">
-                    ⬇️ Descargar TREMEND
+            <!-- 5. UNA SOLA LLAMADA A LA ACCIÓN PRINCIPAL -->
+            <div class="relative inline-flex shadow-[0_0_20px_rgba(16,185,129,0.4)] rounded-full w-full sm:w-auto group">
+                <a href="https://github.com/LennesVP/TREMEND/releases/latest/download/TREMEND.exe" class="w-full sm:w-auto bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-bold py-4 px-8 rounded-full transition flex items-center justify-center text-lg shadow-xl">
+                    <svg class="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    Descargar TREMEND (Gratis)
                 </a>
-                <button id="dropdown-btn" class="bg-emerald-600 hover:bg-emerald-500 text-gray-900 font-bold py-4 px-4 rounded-r-full border-l border-emerald-700 transition flex items-center justify-center focus:outline-none">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"></path></svg>
-                </button>
-
-                <!-- Menú Desplegable Oculto -->
-                <div id="dropdown-menu" class="hidden absolute top-full mt-2 right-0 w-64 bg-gray-900 border border-emerald-500/50 rounded-xl shadow-2xl overflow-hidden z-50 text-left">
-                    <a href="https://github.com/LennesVP/TREMEND/releases/latest/download/TREMEND.exe" class="block px-4 py-4 text-white hover:bg-emerald-500 hover:text-gray-900 font-bold transition border-b border-gray-700">
-                        📦 Versión .EXE (Completa)
-                        <span class="block text-xs font-normal opacity-80 mt-1">Descarga siempre la versión estable más reciente.</span>
-                    </a>
-                    <a href="https://github.com/LennesVP/TREMEND/releases/latest/download/Iniciar_TREMEND.bat" class="block px-4 py-4 text-white hover:bg-emerald-500 hover:text-gray-900 font-bold transition">
-                        🧰 Versión Portable (.BAT)
-                        <span class="block text-xs font-normal opacity-80 mt-1">Lanzador ligero ideal para memorias USB.</span>
-                    </a>
-                </div>
             </div>
 
-            <a href="https://github.com/LennesVP/TREMEND" target="_blank" class="w-full sm:w-auto card-glass hover:bg-gray-800 text-white font-bold py-4 px-6 sm:px-8 rounded-full transition flex items-center justify-center text-lg border border-blue-500/30 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
-                <svg class="w-6 h-6 mr-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
-                Ver Repositorio
+            <a href="https://github.com/LennesVP/TREMEND" target="_blank" class="w-full sm:w-auto card-glass hover:bg-gray-800 text-white font-bold py-4 px-6 sm:px-8 rounded-full transition flex items-center justify-center text-lg border border-blue-500/30 hover:border-blue-400">
+                Ver Repositorio y Código
             </a>
         </div>
     </main>
 
-    <!-- NUEVA SECCIÓN: NOVEDADES V3.3 -->
     <section id="novedades" class="container mx-auto px-6 py-12">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
             <div class="card-glass p-6 rounded-xl border-t-2 border-[#10B981]">
@@ -128,7 +151,6 @@
         </div>
     </section>
 
-    <!-- SECCIÓN: APOYA EL PROYECTO -->
     <section id="apoyo" class="container mx-auto px-6 py-16 bg-[#050810]">
         <div class="flex items-center mb-6">
             <span class="text-3xl mr-3">💖</span>
@@ -137,87 +159,102 @@
         <p class="text-gray-400 mb-10 max-w-3xl text-lg">TREMEND Toolkit es y será de código abierto. Si esta herramienta te ha ahorrado horas de trabajo o te ha ayudado a generar ingresos, considera invitarme un café o convertirte en patrocinador para mantener los servidores vivos y el desarrollo activo.</p>
         
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            
-            <!-- Buy Me a Coffee -->
             <div class="card-glass p-6 rounded-xl border-t-4 border-[#FFDD00] flex flex-col h-full hover:shadow-[0_0_20px_rgba(255,221,0,0.2)] transition">
                 <h3 class="text-xl font-bold text-white mb-2">☕ Buy Me a Coffee</h3>
                 <p class="text-sm text-gray-400 mb-4 flex-grow">La forma más rápida y amigable de invitarme un café si una herramienta te salvó de un apuro técnico.</p>
                 <a href="https://ko-fi.com/ldvp55" target="_blank" class="w-full text-center bg-[#FFDD00] hover:bg-[#E6C700] text-gray-900 font-bold py-3 rounded-lg transition">Invitar un Café</a>
             </div>
-
-            <!-- Transferencia/Bre-B -->
             <div class="card-glass p-6 rounded-xl border-t-4 border-[#E10098] flex flex-col h-full hover:shadow-[0_0_20px_rgba(225,0,152,0.2)] transition">
                 <h3 class="text-xl font-bold text-white mb-2">📱 Transferencia/Bre-B</h3>
                 <p class="text-sm text-gray-400 mb-4 flex-grow">Para la gente de Colombia. Transferencias directas, al toque y sin comisiones.</p>
-                <!-- Puedes cambiar el link por tu número o un link de pago de Nequi -->
                 <a href="@LVP671" target="_blank" class="w-full text-center bg-[#E10098] hover:bg-[#C00082] text-white font-bold py-3 rounded-lg transition">Transferir Breve</a>
             </div>
-
-            <!-- Mercado Pago -->
             <div class="card-glass p-6 rounded-xl border-t-4 border-[#00B1EA] flex flex-col h-full hover:shadow-[0_0_20px_rgba(0,177,234,0.2)] transition">
                 <h3 class="text-xl font-bold text-white mb-2">🤝 Mercado Pago</h3>
                 <p class="text-sm text-gray-400 mb-4 flex-grow">Aportes 100% seguros con tarjeta o saldo en tu cuenta para toda Latinoamérica.</p>
                 <a href="https://link.mercadopago.com.co/tremend" target="_blank" class="w-full text-center bg-[#00B1EA] hover:bg-[#0098C9] text-white font-bold py-3 rounded-lg transition">Aportar con Mercado Pago</a>
             </div>
-
-            <!-- GitHub Sponsors -->
             <div class="card-glass p-6 rounded-xl border-t-4 border-[#FAFBFC] flex flex-col h-full hover:shadow-[0_0_20px_rgba(250,251,252,0.2)] transition">
                 <h3 class="text-xl font-bold text-white mb-2">🐙 GitHub Sponsors</h3>
                 <p class="text-sm text-gray-400 mb-4 flex-grow">Apoyo directo desde la plataforma de desarrolladores para financiar las horas de código abierto.</p>
                 <a href="https://github.com/sponsors/LennesVP" target="_blank" class="w-full text-center bg-[#FAFBFC] hover:bg-[#E1E4E8] text-gray-900 font-bold py-3 rounded-lg transition">Patrocinar en GitHub</a>
             </div>
-
-            <!-- Amazon Wishlist -->
             <div class="card-glass p-6 rounded-xl border-t-4 border-[#FF9900] flex flex-col h-full hover:shadow-[0_0_20px_rgba(255,153,0,0.2)] transition">
                 <h3 class="text-xl font-bold text-white mb-2">📦 Amazon Wishlist</h3>
                 <p class="text-sm text-gray-400 mb-4 flex-grow">¿Prefieres apoyar regalando hardware o libros? Échale un vistazo a mi lista de deseos para mejorar mi entorno de pruebas.</p>
                 <a href="https://www.amazon.com/hz/wishlist/ls/3129WX8TBY0J6?ref_=wl_share" target="_blank" class="w-full text-center bg-[#FF9900] hover:bg-[#E68A00] text-gray-900 font-bold py-3 rounded-lg transition">Ver Lista de Amazon</a>
             </div>
-
         </div>
     </section>
 
+    <!-- 6. BOTÓN FLOTANTE DE WHATSAPP VISIBLE EN TODA LA WEB -->
+    <a href="https://wa.me/573028384292" target="_blank" class="fixed bottom-6 right-6 bg-[#25D366] hover:bg-[#1DA851] text-white p-4 rounded-full shadow-[0_4px_15px_rgba(37,211,102,0.4)] transition-transform hover:scale-110 z-50 flex items-center justify-center group" aria-label="Contactar por WhatsApp">
+        <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.88-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.347-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.876 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.291.173-1.414z"/></svg>
+        <span class="absolute right-14 bg-gray-900 text-white text-xs px-3 py-1 rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-gray-700">Chatea con nosotros</span>
+    </a>
+
+    <!-- 7. AVISO DE COOKIES INTEGRADO -->
+    <div id="cookie-banner" class="fixed bottom-0 left-0 w-full bg-gray-900 border-t border-gray-800 p-4 z-50 flex flex-col sm:flex-row justify-between items-center transition-transform transform translate-y-full duration-500 hidden">
+        <p class="text-sm text-gray-400 mb-4 sm:mb-0 text-center sm:text-left">Usamos cookies para mejorar tu experiencia de navegación y analizar nuestro tráfico. <a href="#" class="text-emerald-400 hover:text-emerald-300 underline">Leer Política de Cookies</a>.</p>
+        <div class="flex gap-4">
+            <button id="accept-cookies" class="bg-emerald-500 hover:bg-emerald-400 text-gray-900 font-bold py-2 px-6 rounded transition shadow-md">Aceptar</button>
+            <button id="reject-cookies" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded transition">Rechazar</button>
+        </div>
+    </div>
+
+    <!-- 8. ENLACES LEGALES EN EL FOOTER -->
     <footer class="border-t border-gray-800 p-10 text-center text-gray-500 mt-auto bg-[#050810]">
         <h2 class="text-xl font-bold text-gray-300 mb-2">TREMEND Toolkit</h2>
         <p class="mb-4">Soporte Técnico Especializado | Candelaria, Valle del Cauca, Colombia</p>
+        
+        <div class="flex justify-center space-x-6 mb-6 text-sm text-gray-400">
+            <a href="#" class="hover:text-emerald-400 transition">Aviso Legal</a>
+            <a href="#" class="hover:text-emerald-400 transition">Política de Privacidad</a>
+            <a href="#" class="hover:text-emerald-400 transition">Aviso de Cookies</a>
+        </div>
+        
         <p class="text-xs">&copy; 2026. Diseñado y programado por Lennes Daniel Varela Poveda.</p>
     </footer>
 
     <script>
-        // --- 1. LÓGICA DE LOS MENÚS ---
+        // --- LÓGICA DE MENÚS Y AVISO DE COOKIES ---
         const menuBtn = document.getElementById('menu-btn');
         const menuLinks = document.getElementById('menu-links');
         
-        // Abre y cierra el menú hamburguesa en celulares
         menuBtn.addEventListener('click', () => {
             menuLinks.classList.toggle('hidden');
         });
 
-        // Abre y cierra la flecha del botón de descarga
-        const dropdownBtn = document.getElementById('dropdown-btn');
-        const dropdownMenu = document.getElementById('dropdown-menu');
-        
-        dropdownBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); // Evita que se cierre instantáneamente
-            dropdownMenu.classList.toggle('hidden');
+        // Control del Banner de Cookies
+        const cookieBanner = document.getElementById('cookie-banner');
+        const acceptCookies = document.getElementById('accept-cookies');
+        const rejectCookies = document.getElementById('reject-cookies');
+
+        if (!localStorage.getItem('cookies_handled')) {
+            cookieBanner.classList.remove('hidden');
+            setTimeout(() => cookieBanner.classList.remove('translate-y-full'), 100);
+        }
+
+        acceptCookies.addEventListener('click', () => {
+            localStorage.setItem('cookies_handled', 'true');
+            cookieBanner.classList.add('translate-y-full');
+            setTimeout(() => cookieBanner.classList.add('hidden'), 500);
         });
 
-        // Si el usuario hace clic en cualquier otro lado de la pantalla, se cierra el menú de descarga
-        document.addEventListener('click', (e) => {
-            if (!dropdownBtn.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                dropdownMenu.classList.add('hidden');
-            }
+        rejectCookies.addEventListener('click', () => {
+            localStorage.setItem('cookies_handled', 'true');
+            cookieBanner.classList.add('translate-y-full');
+            setTimeout(() => cookieBanner.classList.add('hidden'), 500);
         });
 
-
-        // --- 2. LÓGICA DE LAS TARJETAS JSON ---
+        // --- LÓGICA DE CARGA DE APPS (Enciclopedias, Manuales, Tienda) ---
         const timestamp = new Date().getTime();
 
         fetch(`https://raw.githubusercontent.com/LennesVP/Encyclopedia-of-Tools/main/enciclopedia.json?t=${timestamp}`)
             .then(res => res.json())
             .then(data => {
                 document.getElementById('grid-enciclopedia').innerHTML = data.map(item => `
-                    <div class="card-glass p-6 rounded-xl border-enciclopedia flex flex-col h-full">
+                    <div class="card-glass p-6 rounded-xl border-enciclopedia flex flex-col h-full hover:shadow-[0_0_15px_rgba(56,189,248,0.15)]">
                         <h3 class="text-xl font-bold text-white mb-1">${item.titulo || 'App'}</h3>
                         <span class="text-xs font-bold text-[#A78BFA] mb-3">${item.categoria || 'Herramienta'}</span>
                         <p class="text-sm text-gray-400 flex-grow mb-4">${item.descripcion || ''}</p>
@@ -233,7 +270,7 @@
             .then(res => res.json())
             .then(data => {
                 document.getElementById('grid-manuales').innerHTML = data.map(item => `
-                    <div class="card-glass p-6 rounded-xl border-manual flex flex-col h-full">
+                    <div class="card-glass p-6 rounded-xl border-manual flex flex-col h-full hover:shadow-[0_0_15px_rgba(16,185,129,0.15)]">
                         <h3 class="text-xl font-bold text-white mb-1">${item.titulo}</h3>
                         <span class="text-xs font-bold text-[#38BDF8] mb-3">🖥️ ${item.plataforma || 'General'}</span>
                         <p class="text-sm text-gray-300 whitespace-pre-line mb-4 flex-grow">${item.descripcion}</p>
@@ -249,7 +286,7 @@
                 document.getElementById('grid-tienda').innerHTML = data.map(item => {
                     const mensajeWA = encodeURIComponent(`Hola Lennes, me interesa adquirir la licencia de: ${item.producto} que vi en la web de TREMEND.`);
                     return `
-                    <div class="card-glass p-6 rounded-xl border-tienda flex flex-col h-full">
+                    <div class="card-glass p-6 rounded-xl border-tienda flex flex-col h-full hover:shadow-[0_0_15px_rgba(245,158,11,0.15)]">
                         <h3 class="text-lg font-bold text-[#FCD34D] mb-2">${item.producto}</h3>
                         <div class="flex items-center mb-3">
                             <span class="text-2xl font-black text-[#10B981] mr-3">${item.precio_tremend}</span>
@@ -257,7 +294,7 @@
                         </div>
                         <p class="text-sm text-gray-400 mb-4 flex-grow">${item.descripcion}</p>
                         <p class="text-xs text-gray-300 font-mono mb-4 bg-gray-800/50 p-2 rounded">${item.caracteristicas}</p>
-                        <a href="https://wa.me/${numeroWA}?text=${mensajeWA}" target="_blank" class="w-full text-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-2 rounded transition">
+                        <a href="https://wa.me/${numeroWA}?text=${mensajeWA}" target="_blank" class="w-full text-center bg-[#25D366] hover:bg-[#1DA851] text-white font-bold py-2 rounded transition shadow-md hover:shadow-lg">
                             📲 Comprar por WhatsApp
                         </a>
                     </div>
